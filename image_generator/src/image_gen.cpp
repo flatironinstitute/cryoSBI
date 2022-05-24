@@ -2,61 +2,78 @@
 #include "pdb_reader.h"
 #include "quaternions.h"
 
-void run_gen(myparam_t emgrad_param, int rank, int world_size, int ntomp){
+void run_gen(myparam_t param_device, int rank, int world_size, int ntomp){
 
   // Parse pdb file
   myvector_t r_coord;
   std::vector <std::string> atom_names;
 
-  get_coordinates(&emgrad_param, r_coord, atom_names, rank);
+  get_coordinates(&param_device, r_coord, atom_names, rank);
 
-  std::cout << r_coord[0] << " " << emgrad_param.n_atoms << " " << emgrad_param.n_pixels << std::endl;
+  std::cout << r_coord[0] << " " << param_device.n_atoms << " " << param_device.n_pixels << std::endl;
 
   // Create grid
-  emgrad_param.gen_grid();
-  emgrad_param.calc_neigh();
-  emgrad_param.calc_norm();
+  param_device.gen_grid();
+  param_device.calc_neigh();
+  param_device.calc_norm();
 
-  int imgs_per_process = emgrad_param.n_imgs/world_size;
+  if (param_device.n_imgs < world_size) myError("The number of images must be bigger than the number of processes!")
 
-  if (imgs_per_process < 1) myError("The number of images must be bigger than the number of processes!")
+  int imgs_per_process = param_device.n_imgs / world_size;
+  int residual_images = param_device.n_imgs % world_size;
   
-  int start_img = rank*imgs_per_process;
-  int end_img = start_img + imgs_per_process;
-  mydataset_t exp_imgs(imgs_per_process);
+  int start_img;
+  int end_img;
 
-  generate_quaternions(exp_imgs, imgs_per_process);
+  mydataset_t exp_imgs;
+
+  if (rank == 0){
+
+    start_img = 0;
+    end_img = start_img + imgs_per_process + residual_images;
+    exp_imgs.resize(imgs_per_process + residual_images);
+  }
+
+  else {
+
+    start_img = rank * imgs_per_process + residual_images;
+    end_img = start_img + imgs_per_process;
+
+    exp_imgs.resize(imgs_per_process);
+  }
 
   int counter = 0;
   for (int i=start_img; i<end_img; i++){
 
     // Allocate memory for later
-    exp_imgs[counter].intensity = myvector_t(emgrad_param.n_pixels*emgrad_param.n_pixels, 0.0);
+    exp_imgs[counter].intensity = myvector_t(param_device.n_pixels * param_device.n_pixels, 0.0);
 
     // Set image name
-    exp_imgs[counter].fname = emgrad_param.img_pfx + std::to_string(i) + ".txt";
+    exp_imgs[counter].fname = param_device.img_pfx + std::to_string(i) + ".txt";
 
     counter++;
   } 
 
   if (rank == 0) printf("\nGenerating images...\n");
   
-  if (emgrad_param.with_rot){
+  if (param_device.with_rot){
+
+    generate_quaternions(exp_imgs, exp_imgs.size());
 
     myvector_t r_rot = r_coord;
     for (int i=0; i<exp_imgs.size(); i++){
 
       quaternion_rotation(exp_imgs[i].q, r_coord, r_rot);
-      calc_img_omp(r_rot, exp_imgs[i].intensity, &emgrad_param, ntomp);
-      print_image(&exp_imgs[i], emgrad_param.n_pixels);
+      calc_img_omp(r_rot, exp_imgs[i].intensity, &param_device, ntomp);
+      print_image(&exp_imgs[i], param_device.n_pixels);
     }
   }
 
   else {
     for (int i=0; i<exp_imgs.size(); i++){
 
-      calc_img_omp(r_coord, exp_imgs[i].intensity, &emgrad_param, ntomp);
-      print_image(&exp_imgs[i], emgrad_param.n_pixels);
+      calc_img_omp(r_coord, exp_imgs[i].intensity, &param_device, ntomp);
+      print_image(&exp_imgs[i], param_device.n_pixels);
     }
   }
 

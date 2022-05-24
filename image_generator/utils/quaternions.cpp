@@ -20,6 +20,11 @@ void generate_quaternions(mydataset_t &dataset, int imgs_per_process){
     q_norm = std::sqrt(q_norm);
 
     if (0.2 <= q_norm && q_norm <= 1.0){
+      
+      // dataset[counter].q[0] = 0.19721375;
+      // dataset[counter].q[1] = 0.86939675;
+      // dataset[counter].q[2] = 0.41517918;
+      // dataset[counter].q[3] = 0.18133467;
 
       dataset[counter].q[0] = qx/q_norm;
       dataset[counter].q[1] = qy/q_norm;
