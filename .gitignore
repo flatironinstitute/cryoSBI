@@ -2,8 +2,6 @@
 models/
 unp_notebooks/
 config.txt
-*.job
-*.sh
 *.out
 *.pt
 *.zip
