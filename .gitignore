@@ -2,10 +2,14 @@
 models/
 unp_notebooks/
 config.txt
+*.job
+*.sh
 *.out
 *.pt
 *.zip
 *.pkl
+*.out.*
+*.err.*
 sbi-logs/
 
 # Byte-compiled / optimized / DLL files
