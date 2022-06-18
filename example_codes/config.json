@@ -1,0 +1,17 @@
+{
+    "IMAGES": {
+        "N_PIXELS": 128,
+        "PIXEL_SIZE": 1.0,
+        "SIGMA": 1.0,
+        "SNR": 0.1
+    },
+    "SIMULATION": {
+        "N_SIMULATIONS": 10
+    },
+    "TRAINING": {
+        "HIDDEN_FEATURES": 10,
+        "NUM_TRANSFORMS": 4,
+        "DEVICE": "CPU",
+        "POSTERIOR_NAME": "posterior_10_4.pkl"
+    }
+}
