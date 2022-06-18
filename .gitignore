@@ -8,6 +8,9 @@ config.txt
 *.pkl
 *.out.*
 *.err.*
+*.tar.gz
+*.zip
+*.tar
 sbi-logs/
 
 # Byte-compiled / optimized / DLL files
