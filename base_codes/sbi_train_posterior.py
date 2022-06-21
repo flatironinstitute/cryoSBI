@@ -1,22 +1,26 @@
 import pickle
-import sys
+import argparse
 import json
 import torch
+import numpy as np
+
 from sbi import utils as utils
 from sbi.inference import SNPE
 from sbi.utils.get_nn_models import posterior_nn
 
-from example_codes.sbi_generate_data import simulator
 
+def main(num_workers):
 
-def main(argv):
-
-    torch.set_num_threads(int(argv[1]))
+    torch.set_num_threads(num_workers)
 
     images = torch.load("images.pt")
     indices = torch.load("indices.pt")
 
-    prior_indices = utils.BoxUniform(low=1 * torch.ones(1), high=20 * torch.ones(1))
+    prior_indices = utils.BoxUniform(
+        low=1 * torch.ones(1, device=training_params["DEVICE"]),
+        high=20 * torch.ones(1, device=training_params["DEVICE"]),
+        device=training_params["DEVICE"],
+    )
 
     density_estimator_build_fun = posterior_nn(
         model="maf",
@@ -52,9 +56,11 @@ def check_inputs():
 
     if "POSTERIOR_NAME" not in training_params.keys():
         training_params["POSTERIOR_NAME"] = "posterior.pkl"
-        
+
     if "cuda" in training_params["DEVICE"]:
-        assert torch.cuda.is_available(), "Your device is cuda but there is no GPU available"
+        assert (
+            torch.cuda.is_available()
+        ), "Your device is cuda but there is no GPU available"
 
     return
 
@@ -63,10 +69,29 @@ if __name__ == "__main__":
 
     global config, training_params
 
-    config = json.load(open("config.json"))
+    parser = argparse.ArgumentParser(
+        description="Input file and number of workers",
+    )
+    parser.add_argument(
+        "--num_workers",
+        dest="num_workers",
+        type=int,
+        help="Number of processes for SBI",
+        required=True,
+    )
+    parser.add_argument(
+        "--config",
+        dest="config_fname",
+        type=str,
+        help="Name of the config file",
+        required=True,
+    )
+    args = parser.parse_args()
+
+    config = json.load(open(args.config_fname))
 
     training_params = dict(config["TRAINING"])
 
     check_inputs()
 
-    main(sys.argv)
+    main(args.num_workers)
