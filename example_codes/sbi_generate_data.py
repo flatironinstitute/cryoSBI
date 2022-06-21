@@ -57,7 +57,7 @@ def gen_config(length):
     pos[1, 2] = length
     pos[1, 3] = length
 
-    return pos
+    return pos/2
 
 
 def gen_img(coord):
