@@ -52,7 +52,7 @@ Parameters used to train an SNPE network using an `"maf"` model.
 1. HIDDEN_FEATURES: number of hidden features in the network.
 2. NUM_TRANSFORMS: number of transforms in the network.
 3. DEVICE: either `"cpu"` or `"cuda"`. While for running with with a gpu you can simply write `"cuda"`, in some cases it can be a bit more complicated. Check recommendations at the end of the README.
-4. POSTERIOR_NAME: the trained posteriors are pickled to use for post-processing. This is simply the name of that file. This is the only optional parameter, if you don't provice it, the name is simply "posterior.pkl".
+4. POSTERIOR_NAME: the trained posteriors are pickled to use for post-processing. This is simply the name of that file. This is the only optional parameter, if you don't provide it, the name is simply "posterior.pkl".
 
 
 ## Prepare for simulating/training
@@ -83,6 +83,9 @@ If you are going to train a posterior the only relevant entry in the config file
 
 1. Running locally. Just run `python3 sbi_train_posterior.py --num_workers NUM_WORKERS --config CONFIG`
 2. Using SLURM. Open `launch_train_post_sbi_*.job` and edit the line where python is called following the instructions in the previous step.
+
+1. --num_workers: number of cores that SBI will use.
+2. --config: name of your configuration file. Check the folder `example_config`.
 
 ## Some tips for running with a GPU
 
