@@ -14,6 +14,7 @@ from sbi.inference import SNPE, prepare_for_sbi, simulate_for_sbi
 
 import configparser
 
+
 def gen_quat():
     # Sonya's code
     # Generates a single quaternion
@@ -31,6 +32,32 @@ def gen_quat():
             count += 1
 
     return quat
+
+
+def gen_config(length):
+
+    """
+    Generates a four-atom squared system given the square side
+
+    Input: length -> scalar, side of the square
+    Output: pos -> array with shape (4, 2). dim 0: atom, dim 1: x or y coordinate
+    """
+
+    pos = np.zeros((3, 4))
+
+    # x coordinates for each atom
+    pos[0, 0] = -length
+    pos[0, 1] = length
+    pos[0, 2] = length
+    pos[0, 3] = -length
+
+    # y coordinates for each atom
+    pos[1, 0] = -length
+    pos[1, 1] = -length
+    pos[1, 2] = length
+    pos[1, 3] = length
+
+    return pos
 
 
 def gen_img(coord):
@@ -85,7 +112,7 @@ def simulator(index):
 
     index = int(np.round(index))
 
-    coord = models[index]
+    coord = gen_config(index)
 
     quat = gen_quat()
     rot_mat = Rotation.from_quat(quat).as_matrix()
@@ -96,11 +123,10 @@ def simulator(index):
 
     return image
 
+
 def main(argv):
 
-    prior_indices = utils.BoxUniform(
-        low=1 * torch.ones(1), high=20 * torch.ones(1)
-    )
+    prior_indices = utils.BoxUniform(low=1 * torch.ones(1), high=20 * torch.ones(1))
     simulator_sbi, prior_sbi = prepare_for_sbi(simulator, prior_indices)
 
     n_simulations = simulation_params["N_SIMULATIONS"]
@@ -114,19 +140,22 @@ def main(argv):
     torch.save(indices, "indices.pt")
     torch.save(images, "images.pt")
 
-def check_inputs():
-    
-    for section in ["IMAGES", "SIMULATION"]:
-        assert section in config.keys(), f"Please provide section {section} in config.ini"
 
-    for key in  ["N_PIXELS", "PIXEL_SIZE", "SNR", "SIGMA"]:
+def check_inputs():
+
+    for section in ["IMAGES", "SIMULATION"]:
+        assert (
+            section in config.keys()
+        ), f"Please provide section {section} in config.ini"
+
+    for key in ["N_PIXELS", "PIXEL_SIZE", "SNR", "SIGMA"]:
         assert key in image_params.keys(), f"Please provide a value for {key}"
 
     for key in ["N_SIMULATIONS"]:
         assert key in simulation_params.keys(), f"Please provide a value for {key}"
 
     return
-        
+
 
 if __name__ == "__main__":
 
@@ -139,6 +168,6 @@ if __name__ == "__main__":
 
     check_inputs()
 
-    models = np.load("../all_models.npy")[:, 0]
+    # models = np.load("../all_models.npy")[:, 0]
 
     main(sys.argv)
