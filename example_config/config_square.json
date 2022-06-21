@@ -1,0 +1,18 @@
+{
+    "IMAGES": {
+        "N_PIXELS": 32,
+        "PIXEL_SIZE": 2.0,
+        "SIGMA": 2.0,
+        "SNR": 0.1
+    },
+    "SIMULATION": {
+        "N_SIMULATIONS": 10,
+        "MODEL_FILE": "path_to_models/hsp90_models.npy"
+    },
+    "TRAINING": {
+        "HIDDEN_FEATURES": 10,
+        "NUM_TRANSFORMS": 4,
+        "DEVICE": "CPU",
+        "POSTERIOR_NAME": "posterior_10_4.pkl"
+    }
+}

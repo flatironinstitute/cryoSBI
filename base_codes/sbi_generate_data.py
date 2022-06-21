@@ -1,18 +1,12 @@
-# Numerical libraries
+import json
+import argparse
 import numpy as np
 from scipy.spatial.transform import Rotation
-import sys
-import json
-
-# MD Stuff
-import MDAnalysis as mda
 
 # SBI
 import torch
 from sbi import utils as utils
 from sbi.inference import SNPE, prepare_for_sbi, simulate_for_sbi
-
-import configparser
 
 
 def gen_quat():
@@ -32,32 +26,6 @@ def gen_quat():
             count += 1
 
     return quat
-
-
-def gen_config(length):
-
-    """
-    Generates a four-atom squared system given the square side
-
-    Input: length -> scalar, side of the square
-    Output: pos -> array with shape (4, 2). dim 0: atom, dim 1: x or y coordinate
-    """
-
-    pos = np.zeros((3, 4))
-
-    # x coordinates for each atom
-    pos[0, 0] = -length
-    pos[0, 1] = length
-    pos[0, 2] = length
-    pos[0, 3] = -length
-
-    # y coordinates for each atom
-    pos[1, 0] = -length
-    pos[1, 1] = -length
-    pos[1, 2] = length
-    pos[1, 3] = length
-
-    return pos/2
 
 
 def gen_img(coord):
@@ -102,9 +70,6 @@ def add_noise(img):
     img_noise -= np.mean(img_noise)
     img_noise /= np.std(img_noise)
 
-    # img_noise = np.zeros_like(img)
-    # img_noise[mask] = img[mask]
-
     return img_noise
 
 
@@ -112,7 +77,7 @@ def simulator(index):
 
     index = int(np.round(index))
 
-    coord = gen_config(index)
+    coord = models[index]
 
     quat = gen_quat()
     rot_mat = Rotation.from_quat(quat).as_matrix()
@@ -124,9 +89,9 @@ def simulator(index):
     return image
 
 
-def main(argv):
+def main(num_workers):
 
-    prior_indices = utils.BoxUniform(low=1 * torch.ones(1), high=20 * torch.ones(1))
+    prior_indices = utils.BoxUniform(low=0 * torch.ones(1), high=19 * torch.ones(1))
     simulator_sbi, prior_sbi = prepare_for_sbi(simulator, prior_indices)
 
     n_simulations = simulation_params["N_SIMULATIONS"]
@@ -134,7 +99,7 @@ def main(argv):
         simulator_sbi,
         proposal=prior_sbi,
         num_simulations=n_simulations,
-        num_workers=int(argv[1]),
+        num_workers=num_workers,
     )
 
     torch.save(indices, "indices.pt")
@@ -151,7 +116,7 @@ def check_inputs():
     for key in ["N_PIXELS", "PIXEL_SIZE", "SNR", "SIGMA"]:
         assert key in image_params.keys(), f"Please provide a value for {key}"
 
-    for key in ["N_SIMULATIONS"]:
+    for key in ["N_SIMULATIONS", "MODEL_FILE"]:
         assert key in simulation_params.keys(), f"Please provide a value for {key}"
 
     return
@@ -161,13 +126,38 @@ if __name__ == "__main__":
 
     global config, image_params, simulation_params, models
 
-    config = json.load(open("config.json"))
+    parser = argparse.ArgumentParser(
+        description="Input file and number of workers",
+    )
+    parser.add_argument(
+        "--num_workers",
+        dest="num_workers",
+        type=int,
+        help="Number of processes for SBI",
+        required=True,
+    )
+    parser.add_argument(
+        "--config",
+        dest="config_fname",
+        type=str,
+        help="Name of the config file",
+        required=True,
+    )
+    args = parser.parse_args()
+
+    config = json.load(open(args.config_fname))
 
     image_params = dict(config["IMAGES"])
     simulation_params = config["SIMULATION"]
 
     check_inputs()
 
-    # models = np.load("../all_models.npy")[:, 0]
+    if "hsp90" in simulation_params["MODEL_FILE"]:
+        models = np.load(simulation_params["MODEL_FILE"])[:, 0]
 
-    main(sys.argv)
+    if "square" in simulation_params["MODEL_FILE"]:
+        models = np.transpose(
+            np.load(simulation_params["MODEL_FILE"]).diagonal(), [2, 0, 1]
+        )
+
+    main(args.num_workers)
