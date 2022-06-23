@@ -67,15 +67,20 @@ def add_noise(img):
 
     img_noise = img + noise
 
-    img_noise -= np.mean(img_noise)
-    img_noise /= np.std(img_noise)
-
     return img_noise
+
+
+def gaussian_normalization(image):
+
+    image_mean = np.mean(image)
+    image_std = np.std(image)
+
+    return (image - image_mean) / image_std
 
 
 def simulator(index):
 
-    index = int(np.round(index))
+    index = int(torch.round(index))
 
     coord = models[index]
 
@@ -85,13 +90,21 @@ def simulator(index):
 
     image = gen_img(coord)
     image = add_noise(image)
+    image = gaussian_normalization(image)
+
+    image = torch.tensor(image.reshape(-1, 1), device=simulation_params["DEVICE"])
 
     return image
 
 
 def main(num_workers):
 
-    prior_indices = utils.BoxUniform(low=0 * torch.ones(1), high=19 * torch.ones(1))
+    prior_indices = utils.BoxUniform(
+        low=0 * torch.ones(1, device=simulation_params["DEVICE"]),
+        high=19 * torch.ones(1, device=simulation_params["DEVICE"]),
+        device=simulation_params["DEVICE"],
+    )
+
     simulator_sbi, prior_sbi = prepare_for_sbi(simulator, prior_indices)
 
     n_simulations = simulation_params["N_SIMULATIONS"]
@@ -116,7 +129,7 @@ def check_inputs():
     for key in ["N_PIXELS", "PIXEL_SIZE", "SNR", "SIGMA"]:
         assert key in image_params.keys(), f"Please provide a value for {key}"
 
-    for key in ["N_SIMULATIONS", "MODEL_FILE"]:
+    for key in ["N_SIMULATIONS", "MODEL_FILE", "DEVICE"]:
         assert key in simulation_params.keys(), f"Please provide a value for {key}"
 
     return

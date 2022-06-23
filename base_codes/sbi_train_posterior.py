@@ -17,8 +17,8 @@ def main(num_workers):
     indices = torch.load("indices.pt")
 
     prior_indices = utils.BoxUniform(
-        low=1 * torch.ones(1, device=training_params["DEVICE"]),
-        high=20 * torch.ones(1, device=training_params["DEVICE"]),
+        low=0 * torch.ones(1, device=training_params["DEVICE"]),
+        high=19 * torch.ones(1, device=training_params["DEVICE"]),
         device=training_params["DEVICE"],
     )
 

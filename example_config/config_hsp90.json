@@ -7,12 +7,13 @@
     },
     "SIMULATION": {
         "N_SIMULATIONS": 10,
-        "MODEL_FILE": "path_to_models/hsp90_models.npy"
+        "MODEL_FILE": "path_to_models/hsp90_models.npy",
+        "DEVICE": "cpu"
     },
     "TRAINING": {
         "HIDDEN_FEATURES": 10,
         "NUM_TRANSFORMS": 4,
-        "DEVICE": "CPU",
+        "DEVICE": "cuda",
         "POSTERIOR_NAME": "posterior_10_4.pkl"
     }
 }
