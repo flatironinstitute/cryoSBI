@@ -13,8 +13,8 @@ def main(num_workers):
 
     torch.set_num_threads(num_workers)
 
-    images = torch.load("images.pt")
-    indices = torch.load("indices.pt")
+    images = torch.load("images_training.pt")
+    indices = torch.load("indices_training.pt")
 
     prior_indices = utils.BoxUniform(
         low=0 * torch.ones(1, device=training_params["DEVICE"]),

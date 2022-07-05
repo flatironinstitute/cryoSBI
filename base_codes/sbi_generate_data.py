@@ -52,32 +52,6 @@ def gen_img(coord, image_params):
     return image
 
 
-def add_noise(img):
-
-    # mean_image = np.mean(img)
-    std_image = np.std(img)
-
-    mask = np.abs(img) > 0.5 * std_image
-
-    signal_mean = np.mean(img[mask])
-    signal_std = np.std(img[mask])
-
-    noise_std = signal_std / np.sqrt(image_params["SNR"])
-    noise = np.random.normal(loc=signal_mean, scale=noise_std, size=img.shape)
-
-    img_noise = img + noise
-
-    return img_noise
-
-
-def gaussian_normalization(image):
-
-    image_mean = np.mean(image)
-    image_std = np.std(image)
-
-    return (image - image_mean) / image_std
-
-
 def simulator(index):
 
     index = int(torch.round(index))
@@ -89,8 +63,6 @@ def simulator(index):
     coord = np.matmul(rot_mat, coord)
 
     image = gen_img(coord)
-    image = add_noise(image)
-    image = gaussian_normalization(image)
 
     image = torch.tensor(image.reshape(-1, 1), device=simulation_params["DEVICE"])
 
@@ -126,7 +98,7 @@ def check_inputs():
             section in config.keys()
         ), f"Please provide section {section} in config.ini"
 
-    for key in ["N_PIXELS", "PIXEL_SIZE", "SNR", "SIGMA"]:
+    for key in ["N_PIXELS", "PIXEL_SIZE", "SIGMA"]:
         assert key in image_params.keys(), f"Please provide a value for {key}"
 
     for key in ["N_SIMULATIONS", "MODEL_FILE", "DEVICE"]:
