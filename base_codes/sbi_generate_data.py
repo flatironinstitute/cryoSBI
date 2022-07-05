@@ -28,7 +28,7 @@ def gen_quat():
     return quat
 
 
-def gen_img(coord):
+def gen_img(coord, image_params):
 
     n_atoms = coord.shape[1]
     norm = 1 / (2 * np.pi * image_params["SIGMA"] ** 2 * n_atoms)
@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     config = json.load(open(args.config_fname))
 
-    image_params = dict(config["IMAGES"])
+    image_params = config["IMAGES"])
     simulation_params = config["SIMULATION"]
 
     check_inputs()
