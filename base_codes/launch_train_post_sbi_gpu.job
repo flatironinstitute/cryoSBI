@@ -27,6 +27,6 @@ module load python
 module load cuda
 source /mnt/home/dsilvasanchez/virtual_envs/sbi_env/bin/activate
 
-python3 sbi_train_posterior.py $SLURM_CPUS_PER_TASK
+python3 sbi_generate_data.py --num_workers $SLURM_CPUS_PER_TASK --config CONFIG
 
 
