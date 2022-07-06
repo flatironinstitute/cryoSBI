@@ -1,0 +1,27 @@
+{
+    "IMAGES": {
+        "N_PIXELS": 32,
+        "PIXEL_SIZE": 2.0,
+        "SIGMA": 2.0
+    },
+    "SIMULATION": {
+        "N_SIMULATIONS": 1000,
+        "MODEL_FILE": "../../models/square_models.npy",
+        "DEVICE": "cpu",
+        "ROTATIONS": false
+    },
+    "PREPROCESSING": {
+        "SHIFT": false,
+        "CTF": false,
+        "NOISE": true,
+        "DEFOCUS": 1.5,
+        "SNR": 10
+    },
+    "TRAINING": {
+        "MODEL": "maf",
+        "HIDDEN_FEATURES": 100,
+        "NUM_TRANSFORMS": 4,
+        "DEVICE": "cpu",
+        "POSTERIOR_NAME": "posterior_10_4.pkl"
+    }
+}

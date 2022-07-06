@@ -42,29 +42,3 @@ def gen_img(coord, image_params):
     image = gauss.sum(axis=2) * norm
 
     return image
-
-
-def add_noise(img, image_params):
-
-    # mean_image = np.mean(img)
-    std_image = np.std(img)
-
-    mask = np.abs(img) > 0.5 * std_image
-
-    signal_mean = np.mean(img[mask])
-    signal_std = np.std(img[mask])
-
-    noise_std = signal_std / np.sqrt(image_params["SNR"])
-    noise = np.random.normal(loc=signal_mean, scale=noise_std, size=img.shape)
-
-    img_noise = img + noise
-
-    return img_noise
-
-
-def gaussian_normalization(image):
-
-    image_mean = np.mean(image)
-    image_std = np.std(image)
-
-    return (image - image_mean) / image_std
