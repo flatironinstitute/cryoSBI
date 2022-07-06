@@ -1,1 +1,1 @@
-from .validate_params import check_params
+from .validate_config import check_params
