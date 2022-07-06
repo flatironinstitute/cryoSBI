@@ -22,6 +22,6 @@
         "HIDDEN_FEATURES": 100,
         "NUM_TRANSFORMS": 4,
         "DEVICE": "cpu",
-        "POSTERIOR_NAME": "posterior_10_4.pkl"
+        "POSTERIOR_NAME": "posterior.pkl"
     }
 }
