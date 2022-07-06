@@ -1,0 +1,45 @@
+#!/bin/bash -l
+
+# Standard output and error:
+#SBATCH -o ./sbi_train_post_gpu.out.%j
+#SBATCH -e ./sbi_train_post_gpu.err.%j
+
+# Initial working directory:
+#SBATCH -D ./
+# Job Name:
+#SBATCH -J sbi_train_posterior
+#
+# Queue (Partition):
+#SBATCH --partition=gpu
+#SBATCH --constraint=a100,sxm4
+#
+# Request 124 node(s)
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=a100-40gb:4
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=64
+#SBATCH --time=24:00:00
+#SBATCH --mail-type=ALL --mail-user=dsilvas@flatironinstitute.org
+
+module purge
+module load gcc/7
+module load python
+module load cuda
+source /mnt/home/dsilvasanchez/virtual_envs/sbi_env/bin/activate
+
+CONFIG_NAME="config_square.json"
+
+python3 - << EOF
+from cryo_em_sbi import CryoEmSbi
+
+cryosbi = CryoEmSbi("$CONFIG_NAME")
+
+indices = torch.load("indices.pt")
+images = torch.load("images.pt")
+
+_, __ = cryosbi.preprocess(indices, images)
+_ = cryosbi.train_posterior($SLURM_CPUS_PER_TASK)
+
+EOF
+
+

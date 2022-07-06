@@ -33,12 +33,14 @@ def gen_img(coord, image_params):
 
     grid = np.arange(grid_min, grid_max, image_params["PIXEL_SIZE"])
 
-    gauss = np.exp(
-        -0.5 * (((grid[:, None] - coord[0, :]) / image_params["SIGMA"]) ** 2)
-    )[:, None] * np.exp(
-        -0.5 * (((grid[:, None] - coord[1, :]) / image_params["SIGMA"]) ** 2)
+    gauss_x = np.exp(
+        -0.5 * (((grid[:, np.newaxis] - coord[0, :]) / image_params["SIGMA"]) ** 2)
     )
 
-    image = gauss.sum(axis=2) * norm
+    gauss_y = np.exp(
+        -0.5 * (((grid[:, np.newaxis] - coord[1, :]) / image_params["SIGMA"]) ** 2)
+    )
+
+    image = np.matmul(gauss_x, gauss_y.T) * norm
 
     return image
