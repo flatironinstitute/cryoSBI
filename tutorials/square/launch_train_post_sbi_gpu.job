@@ -29,6 +29,7 @@ source /mnt/home/dsilvasanchez/virtual_envs/sbi_env/bin/activate
 CONFIG_NAME="config_square.json"
 
 python3 - << EOF
+import torch
 from cryo_em_sbi import CryoEmSbi
 
 cryosbi = CryoEmSbi("$CONFIG_NAME")
