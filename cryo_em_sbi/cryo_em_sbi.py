@@ -196,8 +196,8 @@ class CryoEmSbi:
 
         images = preprocessing.normalize_dataset(images, self.config["SIMULATION"])
 
-        indices = indices.to(self.config["TRAINING"]["DEVICE"])
-        images = images.to(self.config["TRAINING"]["DEVICE"])
+        # indices = indices.to(self.config["TRAINING"]["DEVICE"])
+        # images = images.to(self.config["TRAINING"]["DEVICE"])
 
         torch.save(indices, fname_output_indices)
         torch.save(images, fname_output_images)
@@ -206,15 +206,15 @@ class CryoEmSbi:
 
     def train_posterior(
         self,
+        indices,
+        images,
         num_workers,
-        fname_indices="indices_training.pt",
-        fname_images="images_training.pt",
     ):
 
         torch.set_num_threads(num_workers)
 
-        indices = torch.load(fname_indices)
-        images = torch.load(fname_images)
+        indices = indices.to(self.config["TRAINING"]["DEVICE"])
+        images = images.to(self.config["TRAINING"]["DEVICE"])
 
         density_estimator_build_fun = posterior_nn(
             model=self.config["TRAINING"]["MODEL"],
