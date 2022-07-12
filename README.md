@@ -86,7 +86,7 @@ I conveniently created a folder called `production` where nothing will be tracke
 ```
 ml python
 ml gcc/7
-source /mnt/home/dsilvasanchez/virtual_envs/sbi_env/bin/activate
+source /mnt/home/dsilvasanchez/virtual_envs/sbi_env_try/bin/activate
 ```
 
 ## Simulating, Preprocessing, and Training
