@@ -22,6 +22,7 @@
         "HIDDEN_FEATURES": 10,
         "NUM_TRANSFORMS": 4,
         "DEVICE": "cpu",
+        "BATCH_SIZE": 50,
         "POSTERIOR_NAME": "posterior.pkl"
     }
 }

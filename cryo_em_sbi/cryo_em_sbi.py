@@ -229,7 +229,7 @@ class CryoEmSbi:
 
         inference = inference.append_simulations(indices, images)
 
-        density_estimator = inference.train()
+        density_estimator = inference.train(training_batch_size=self.config["TRAINING"]["BATCH_SIZE"])
         posterior = inference.build_posterior(density_estimator)
 
         with open(self.config["TRAINING"]["POSTERIOR_NAME"], "wb") as handle:
