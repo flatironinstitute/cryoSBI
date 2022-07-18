@@ -7,6 +7,7 @@ import pickle
 import numpy as np
 from scipy.spatial.transform import Rotation
 import torch
+from sbi.simulators.simutils import simulate_in_batches
 from sbi import utils as utils
 from sbi.inference import SNPE, prepare_for_sbi, simulate_for_sbi
 from sbi.utils.get_nn_models import posterior_nn
@@ -60,6 +61,39 @@ class CryoEmSbi:
         )
 
         return image
+
+    def _preprocessing_simulator(self, images):
+
+        preproc_images = images.clone()
+
+        if self.config["PREPROCESSING"]["SHIFT"]:
+            preproc_images = preprocessing.pad_dataset(
+                preproc_images, self.config["SIMULATION"], self.config["IMAGES"]
+            )
+
+        if self.config["PREPROCESSING"]["CTF"]:
+            preproc_images = preprocessing.apply_ctf_to_dataset(
+                preproc_images,
+                self.config["SIMULATION"],
+                self.config["IMAGES"],
+                self.config["PREPROCESSING"],
+            )
+
+        if self.config["PREPROCESSING"]["SHIFT"]:
+            preproc_images = preprocessing.shift_dataset(
+                preproc_images, self.config["SIMULATION"], self.config["IMAGES"]
+            )
+
+        if self.config["PREPROCESSING"]["NOISE"]:
+            preproc_images = preprocessing.add_noise_to_dataset(
+                preproc_images, self.config["SIMULATION"], self.config["PREPROCESSING"]
+            )
+
+        preproc_images = preprocessing.normalize_dataset(
+            preproc_images, self.config["SIMULATION"]
+        )
+
+        return preproc_images
 
     def _analysis_simulator(self, index):
 
@@ -164,52 +198,28 @@ class CryoEmSbi:
         self,
         indices,
         images,
+        num_workers,
+        batch_size=1,
         fname_output_indices="indices_training.pt",
         fname_output_images="images_training.pt",
     ):
 
-        indices = indices
-        images = images
-
-        if self.config["PREPROCESSING"]["SHIFT"]:
-            images = preprocessing.pad_dataset(
-                images, self.config["SIMULATION"], self.config["IMAGES"]
-            )
-
-        if self.config["PREPROCESSING"]["CTF"]:
-            images = preprocessing.apply_ctf_to_dataset(
-                images,
-                self.config["SIMULATION"],
-                self.config["IMAGES"],
-                self.config["PREPROCESSING"],
-            )
-
-        if self.config["PREPROCESSING"]["SHIFT"]:
-            images = preprocessing.shift_dataset(
-                images, self.config["SIMULATION"], self.config["IMAGES"]
-            )
-
-        if self.config["PREPROCESSING"]["NOISE"]:
-            images = preprocessing.add_noise_to_dataset(
-                images, self.config["SIMULATION"], self.config["PREPROCESSING"]
-            )
-
-        images = preprocessing.normalize_dataset(images, self.config["SIMULATION"])
+        preproc_images = simulate_in_batches(
+            self._preprocessing_simulator,
+            images,
+            num_workers=num_workers,
+            sim_batch_size=batch_size,
+        )
 
         # indices = indices.to(self.config["TRAINING"]["DEVICE"])
         # images = images.to(self.config["TRAINING"]["DEVICE"])
 
         torch.save(indices, fname_output_indices)
-        torch.save(images, fname_output_images)
+        torch.save(preproc_images, fname_output_images)
 
-        return indices, images
+        return indices, preproc_images
 
-    def train_posterior(
-        self,
-        indices,
-        images,
-        num_workers,
-    ):
+    def train_posterior(self, indices, images, num_workers):
 
         torch.set_num_threads(num_workers)
 
@@ -229,7 +239,9 @@ class CryoEmSbi:
 
         inference = inference.append_simulations(indices, images)
 
-        density_estimator = inference.train(training_batch_size=self.config["TRAINING"]["BATCH_SIZE"])
+        density_estimator = inference.train(
+            training_batch_size=self.config["TRAINING"]["BATCH_SIZE"]
+        )
         posterior = inference.build_posterior(density_estimator)
 
         with open(self.config["TRAINING"]["POSTERIOR_NAME"], "wb") as handle:

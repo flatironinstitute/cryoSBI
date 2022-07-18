@@ -66,10 +66,12 @@ def apply_random_shift(padded_image, image_params):
 
 def add_noise(img, preproc_params):
 
-    # mean_image = np.mean(img)
+    mean_image = np.mean(img)
     std_image = np.std(img)
 
-    mask = np.abs(img) > 0.5 * std_image
+    mask = np.logical_or(
+        img >= mean_image + 0.5 * std_image, img <= mean_image - 0.5 * std_image
+    )
 
     signal_mean = np.mean(img[mask])
     signal_std = np.std(img[mask])
