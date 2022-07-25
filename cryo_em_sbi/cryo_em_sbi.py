@@ -219,7 +219,9 @@ class CryoEmSbi:
 
         return indices, preproc_images
 
-    def train_posterior(self, indices, images, num_workers):
+    def train_posterior(
+        self, indices, images, num_workers, embedding_net=torch.nn.Identity()
+    ):
 
         torch.set_num_threads(num_workers)
 
@@ -230,7 +232,9 @@ class CryoEmSbi:
             model=self.config["TRAINING"]["MODEL"],
             hidden_features=self.config["TRAINING"]["HIDDEN_FEATURES"],
             num_transforms=self.config["TRAINING"]["NUM_TRANSFORMS"],
+            embedding_net=embedding_net,
         )
+
         inference = SNPE(
             prior=self.prior_analysis,
             density_estimator=density_estimator_build_fun,
