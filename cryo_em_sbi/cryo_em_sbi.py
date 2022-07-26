@@ -19,6 +19,10 @@ class CryoEmSbi:
         self._load_params(config_fname)
         self._load_models()
 
+        self.rot_mode = None
+        self.quaternions = None
+        self._config_rotations()
+
         self._set_prior_and_simulator_simulation()
         self._set_prior_and_simulator_analysis()
 
@@ -42,15 +46,41 @@ class CryoEmSbi:
 
         return
 
+    def _config_rotations(self):
+
+        if isinstance(self.config["SIMULATION"]["ROTATIONS"], bool):
+            if self.config["SIMULATION"]["ROTATIONS"]:
+
+                self.rot_mode = "random"
+
+        elif isinstance(self.config["SIMULATION"]["ROTATIONS"], str):
+
+            self.rot_mode = "list"
+            self.quaternions = np.loadtxt(
+                self.config["SIMULATION"]["ROTATIONS"], skiprows=1
+            )
+
+            assert (
+                self.quaternions.shape[1] == 4
+            ), "Quaternion shape is not 4. Corrupted file?"
+
+        return
+
     def _simulator(self, index):
 
         index = int(torch.round(index))
 
         coord = self.models[index]
 
-        if self.config["SIMULATION"]["ROTATIONS"]:
+        if self.rot_mode == "random":
 
             quat = image_generation.gen_quat()
+            rot_mat = Rotation.from_quat(quat).as_matrix()
+            coord = np.matmul(rot_mat, coord)
+
+        elif self.rot_mode == "list":
+
+            quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
             rot_mat = Rotation.from_quat(quat).as_matrix()
             coord = np.matmul(rot_mat, coord)
 
@@ -101,9 +131,15 @@ class CryoEmSbi:
 
         coord = self.models[index]
 
-        if self.config["SIMULATION"]["ROTATIONS"]:
+        if self.rot_mode == "random":
 
             quat = image_generation.gen_quat()
+            rot_mat = Rotation.from_quat(quat).as_matrix()
+            coord = np.matmul(rot_mat, coord)
+
+        elif self.rot_mode == "list":
+
+            quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
             rot_mat = Rotation.from_quat(quat).as_matrix()
             coord = np.matmul(rot_mat, coord)
 
