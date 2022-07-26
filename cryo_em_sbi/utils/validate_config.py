@@ -33,7 +33,7 @@ def check_params(config):
 
     # Training
 
-    for key in ["MODEL", "HIDDEN_FEATURES", "NUM_TRANSFORMS", "DEVICE"]:
+    for key in ["MODEL", "HIDDEN_FEATURES", "NUM_TRANSFORMS", "BATCH_SIZE", "DEVICE"]:
         assert key in training_params.keys(), f"Please provide a value for {key}"
 
     if "POSTERIOR_NAME" not in training_params.keys():
