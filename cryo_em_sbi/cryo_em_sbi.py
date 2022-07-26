@@ -7,6 +7,7 @@ import pickle
 import numpy as np
 from scipy.spatial.transform import Rotation
 import torch
+from sbi.simulators.simutils import simulate_in_batches
 from sbi import utils as utils
 from sbi.inference import SNPE, prepare_for_sbi, simulate_for_sbi
 from sbi.utils.get_nn_models import posterior_nn
@@ -17,6 +18,10 @@ class CryoEmSbi:
 
         self._load_params(config_fname)
         self._load_models()
+
+        self.rot_mode = None
+        self.quaternions = None
+        self._config_rotations()
 
         self._set_prior_and_simulator_simulation()
         self._set_prior_and_simulator_analysis()
@@ -41,15 +46,41 @@ class CryoEmSbi:
 
         return
 
+    def _config_rotations(self):
+
+        if isinstance(self.config["SIMULATION"]["ROTATIONS"], bool):
+            if self.config["SIMULATION"]["ROTATIONS"]:
+
+                self.rot_mode = "random"
+
+        elif isinstance(self.config["SIMULATION"]["ROTATIONS"], str):
+
+            self.rot_mode = "list"
+            self.quaternions = np.loadtxt(
+                self.config["SIMULATION"]["ROTATIONS"], skiprows=1
+            )
+
+            assert (
+                self.quaternions.shape[1] == 4
+            ), "Quaternion shape is not 4. Corrupted file?"
+
+        return
+
     def _simulator(self, index):
 
         index = int(torch.round(index))
 
         coord = self.models[index]
 
-        if self.config["SIMULATION"]["ROTATIONS"]:
+        if self.rot_mode == "random":
 
             quat = image_generation.gen_quat()
+            rot_mat = Rotation.from_quat(quat).as_matrix()
+            coord = np.matmul(rot_mat, coord)
+
+        elif self.rot_mode == "list":
+
+            quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
             rot_mat = Rotation.from_quat(quat).as_matrix()
             coord = np.matmul(rot_mat, coord)
 
@@ -61,15 +92,54 @@ class CryoEmSbi:
 
         return image
 
+    def _preprocessing_simulator(self, images):
+
+        preproc_images = images.clone()
+
+        if self.config["PREPROCESSING"]["SHIFT"]:
+            preproc_images = preprocessing.pad_dataset(
+                preproc_images, self.config["SIMULATION"], self.config["IMAGES"]
+            )
+
+        if self.config["PREPROCESSING"]["CTF"]:
+            preproc_images = preprocessing.apply_ctf_to_dataset(
+                preproc_images,
+                self.config["SIMULATION"],
+                self.config["IMAGES"],
+                self.config["PREPROCESSING"],
+            )
+
+        if self.config["PREPROCESSING"]["SHIFT"]:
+            preproc_images = preprocessing.shift_dataset(
+                preproc_images, self.config["SIMULATION"], self.config["IMAGES"]
+            )
+
+        if self.config["PREPROCESSING"]["NOISE"]:
+            preproc_images = preprocessing.add_noise_to_dataset(
+                preproc_images, self.config["SIMULATION"], self.config["PREPROCESSING"]
+            )
+
+        preproc_images = preprocessing.normalize_dataset(
+            preproc_images, self.config["SIMULATION"]
+        )
+
+        return preproc_images
+
     def _analysis_simulator(self, index):
 
         index = int(torch.round(index))
 
         coord = self.models[index]
 
-        if self.config["SIMULATION"]["ROTATIONS"]:
+        if self.rot_mode == "random":
 
             quat = image_generation.gen_quat()
+            rot_mat = Rotation.from_quat(quat).as_matrix()
+            coord = np.matmul(rot_mat, coord)
+
+        elif self.rot_mode == "list":
+
+            quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
             rot_mat = Rotation.from_quat(quat).as_matrix()
             coord = np.matmul(rot_mat, coord)
 
@@ -164,63 +234,43 @@ class CryoEmSbi:
         self,
         indices,
         images,
+        num_workers,
+        batch_size=1,
         fname_output_indices="indices_training.pt",
         fname_output_images="images_training.pt",
     ):
 
-        indices = indices
-        images = images
+        preproc_images = simulate_in_batches(
+            self._preprocessing_simulator,
+            images,
+            num_workers=num_workers,
+            sim_batch_size=batch_size,
+        )
 
-        if self.config["PREPROCESSING"]["SHIFT"]:
-            images = preprocessing.pad_dataset(
-                images, self.config["SIMULATION"], self.config["IMAGES"]
-            )
-
-        if self.config["PREPROCESSING"]["CTF"]:
-            images = preprocessing.apply_ctf_to_dataset(
-                images,
-                self.config["SIMULATION"],
-                self.config["IMAGES"],
-                self.config["PREPROCESSING"],
-            )
-
-        if self.config["PREPROCESSING"]["SHIFT"]:
-            images = preprocessing.shift_dataset(
-                images, self.config["SIMULATION"], self.config["IMAGES"]
-            )
-
-        if self.config["PREPROCESSING"]["NOISE"]:
-            images = preprocessing.add_noise_to_dataset(
-                images, self.config["SIMULATION"], self.config["PREPROCESSING"]
-            )
-
-        images = preprocessing.normalize_dataset(images, self.config["SIMULATION"])
-
-        indices = indices.to(self.config["TRAINING"]["DEVICE"])
-        images = images.to(self.config["TRAINING"]["DEVICE"])
+        # indices = indices.to(self.config["TRAINING"]["DEVICE"])
+        # images = images.to(self.config["TRAINING"]["DEVICE"])
 
         torch.save(indices, fname_output_indices)
-        torch.save(images, fname_output_images)
+        torch.save(preproc_images, fname_output_images)
 
-        return indices, images
+        return indices, preproc_images
 
     def train_posterior(
-        self,
-        num_workers,
-        fname_indices="indices_training.pt",
-        fname_images="images_training.pt",
+        self, indices, images, num_workers, embedding_net=torch.nn.Identity()
     ):
 
         torch.set_num_threads(num_workers)
 
-        indices = torch.load(fname_indices)
-        images = torch.load(fname_images)
+        indices = indices.to(self.config["TRAINING"]["DEVICE"])
+        images = images.to(self.config["TRAINING"]["DEVICE"])
 
         density_estimator_build_fun = posterior_nn(
             model=self.config["TRAINING"]["MODEL"],
             hidden_features=self.config["TRAINING"]["HIDDEN_FEATURES"],
             num_transforms=self.config["TRAINING"]["NUM_TRANSFORMS"],
+            embedding_net=embedding_net,
         )
+
         inference = SNPE(
             prior=self.prior_analysis,
             density_estimator=density_estimator_build_fun,
@@ -229,7 +279,9 @@ class CryoEmSbi:
 
         inference = inference.append_simulations(indices, images)
 
-        density_estimator = inference.train()
+        density_estimator = inference.train(
+            training_batch_size=self.config["TRAINING"]["BATCH_SIZE"]
+        )
         posterior = inference.build_posterior(density_estimator)
 
         with open(self.config["TRAINING"]["POSTERIOR_NAME"], "wb") as handle:

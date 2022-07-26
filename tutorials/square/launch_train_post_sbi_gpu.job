@@ -34,11 +34,9 @@ from cryo_em_sbi import CryoEmSbi
 
 cryosbi = CryoEmSbi("$CONFIG_NAME")
 
-indices = torch.load("indices.pt")
-images = torch.load("images.pt")
+indices = torch.load(NAME_OF_FILE_PREPROCESSED_INDICES)
+images = torch.load(NAME_OF_FILE_PREPROCESSED_IMAGES)
 
-_, __ = cryosbi.preprocess(indices, images)
-_ = cryosbi.train_posterior($SLURM_CPUS_PER_TASK)
+_ = cryosbi.train_posterior(indices, images, $SLURM_CPUS_PER_TASK)
 
 EOF
-

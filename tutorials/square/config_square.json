@@ -5,23 +5,24 @@
         "SIGMA": 2.0
     },
     "SIMULATION": {
-        "N_SIMULATIONS": 1000,
+        "N_SIMULATIONS": 10000,
         "MODEL_FILE": "../../models/square_models.npy",
         "DEVICE": "cpu",
         "ROTATIONS": false
     },
     "PREPROCESSING": {
-        "SHIFT": false,
+        "SHIFT": true,
         "CTF": false,
-        "NOISE": true,
+        "NOISE": false,
         "DEFOCUS": 1.5,
-        "SNR": 10
+        "SNR": 0.1
     },
     "TRAINING": {
         "MODEL": "maf",
-        "HIDDEN_FEATURES": 100,
+        "HIDDEN_FEATURES": 10,
         "NUM_TRANSFORMS": 4,
         "DEVICE": "cpu",
+        "BATCH_SIZE": 50,
         "POSTERIOR_NAME": "posterior.pkl"
     }
 }
