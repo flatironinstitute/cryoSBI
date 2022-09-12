@@ -39,10 +39,12 @@ class CryoEmSbi:
         if "hsp90" in self.config["SIMULATION"]["MODEL_FILE"]:
             self.models = np.load(self.config["SIMULATION"]["MODEL_FILE"])[:, 0]
 
-        if "square" in self.config["SIMULATION"]["MODEL_FILE"]:
+        elif "square" in self.config["SIMULATION"]["MODEL_FILE"]:
             self.models = np.transpose(
                 np.load(self.config["SIMULATION"]["MODEL_FILE"]).diagonal(), [2, 0, 1]
             )
+
+        print(self.config["SIMULATION"]["MODEL_FILE"])
 
         return
 
@@ -98,7 +100,7 @@ class CryoEmSbi:
 
         if self.config["PREPROCESSING"]["SHIFT"]:
             preproc_images = preprocessing.pad_dataset(
-                preproc_images, self.config["SIMULATION"], self.config["IMAGES"]
+                preproc_images, self.config["PREPROCESSING"], self.config["IMAGES"]
             )
 
         if self.config["PREPROCESSING"]["CTF"]:
@@ -218,6 +220,11 @@ class CryoEmSbi:
         self, num_workers, fname_indices="indices.pt", fname_images="images.pt"
     ):
 
+        if "cuda" in self.config["SIMULATION"]["DEVICE"]:
+            assert (
+                torch.cuda.is_available()
+            ), "Your device is cuda but there is no GPU available"
+
         indices, images = simulate_for_sbi(
             self.simulator,
             proposal=self.prior,
@@ -240,6 +247,11 @@ class CryoEmSbi:
         fname_output_images="images_training.pt",
     ):
 
+        if "cuda" in self.config["PREPROCESSING"]["DEVICE"]:
+            assert (
+                torch.cuda.is_available()
+            ), "Your device is cuda but there is no GPU available"
+
         preproc_images = simulate_in_batches(
             self._preprocessing_simulator,
             images,
@@ -258,6 +270,11 @@ class CryoEmSbi:
     def train_posterior(
         self, indices, images, num_workers, embedding_net=torch.nn.Identity()
     ):
+
+        if "cuda" in self.config["TRAINING"]["DEVICE"]:
+            assert (
+                torch.cuda.is_available()
+            ), "Your device is cuda but there is no GPU available"
 
         torch.set_num_threads(num_workers)
 
