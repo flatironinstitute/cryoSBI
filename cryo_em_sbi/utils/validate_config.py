@@ -22,13 +22,8 @@ def check_params(config):
     for key in ["N_SIMULATIONS", "MODEL_FILE", "DEVICE", "ROTATIONS"]:
         assert key in simulation_params.keys(), f"Please provide a value for {key}"
 
-    if "cuda" in simulation_params["DEVICE"]:
-        assert (
-            torch.cuda.is_available()
-        ), "Your device is cuda but there is no GPU available"
-
     # Preprocessing
-    for key in ["SHIFT", "CTF", "NOISE", "DEFOCUS", "SNR"]:
+    for key in ["SHIFT", "CTF", "NOISE", "DEFOCUS", "SNR", "DEVICE", "REDUCED_PIXELS"]:
         assert key in preproc_params.keys(), f"Please provide a value for {key}"
 
     # Training
@@ -38,10 +33,5 @@ def check_params(config):
 
     if "POSTERIOR_NAME" not in training_params.keys():
         training_params["POSTERIOR_NAME"] = "posterior.pkl"
-
-    if "cuda" in training_params["DEVICE"]:
-        assert (
-            torch.cuda.is_available()
-        ), "Your device is cuda but there is no GPU available"
 
     return
