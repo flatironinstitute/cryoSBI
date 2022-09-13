@@ -1,0 +1,41 @@
+#!/bin/bash -l
+
+# Standard output and error:
+#SBATCH -o ./sbi_preprocess.out.%j
+#SBATCH -e ./sbi_preprocess.err.%j
+# Initial working directory:
+#SBATCH -D ./
+# Job Name:
+#SBATCH -J SBI_Data_Gen
+#
+# Queue (Partition):
+#SBATCH --constraint=rome
+#SBATCH --partition=ccm
+#
+# Request 2 node(s)
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=24:00:00
+
+module purge
+module load gcc/7
+module load python
+source /mnt/home/dsilvasanchez/virtual_envs/sbi_env/bin/activate
+
+CONFIG_NAME="config.json"
+
+python3 - << EOF
+import torch
+from cryo_em_sbi import CryoEmSbi
+
+indices = torch.load("indices.pt")
+images = torch.load("images.pt")
+
+num_workers = 1
+batch_size = int(images.shape[0] / num_workers)
+cryosbi = CryoEmSbi("$CONFIG_NAME")
+
+_, __ = cryosbi.preprocess(indices, images, num_workers=num_workers, batch_size=batch_size)
+
+EOF
