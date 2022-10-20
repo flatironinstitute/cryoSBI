@@ -2,23 +2,22 @@ import numpy as np
 import torch
 
 
-def add_noise(img, preproc_params):
+def add_noise(img, preproc_params, radius_coef):
 
-    mean_image = torch.mean(img)
-    std_image = torch.std(img)
+    def circular_mask(n_pixels, radius):
 
-    mask = torch.logical_or(
-        img >= mean_image + 0.5 * std_image, img <= mean_image - 0.5 * std_image
-    )
+        grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
+        r_2d = grid[None, :]**2 + grid[:, None]**2
+        mask = r_2d < radius**2
 
-    signal_std = torch.std(img[mask])
+        return mask
+        
+    mask = circular_mask(n_pixels=img.shape[0], radius=img.shape[0] * radius_coef)
 
-    noise_mean = torch.mean(img[mask])
+    signal_std = img[mask].pow(2).mean().sqrt()
     noise_std = signal_std / np.sqrt(preproc_params["SNR"])
 
-    noise = torch.normal(mean=noise_mean, std=noise_std, size=img.shape)
-
-    img_noise = img + noise
+    img_noise = img + torch.distributions.normal.Normal(0, noise_std).sample(img.shape)
 
     return img_noise
 
