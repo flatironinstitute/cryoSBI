@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def gen_quat():
@@ -23,7 +24,7 @@ def gen_quat():
 def gen_img(coord, image_params):
 
     n_atoms = coord.shape[1]
-    norm = 1 / (2 * np.pi * image_params["SIGMA"] ** 2 * n_atoms)
+    norm = 1 / (2 * torch.pi * image_params["SIGMA"] ** 2 * n_atoms)
 
     grid_min = -image_params["PIXEL_SIZE"] * (image_params["N_PIXELS"] - 1) * 0.5
     grid_max = (
@@ -31,16 +32,16 @@ def gen_img(coord, image_params):
         + image_params["PIXEL_SIZE"]
     )
 
-    grid = np.arange(grid_min, grid_max, image_params["PIXEL_SIZE"])
+    grid = torch.arange(grid_min, grid_max, image_params["PIXEL_SIZE"])
 
-    gauss_x = np.exp(
-        -0.5 * (((grid[:, np.newaxis] - coord[0, :]) / image_params["SIGMA"]) ** 2)
+    gauss_x = torch.exp(
+        -0.5 * (((grid[:, None] - coord[0, :]) / image_params["SIGMA"]) ** 2)
     )
 
-    gauss_y = np.exp(
-        -0.5 * (((grid[:, np.newaxis] - coord[1, :]) / image_params["SIGMA"]) ** 2)
+    gauss_y = torch.exp(
+        -0.5 * (((grid[:, None] - coord[1, :]) / image_params["SIGMA"]) ** 2)
     )
 
-    image = np.matmul(gauss_x, gauss_y.T) * norm
+    image = torch.matmul(gauss_x, gauss_y.T) * norm
 
     return image

@@ -23,7 +23,7 @@ David Silva-Sánchez, Lars Dingeldein, Roberto Covino, Pilar Cossio
 ## Install the module
 `python3 setup.py install`
 
-# Using the code (Temporarily only works for Pilar or David)
+# Using the code
 
 
 ## What can you find in this repo?
