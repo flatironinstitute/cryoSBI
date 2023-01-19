@@ -30,4 +30,6 @@ def pad_dataset(dataset, image_params, preproc_params):
         images, (pad_width, pad_width, pad_width, pad_width), "constant", 0.0
     )
 
-    return padded_images.reshape(dataset.shape[0], padded_images.shape[1] ** 2).to(preproc_params["DEVICE"])
+    return padded_images.reshape(dataset.shape[0], padded_images.shape[1] ** 2).to(
+        preproc_params["DEVICE"]
+    )
