@@ -5,13 +5,14 @@ import mrcfile
 import os
 from aspire.storage import StarFile
 
-class ImageReader():
+
+class ImageReader:
 
     """
     This class is based on ASPIRE's RelionSource class.
     https://github.com/ComputationalCryoEM/ASPIRE-Python/blob/master/src/aspire/source/relion.py
     """
-    
+
     relion_metadata_fields = {
         "_rlnVoltage": float,
         "_rlnDefocusU": float,
@@ -46,8 +47,9 @@ class ImageReader():
         "_rlnNrOfFrames": int,
         "_rlnMaxValueProbDistribution": float,
     }
+
     def __init__(self, filepath):
-        
+
         self.starfile = self._parse_star_file(filepath)
 
     def _parse_star_file(self, filepath, data_folder=None):
@@ -67,9 +69,9 @@ class ImageReader():
         else:
             data_folder = os.path.dirname(filepath)
 
-        starfile[["__mrc_index", "__mrc_filename"]] = starfile["_rlnImageName"].str.split(
-            "@", 1, expand=True
-        )
+        starfile[["__mrc_index", "__mrc_filename"]] = starfile[
+            "_rlnImageName"
+        ].str.split("@", 1, expand=True)
         # __mrc_index corresponds to the integer index of the particle in the __mrc_filename stack
         # Note that this is 1-based indexing
         starfile["__mrc_index"] = pd.to_numeric(starfile["__mrc_index"])
@@ -112,12 +114,12 @@ class ImageReader():
             images[i] = torch.tensor(mrc.data.flatten())
 
         return images
-        
+
 
 def main():
 
     filepath = "/path/to/star_file.star"
     image_reader = ImageReader(filepath)
 
-    indices = np.array([0, 1, 2, 3, 4]) # reads the first five images
-    images = image_reader.read_images(indices) # shape (5, n_pixels**2)
+    indices = np.array([0, 1, 2, 3, 4])  # reads the first five images
+    images = image_reader.read_images(indices)  # shape (5, n_pixels**2)
