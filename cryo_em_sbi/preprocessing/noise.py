@@ -3,15 +3,14 @@ import torch
 
 
 def add_noise(img, preproc_params, radius_coef):
-
     def circular_mask(n_pixels, radius):
 
         grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
-        r_2d = grid[None, :]**2 + grid[:, None]**2
+        r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
         mask = r_2d < radius**2
 
         return mask
-        
+
     mask = circular_mask(n_pixels=img.shape[0], radius=img.shape[0] * radius_coef)
 
     signal_std = img[mask].pow(2).mean().sqrt()
