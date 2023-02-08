@@ -1,6 +1,7 @@
 from cryo_em_sbi.simulating import image_generation
 from cryo_em_sbi.utils import validate_config
-from cryo_em_sbi.preprocessing import preprocessing
+#from cryo_em_sbi.preprocessing import preprocessing
+import cryo_em_sbi.preprocessing as preprocessing
 
 import json
 import pickle
@@ -106,7 +107,6 @@ class CryoEmSbi:
         if self.config["PREPROCESSING"]["CTF"]:
             preproc_images = preprocessing.apply_ctf_to_dataset(
                 preproc_images,
-                self.config["SIMULATION"],
                 self.config["IMAGES"],
                 self.config["PREPROCESSING"],
             )

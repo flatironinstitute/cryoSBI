@@ -3,7 +3,6 @@ import numpy as np
 
 
 def apply_random_shift(padded_image, image_params):
-
     shift_x = int(torch.ceil(image_params["N_PIXELS"] * 0.1 * (2 * torch.rand(1) - 1)))
     shift_y = int(torch.ceil(image_params["N_PIXELS"] * 0.1 * (2 * torch.rand(1) - 1)))
 
@@ -21,7 +20,6 @@ def apply_random_shift(padded_image, image_params):
 
 
 def shift_dataset(dataset, preproc_params, image_params):
-
     shifted_images = torch.empty(
         (dataset.shape[0], image_params["N_PIXELS"] ** 2),
         device=preproc_params["DEVICE"],
@@ -29,7 +27,6 @@ def shift_dataset(dataset, preproc_params, image_params):
     n_pixels = int(np.sqrt(dataset.shape[1]))
 
     for i in range(dataset.shape[0]):
-
         tmp_image = apply_random_shift(
             dataset[i].reshape(n_pixels, n_pixels), image_params
         )
