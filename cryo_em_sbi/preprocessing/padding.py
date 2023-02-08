@@ -7,7 +7,6 @@ from torch.nn.functional import pad
 
 
 def pad_image(image, image_params):
-
     pad_width = int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1
 
     padder = pad(pad_width, 0.0)
@@ -19,7 +18,6 @@ def pad_image(image, image_params):
 
 ### Preprocessing functions for datasets ###
 def pad_dataset(dataset, image_params, preproc_params):
-
     images = dataset.reshape(
         dataset.shape[0], image_params["N_PIXELS"], image_params["N_PIXELS"]
     )
