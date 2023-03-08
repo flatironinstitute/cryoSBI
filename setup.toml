@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+authors = [
+   { name = "David Silva-Sanchez", email = "david.silva@yale.edu"},
+   { name = "Lars Dingeldein"},
+   { name = "Pilar Cossio"},
+   { name = "Roberto Covino"}
+]
+
+name = "Cryo-EM SBI"
+version = "0.0.1"
+dependencies = [
+    "lampe==0.7.1",
+    "zuko==0.0.8",
+    "torch==1.12.1",
+    "numpy==1.21.5",
+    "matplotlib==3.6.1"
+]
