@@ -14,7 +14,7 @@ def main(config_file, num_train_samples, num_val_samples, file_name, save_as_ten
     
     cryo_simulator = CryoEmSimulator(config_file)
     loader = JointLoader(
-        get_unirom_prior_1d(cryo_simulator.get_max_index()),
+        get_unirom_prior_1d(cryo_simulator.max_index),
         cryo_simulator.simulator,
         vectorized=False,
         batch_size=1000,
