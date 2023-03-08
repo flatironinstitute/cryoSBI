@@ -64,6 +64,7 @@ class CryoEmSimulator:
                 self.quaternions.shape[1] == 4
             ), "Quaternion shape is not 4. Corrupted file?"
 
+
     @property
     def max_index(self):
         return len(self.models) - 1
