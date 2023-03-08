@@ -1,7 +1,7 @@
 {"N_PIXELS": 128,
 "PIXEL_SIZE": 1.5,
 "SIGMA": 4.0,
-"MODEL_FILE": "/home/dingeldein/Desktop/cryo_sbi_experimental/data/protein_models/hsp90_models.npy",
+"MODEL_FILE": "../protein_models/6wxb_models.npy",
 "ROTATIONS": true,
 "SHIFT": true,
 "CTF": true,
