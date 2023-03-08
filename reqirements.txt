@@ -1,3 +1,5 @@
 lampe==0.7.1
 zuko==0.0.8
-torch=1.12.1
+torch==1.12.1
+numpy==1.21.5
+matplotlib==3.6.1
