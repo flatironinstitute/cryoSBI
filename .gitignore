@@ -7,8 +7,10 @@ sbi-logs/
 # Training data, models and other datafiles
 data/
 notebooks/
+results/
 *.npy
 *.estimator
+*epoch=*
 *.loss
 
 # Byte-compiled / optimized / DLL files
