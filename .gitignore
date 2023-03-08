@@ -8,7 +8,6 @@ sbi-logs/
 data/
 notebooks/
 results/
-*.npy
 *.estimator
 *epoch=*
 *.loss
