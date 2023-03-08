@@ -5,8 +5,8 @@ sbi-logs/
 *.png
 
 # Training data, models and other datafiles
-/data
-/notebooks
+data/
+notebooks/
 *.npy
 *.estimator
 *.loss
