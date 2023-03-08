@@ -1,0 +1,15 @@
+{"N_PIXELS": 256,
+"PIXEL_SIZE": 0.75,
+"SIGMA": 4.0,
+"MODEL_FILE": "/home/dingeldein/Desktop/cryo_em_SBI/scr/cryo_sbi/protein_models/6wxb_models.npy",
+"ROTATIONS": true,
+"SHIFT": true,
+"CTF": true,
+"NOISE": true,
+"DEFOCUS": 1.5,
+"SNR": 0.1,
+"RADIUS_MASK": 64,
+"AMP": 0.1,
+"B_FACTOR": 1,
+"ELECWAVE": 0.019866
+}
