@@ -8,7 +8,7 @@ from models.embedding_nets import EMBEDDING_NETS
 
 def build_npe_flow_model(config):
     """
-    Function to build NPE estimator with embedding net 
+    Function to build NPE estimator with embedding net
     from config_file
     """
 
@@ -16,16 +16,15 @@ def build_npe_flow_model(config):
         model = zuko.flows.MAF
     elif config["MODEL"] == "NSF":
         model = zuko.flows.NSF
-    elif config["MODEL"] == 'SOSPF':
+    elif config["MODEL"] == "SOSPF":
         model = zuko.flows.SOSPF
     else:
-        raise NotImplementedError(f"Model : {config['MODEL']} has not been implemented yet!")
-    
-    try:
-        embedding = partial(
-            EMBEDDING_NETS[config['EMBEDDING']],
-            config['OUT_DIM']
+        raise NotImplementedError(
+            f"Model : {config['MODEL']} has not been implemented yet!"
         )
+
+    try:
+        embedding = partial(EMBEDDING_NETS[config["EMBEDDING"]], config["OUT_DIM"])
     except:
         raise NotImplementedError(
             f"Model : {config['EMBEDDING']} has not been implemented yet! \
@@ -33,15 +32,15 @@ The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys(
         )
 
     estimator = estimator_models.NPEWithEmbedding(
-        embedding_net = embedding,
-        output_embedding_dim=config['OUT_DIM'],
+        embedding_net=embedding,
+        output_embedding_dim=config["OUT_DIM"],
         num_transforms=config["NUM_TRANSFORM"],
         num_hidden_flow=config["NUM_HIDDEN_FLOW"],
         hidden_flow_dim=config["HIDDEN_DIM_FLOW"],
         flow=model,
         theta_shift=config["THETA_SHIFT"],
         theta_scale=config["THETA_SCALE"],
-        **{"activation": partial(nn.LeakyReLU, 0.1)}
+        **{"activation": partial(nn.LeakyReLU, 0.1)},
     )
 
     return estimator
@@ -49,7 +48,7 @@ The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys(
 
 def build_nre_classifier_model(config):
     """
-    Function to build NRE estimator with embedding net 
+    Function to build NRE estimator with embedding net
     from config_file
     """
 
@@ -58,10 +57,12 @@ def build_nre_classifier_model(config):
     elif config["MODEL"] == "MLP":
         model = zuko.nn.MLP
     else:
-        raise NotImplementedError(f"Model : {config['MODEL']} has not been implemented yet!")
+        raise NotImplementedError(
+            f"Model : {config['MODEL']} has not been implemented yet!"
+        )
 
     try:
-        embedding = partial(EMBEDDING_NETS[config['EMBEDDING']], config['OUT_DIM'])
+        embedding = partial(EMBEDDING_NETS[config["EMBEDDING"]], config["OUT_DIM"])
     except:
         raise NotImplementedError(
             f"Model : {config['EMBEDDING']} has not been implemented yet! \
@@ -71,11 +72,11 @@ The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys(
     estimator = estimator_models.NREWithEmbedding(
         embedding_net=embedding,
         output_embedding_dim=config["OUT_DIM"],
-        hidden_features=config['HIDDEN_FEATURES'],
+        hidden_features=config["HIDDEN_FEATURES"],
         activation=partial(nn.LeakyReLU, 0.1),
         network=model,
         theta_scale=config["THETA_SCALE"],
-        theta_shift=config["THETA_SHIFT"]
+        theta_shift=config["THETA_SHIFT"],
     )
 
     return estimator

@@ -1,12 +1,10 @@
-
-
 def check_params(config):
 
     needed_keys = [
         "N_PIXELS",
         "PIXEL_SIZE",
-        "SIGMA", 
-        "SHIFT", 
+        "SIGMA",
+        "SHIFT",
         "CTF",
         "NOISE",
         "DEFOCUS",
@@ -14,9 +12,9 @@ def check_params(config):
         "MODEL_FILE",
         "ROTATIONS",
         "RADIUS_MASK",
-        "AMP", 
+        "AMP",
         "B_FACTOR",
-        "ELECWAVE"
+        "ELECWAVE",
     ]
 
     for key in needed_keys:

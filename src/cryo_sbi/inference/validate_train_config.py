@@ -1,5 +1,3 @@
-
-
 def check_train_params(config):
 
     needed_keys = [
@@ -13,7 +11,7 @@ def check_train_params(config):
         "CLIP_GRADIENT",
         "BATCH_SIZE",
         "THETA_SHIFT",
-        "THETA_SCALE"
+        "THETA_SCALE",
     ]
 
     for key in needed_keys:
