@@ -1,15 +1,15 @@
 import torch
 import numpy as np
 import json
-
 from scipy.spatial.transform import Rotation
-import image_generation
-import normalization
-import validate_image_config
-import shift
-import ctf
-import padding
-import noise
+
+from cryo_sbi.wpa_simulator.ctf import calc_ctf, apply_ctf
+from cryo_sbi.wpa_simulator.image_generation import gen_img, gen_quat
+from cryo_sbi.wpa_simulator.noise import add_noise
+from cryo_sbi.wpa_simulator.normalization import gaussian_normalize_image
+from cryo_sbi.wpa_simulator.padding import pad_image
+from cryo_sbi.wpa_simulator.shift import apply_no_shift, apply_random_shift
+from cryo_sbi.wpa_simulator.validate_image_config import check_params
 
 
 class CryoEmSimulator:
@@ -20,16 +20,14 @@ class CryoEmSimulator:
         self.rot_mode = None
         self.quaternions = None
         self._config_rotations()
-        self._ctf = ctf.calc_ctf(self.config)
+        self._ctf = calc_ctf(self.config)
         self._pad_width = int(np.ceil(self.config["N_PIXELS"] * 0.1)) + 1
-
 
     def _load_params(self, config_fname):
 
         config = json.load(open(config_fname))
-        validate_image_config.check_params(config)
+        check_params(config)
         self.config = config
-
 
     def _load_models(self):
 
@@ -45,7 +43,6 @@ class CryoEmSimulator:
             )
         print(self.config["MODEL_FILE"])
 
-
     def _config_rotations(self):
 
         if isinstance(self.config["ROTATIONS"], bool):
@@ -56,19 +53,15 @@ class CryoEmSimulator:
         elif isinstance(self.config["ROTATIONS"], str):
 
             self.rot_mode = "list"
-            self.quaternions = np.loadtxt(
-                self.config["ROTATIONS"], skiprows=1
-            )
+            self.quaternions = np.loadtxt(self.config["ROTATIONS"], skiprows=1)
 
             assert (
                 self.quaternions.shape[1] == 4
             ), "Quaternion shape is not 4. Corrupted file?"
 
-
     @property
     def max_index(self):
         return len(self.models) - 1
-
 
     def simulator(self, index):
 
@@ -76,7 +69,7 @@ class CryoEmSimulator:
         coord = self.models[index]
 
         if self.rot_mode == "random":
-            quat = image_generation.gen_quat()
+            quat = gen_quat()
             rot_mat = Rotation.from_quat(quat).as_matrix()
             coord = np.matmul(rot_mat, coord)
 
@@ -85,24 +78,23 @@ class CryoEmSimulator:
             rot_mat = Rotation.from_quat(quat).as_matrix()
             coord = np.matmul(rot_mat, coord)
 
-        image = image_generation.gen_img(coord, self.config)
-        image = padding.pad_image(image, self.config)
+        image = gen_img(coord, self.config)
+        image = pad_image(image, self.config)
 
         if self.config["CTF"]:
-            image = ctf.apply_ctf(image, self._ctf)
+            image = apply_ctf(image, self._ctf)
 
         if self.config["NOISE"]:
-            image = noise.add_noise(image, self.config)
+            image = add_noise(image, self.config)
 
         if self.config["SHIFT"]:
-            image = shift.apply_random_shift(image, self.config)
+            image = apply_random_shift(image, self.config)
         else:
-            image = shift.apply_no_shift(image, self.config)
+            image = apply_no_shift(image, self.config)
 
-        image = normalization.gaussian_normalize_image(image)
+        image = gaussian_normalize_image(image)
 
         return image.to(dtype=torch.float)
-
 
     def _simulator_with_quat(self, index_quat):
 
@@ -111,21 +103,21 @@ class CryoEmSimulator:
         rot_mat = Rotation.from_quat(index_quat[1:]).as_matrix()
         coord = np.matmul(rot_mat, coord)
 
-        image = image_generation.gen_img(coord, self.config)
+        image = gen_img(coord, self.config)
 
-        image = padding.pad_image(image, self.config)
+        image = pad_image(image, self.config)
 
         if self.config["CTF"]:
-            image = ctf.apply_ctf(image, self._ctf)
+            image = apply_ctf(image, self._ctf)
 
         if self.config["NOISE"]:
-            image = noise.add_noise(image, self.config)
+            image = add_noise(image, self.config)
 
         if self.config["SHIFT"]:
-            image = shift.apply_random_shift(image, self.config)
+            image = apply_random_shift(image, self.config)
         else:
-            image = shift.apply_no_shift(image, self.config)
+            image = apply_no_shift(image, self.config)
 
-        image = normalization.gaussian_normalize_image(image)
+        image = gaussian_normalize_image(image)
 
         return image.to(dtype=torch.float)

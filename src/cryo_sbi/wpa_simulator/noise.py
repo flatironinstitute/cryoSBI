@@ -2,19 +2,11 @@ import numpy as np
 import torch
 
 
-<<<<<<< HEAD:cryo_em_sbi/preprocessing/noise.py
-def add_noise(img, preproc_params, radius_coef=0.4):
-    def circular_mask(n_pixels, radius):
-        grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
-        r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
-        mask = r_2d < radius**2
-=======
 def circular_mask(n_pixels, radius):
 
     grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
-    r_2d = grid[None, :]**2 + grid[:, None]**2
+    r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
     mask = r_2d < radius**2
->>>>>>> 3970770c0b2486e4ebca50888a74dccc37401509:scr/cryo_sbi/wpa_simulator/noise.py
 
     return mask
 

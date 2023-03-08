@@ -1,9 +1,10 @@
 import torch
-import torch.nn as nn 
+import torch.nn as nn
 import zuko
 from lampe.inference import NPE, NRE
 
 import sys
+
 sys.path.insert(0, "../inference/models")
 
 
@@ -21,27 +22,27 @@ class Standardize(nn.Module):
 
     def forward(self, tensor):
         return (tensor - self._mean) / self._std
-    
+
     def transform(self, tensor):
         return (tensor * self._std) + self._mean
 
 
 class NPEWithEmbedding(nn.Module):
     def __init__(
-            self,
-            embedding_net,
-            output_embedding_dim,
-            num_transforms=4,
-            num_hidden_flow=2,
-            hidden_flow_dim=128,
-            flow=zuko.flows.MAF,
-            theta_shift=0,
-            theta_scale=1,
-            **kwargs
-            ):
+        self,
+        embedding_net,
+        output_embedding_dim,
+        num_transforms=4,
+        num_hidden_flow=2,
+        hidden_flow_dim=128,
+        flow=zuko.flows.MAF,
+        theta_shift=0,
+        theta_scale=1,
+        **kwargs
+    ):
 
         super().__init__()
-        
+
         self.npe = NPE(
             1,
             output_embedding_dim,
@@ -50,7 +51,7 @@ class NPEWithEmbedding(nn.Module):
             hidden_features=[*[hidden_flow_dim] * num_hidden_flow, 128, 64],
             **kwargs
         )
-        
+
         self.embedding = embedding_net()
         self.standardize = Standardize(theta_shift, theta_scale)
 
@@ -67,15 +68,15 @@ class NPEWithEmbedding(nn.Module):
 
 class NREWithEmbedding(nn.Module):
     def __init__(
-            self,
-            embedding_net,
-            output_embedding_dim,
-            hidden_features,
-            activation,
-            network,
-            theta_shift=0,
-            theta_scale=1
-            ):
+        self,
+        embedding_net,
+        output_embedding_dim,
+        hidden_features,
+        activation,
+        network,
+        theta_shift=0,
+        theta_scale=1,
+    ):
 
         super().__init__()
 

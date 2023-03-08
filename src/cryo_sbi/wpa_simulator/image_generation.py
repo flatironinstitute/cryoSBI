@@ -3,8 +3,6 @@ import torch
 
 
 def gen_quat():
-    # Sonya's code
-    # Generates a single quaternion
 
     count = 0
     while count < 1:
