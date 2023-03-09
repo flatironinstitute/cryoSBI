@@ -1,6 +1,5 @@
 # temporal ignores
-tester*
-config_file.json
+messing_around/
 
 #SBI related folders
 sbi-logs/

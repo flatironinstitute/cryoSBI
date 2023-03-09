@@ -8,19 +8,13 @@ from lampe.inference import NPELoss
 from lampe.utils import GDStep
 from itertools import islice
 
-from priors import get_unirom_prior_1d
-from models.build_models import build_npe_flow_model
-from validate_train_config import check_train_params
-import sys
-
-sys.path.insert(0, "../wpa_simulator/")
-from cryo_em_simulator import CryoEmSimulator
+from cryo_sbi.inference.priors import get_uniform_prior_1d
+from cryo_sbi.inference.models.build_models import build_npe_flow_model
+from cryo_sbi.inference.validate_train_config import check_train_params
+from cryo_sbi import CryoEmSimulator
 
 
-torch.set_num_threads(24)
-
-
-def main(
+def npe_train_no_saving(
     image_config,
     train_config,
     epochs,
@@ -42,7 +36,7 @@ def main(
     estimator.cuda()
 
     loader = JointLoader(
-        get_unirom_prior_1d(cryo_simulator.max_index),
+        get_uniform_prior_1d(cryo_simulator.max_index),
         cryo_simulator.simulator,
         vectorized=False,
         batch_size=train_config["BATCH_SIZE"],
@@ -107,7 +101,7 @@ if __name__ == "__main__":
     )
     args = cl_parser.parse_args()
 
-    main(
+    npe_train_no_saving(
         args.image_config_file,
         args.train_config_file,
         args.epochs,

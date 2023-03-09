@@ -8,17 +8,13 @@ from lampe.inference import NRELoss
 from lampe.utils import GDStep
 from itertools import islice
 
-from priors import get_unirom_prior_1d
-from models.build_models import build_nre_classifier_model
-from validate_train_config import check_train_params
-
-import sys
-
-sys.path.insert(0, "../wpa_simulator/")
-from cryo_em_simulator import CryoEmSimulator
+from cryo_sbi.inference.priors import get_uniform_prior_1d
+from cryo_sbi.inference.models.build_models import build_nre_classifier_model
+from cryo_sbi.inference.validate_train_config import check_train_params
+from cryo_sbi import CryoEmSimulator
 
 
-def main(
+def nre_train_no_saving(
     image_config,
     train_config,
     epochs,
@@ -102,7 +98,7 @@ if __name__ == "__main__":
     )
     args = cl_parser.parse_args()
 
-    main(
+    nre_train_no_saving(
         args.image_config_file,
         args.train_config_file,
         args.epochs,

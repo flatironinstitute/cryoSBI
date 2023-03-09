@@ -2,8 +2,8 @@ import torch.nn as nn
 from functools import partial
 import zuko
 import lampe
-import models.estimator_models as estimator_models
-from models.embedding_nets import EMBEDDING_NETS
+import cryo_sbi.inference.models.estimator_models as estimator_models
+from cryo_sbi.inference.models.embedding_nets import EMBEDDING_NETS
 
 
 def build_npe_flow_model(config):

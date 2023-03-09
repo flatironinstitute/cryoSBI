@@ -7,11 +7,11 @@ from tqdm import tqdm
 from lampe.utils import GDStep
 from lampe.inference import NPELoss
 
-from models.build_models import build_npe_flow_model
-from validate_train_config import check_train_params
+from cryo_sbi.inference.models.build_models import build_npe_flow_model
+from cryo_sbi.inference.validate_train_config import check_train_params
 
 
-def main(
+def npe_train_from_vram(
     train_config,
     epochs,
     train_data_dir,
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     )
     args = cl_parser.parse_args()
 
-    main(
+    npe_train_from_vram(
         args.train_config_file,
         args.epochs,
         args.training_data_file,
