@@ -40,7 +40,6 @@ class NPEWithEmbedding(nn.Module):
         theta_scale=1,
         **kwargs
     ):
-
         super().__init__()
 
         self.npe = NPE(
@@ -77,7 +76,6 @@ class NREWithEmbedding(nn.Module):
         theta_shift=0,
         theta_scale=1,
     ):
-
         super().__init__()
 
         self.nre = NRE(

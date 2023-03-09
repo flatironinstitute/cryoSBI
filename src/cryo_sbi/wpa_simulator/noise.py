@@ -3,7 +3,6 @@ import torch
 
 
 def circular_mask(n_pixels, radius):
-
     grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
     mask = r_2d < radius**2
@@ -12,11 +11,24 @@ def circular_mask(n_pixels, radius):
 
 
 def add_noise(img, image_params):
-
     mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
 
     signal_std = img[mask].pow(2).mean().sqrt()
-    noise_std = signal_std / np.sqrt(image_params["SNR"])
+
+    if len(np.asarray(image_params["SNR"]).reshape(-1)) == 1:
+        snr = image_params["SNR"]
+
+    elif len(np.asarray(image_params["SNR"]).reshape(-1)) == 2:
+        snr = (
+            np.random.rand()
+            * (image_params["SNR"][1] - image_params["SNR"][0])
+            + image_params["SNR"][0]
+        )
+
+    else:
+        raise ValueError("SNR should be a single value or a list of [min_defocus, max_defocus]")
+
+    noise_std = signal_std / np.sqrt(snr)
 
     img_noise = img + torch.distributions.normal.Normal(0, noise_std).sample(img.shape)
 

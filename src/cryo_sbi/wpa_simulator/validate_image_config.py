@@ -1,5 +1,4 @@
 def check_params(config):
-
     needed_keys = [
         "N_PIXELS",
         "PIXEL_SIZE",

@@ -20,7 +20,6 @@ def apply_random_shift(padded_image, image_params):
 
 
 def apply_no_shift(padded_image, image_params):
-
     pad_width = int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1
 
     low_ind_x = pad_width
