@@ -1,4 +1,3 @@
-"""Create instructions to build cryo-Bife's path optimization version."""
 import setuptools
 
 requirements = []
