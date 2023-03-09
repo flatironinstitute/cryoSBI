@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+authors = [
+   { name = "David Silva-Sanchez", email = "david.silva@yale.edu"},
+   { name = "Lars Dingeldein"},
+   { name = "Pilar Cossio"},
+   { name = "Roberto Covino"}
+]
+
+name = "cryosbi"
+version = "0.0.1"
+dependencies = [
+    "lampe",
+    "zuko",
+    "torch",
+    "numpy",
+    "matplotlib"
+]
