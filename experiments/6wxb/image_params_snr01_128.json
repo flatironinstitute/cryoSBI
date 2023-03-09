@@ -1,7 +1,7 @@
 {"N_PIXELS": 128,
 "PIXEL_SIZE": 2.06,
 "SIGMA": 4.0,
-"MODEL_FILE": "/home/dingeldein/Desktop/cryo_em_SBI/scr/cryo_sbi/protein_models/6wxb_models.npy",
+"MODEL_FILE": "/home/dingeldein/Desktop/cryo_em_SBI/protein_models/6wxb_models.npy",
 "ROTATIONS": true,
 "SHIFT": true,
 "CTF": true,

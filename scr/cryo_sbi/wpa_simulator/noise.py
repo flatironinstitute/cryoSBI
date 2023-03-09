@@ -7,6 +7,7 @@ import torch
 #        r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
 #        mask = r_2d < radius**2
 
+
 def circular_mask(n_pixels, radius):
 
     grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
@@ -14,6 +15,7 @@ def circular_mask(n_pixels, radius):
     mask = r_2d < radius**2
 
     return mask
+
 
 def add_noise(img, image_params):
     """Adds gaussian noise to image"""
