@@ -1,3 +1,6 @@
+# temporal ignores
+messing_around/
+
 #SBI related folders
 sbi-logs/
 *.png
