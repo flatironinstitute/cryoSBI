@@ -1,4 +1,5 @@
 def check_train_params(config):
+    
     needed_keys = [
         "EMBEDDING",
         "OUT_DIM",

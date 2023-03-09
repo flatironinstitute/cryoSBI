@@ -9,7 +9,7 @@ from cryo_sbi import CryoEmSimulator
 
 
 def gen_training_set(
-    config_file, num_train_samples, num_val_samples, file_name, save_as_tensor, n_workers
+    config_file, num_train_samples, num_val_samples, file_name, save_as_tensor, n_workers, batch_size
 ):
     cryo_simulator = CryoEmSimulator(config_file)
 
@@ -17,7 +17,7 @@ def gen_training_set(
         get_uniform_prior_1d(cryo_simulator.max_index),
         cryo_simulator.simulator,
         vectorized=False,
-        batch_size=1000,
+        batch_size=batch_size,
         num_workers=n_workers,
         prefetch_factor=1,
     )

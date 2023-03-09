@@ -7,11 +7,11 @@ from lampe.utils import GDStep
 from lampe.data import H5Dataset
 from lampe.inference import NPELoss
 
-from models.build_model import build_npe_flow_model
-from validate_train_config import check_train_params
+from cryo_sbi.inference.models.build_models import build_npe_flow_model
+from cryo_sbi.inference.validate_train_config import check_train_params
 
 
-def main(
+def npe_train_from_disk(
     train_config,
     epochs,
     train_data_dir,
@@ -20,6 +20,7 @@ def main(
     loss_file,
     train_from_checkpoint,
     model_state_dict,
+    n_workers,
 ):
     train_config = json.load(open(train_config))
     check_train_params(train_config)
@@ -52,11 +53,11 @@ def main(
     )
 
     train_loader = torch.utils.data.DataLoader(
-        trainset, batch_size=None, num_workers=24, pin_memory=True, prefetch_factor=100
+        trainset, batch_size=None, num_workers=n_workers, pin_memory=True, prefetch_factor=100
     )
 
     val_loader = torch.utils.data.DataLoader(
-        validset, batch_size=None, num_workers=24, pin_memory=True, prefetch_factor=100
+        validset, batch_size=None, num_workers=n_workers, pin_memory=True, prefetch_factor=100
     )
 
     loss = NPELoss(estimator)
@@ -119,7 +120,7 @@ if __name__ == "__main__":
     )
     args = cl_parser.parse_args()
 
-    main(
+    npe_train_from_disk(
         args.train_config_file,
         args.epochs,
         args.training_data_file,

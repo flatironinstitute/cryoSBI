@@ -7,11 +7,11 @@ from tqdm import tqdm
 from lampe.inference import NRELoss
 from lampe.utils import GDStep
 
-from models.build_models import build_nre_classifier_model
-from validate_train_config import check_train_params
+from cryo_sbi.inference.models.build_models import build_nre_classifier_model
+from cryo_sbi.inference.validate_train_config import check_train_params
 
 
-def main(
+def nre_train_from_vram(
     train_config,
     train_data_dir,
     val_data_dir,
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     )
     args = cl_parser.parse_args()
 
-    main(
+    nre_train_from_vram(
         args.train_config_file,
         args.training_data_file,
         args.validation_data_file,
