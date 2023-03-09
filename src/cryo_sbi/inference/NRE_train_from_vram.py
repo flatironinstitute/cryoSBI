@@ -21,7 +21,6 @@ def main(
     train_from_checkpoint,
     model_state_dict,
 ):
-
     train_config = json.load(open(train_config))
     check_train_params(train_config)
     estimator = build_nre_classifier_model(train_config)

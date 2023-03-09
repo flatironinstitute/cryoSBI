@@ -27,7 +27,6 @@ def main(
     train_from_checkpoint,
     model_state_dict,
 ):
-
     cryo_simulator = CryoEmSimulator(image_config)
 
     train_config = json.load(open(train_config))
@@ -41,7 +40,7 @@ def main(
     estimator.cuda()
 
     loader = JointLoader(
-        get_unirom_prior_1d(cryo_simulator.max_index()),
+        get_uniform_prior_1d(cryo_simulator.max_index()),
         cryo_simulator.simulator,
         vectorized=False,
         batch_size=train_config["BATCH_SIZE"],

@@ -21,15 +21,18 @@ def main(
     train_from_checkpoint,
     model_state_dict,
 ):
-
     train_config = json.load(open(train_config))
     check_train_params(train_config)
+
     estimator = build_npe_flow_model(train_config)
+
     if train_from_checkpoint:
         if not isinstance(model_state_dict, str):
             raise Warning("No model state dict specified! --model_state_dict is empty")
+
         print(f"Loading model parameters from {model_state_dict}")
         estimator.load_state_dict(torch.load(model_state_dict))
+
     estimator.cuda()
 
     trainset = H5Dataset(
@@ -71,14 +74,17 @@ def main(
                     for theta, x in train_loader
                 ]
             )
+
             estimator.eval()
             with torch.no_grad():
                 val_losses = torch.stack(
                     [loss(theta.cuda(), x.cuda()) for theta, x in val_loader]
                 )
+
             tq.set_postfix(
                 train_loss=train_losses.mean().item(), val_loss=val_losses.mean().item()
             )
+
             mean_loss.append(val_losses.mean().item())
 
     torch.save(estimator, estimator_file)

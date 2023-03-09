@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-
+#defocus, snr, and types of noise
+#types of noise: gradient, shot noise, 
 
 def calc_ctf(image_params):
-
     # Attention look into padding.py function to know the image size a priori to padding
     image_size = (
         2 * (int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1)
@@ -12,7 +12,21 @@ def calc_ctf(image_params):
 
     freq_pix_1d = torch.fft.fftfreq(image_size, d=image_params["PIXEL_SIZE"])
 
-    phase = image_params["DEFOCUS"] * np.pi * 2.0 * 10000 * image_params["ELECWAVE"]
+    defocus = image_params["DEFOCUS"]
+
+    if len(np.asarray(defocus).reshape(-1)) == 1:
+        phase = defocus * np.pi * 2.0 * 10000 * image_params["ELECWAVE"]
+
+    elif len(np.asarray(defocus).reshape(-1)) == 2:
+        defocus = (
+            np.random.rand()
+            * (defocus[1] - defocus[0])
+            + defocus[0]
+        )
+        phase = defocus * np.pi * 2.0 * 10000 * image_params["ELECWAVE"]
+
+    else:
+        raise ValueError("Defocus should be a single value or a list of [min_defocus, max_defocus]")
 
     x, y = torch.meshgrid(freq_pix_1d, freq_pix_1d)
 
@@ -30,7 +44,6 @@ def calc_ctf(image_params):
 
 
 def apply_ctf(image, ctf):
-
     conv_image_ctf = torch.fft.fft2(image) * ctf
     image_ctf = torch.fft.ifft2(conv_image_ctf).real
 

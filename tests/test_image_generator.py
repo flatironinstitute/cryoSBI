@@ -25,7 +25,7 @@ config = {
         "DEFOCUS": [1.5, 2.5],
         "SNR": 0.1,
         "DEVICE": "cpu",
-        "REDUCED_PIXELS": 64
+        "REDUCED_PIXELS": 64,
     },
     "TRAINING": {
         "MODEL": "maf",
@@ -41,22 +41,22 @@ preproc_images = image_generation.gen_img(model, config["IMAGES"]).reshape(1, -1
 
 
 preproc_images = preprocessing.pad_dataset(
-                preproc_images, config["IMAGES"], config["PREPROCESSING"]
-            )
-            
+    preproc_images, config["IMAGES"], config["PREPROCESSING"]
+)
+
 image_ctf = preprocessing.apply_ctf_to_dataset(
-                preproc_images.reshape(1, -1),
-                config["IMAGES"],
-                config["PREPROCESSING"],
-            )
+    preproc_images.reshape(1, -1),
+    config["IMAGES"],
+    config["PREPROCESSING"],
+)
 
 preproc_images = preprocessing.shift_dataset(
-                preproc_images, config["SIMULATION"], config["IMAGES"]
-            )
+    preproc_images, config["SIMULATION"], config["IMAGES"]
+)
 
 preproc_images = preprocessing.add_noise_to_dataset(
-                preproc_images, config["PREPROCESSING"]
-            )
+    preproc_images, config["PREPROCESSING"]
+)
 
 plt.imshow(preproc_images.reshape(128, 128))
 plt.show()

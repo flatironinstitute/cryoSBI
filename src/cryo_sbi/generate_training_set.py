@@ -7,8 +7,10 @@ from tqdm import tqdm
 from cryo_sbi.inference.priors import get_uniform_prior_1d
 from cryo_sbi import CryoEmSimulator
 
-def main(config_file, num_train_samples, num_val_samples, file_name, save_as_tensor):
 
+def gen_training_set(
+    config_file, num_train_samples, num_val_samples, file_name, save_as_tensor, n_workers
+):
     cryo_simulator = CryoEmSimulator(config_file)
 
     loader = JointLoader(
@@ -16,21 +18,18 @@ def main(config_file, num_train_samples, num_val_samples, file_name, save_as_ten
         cryo_simulator.simulator,
         vectorized=False,
         batch_size=1000,
-        num_workers=24,
+        num_workers=n_workers,
         prefetch_factor=1,
     )
 
     if save_as_tensor:
-
         torch.multiprocessing.set_sharing_strategy("file_system")
         train_data = islice(loader, num_train_samples)
         thetas = []
         xs = []
 
         with tqdm(range(num_train_samples), unit="batch") as tq:
-
             for theta, x in train_data:
-
                 thetas.append(theta.to(dtype=torch.float))
                 xs.append(x.to(dtype=torch.float))
                 del theta, x
@@ -48,7 +47,6 @@ def main(config_file, num_train_samples, num_val_samples, file_name, save_as_ten
 
         with tqdm(range(num_val_samples), unit="batch") as tq:
             for theta, x in val_data:
-
                 thetas.append(theta.to(dtype=torch.float))
                 xs.append(x.to(dtype=torch.float))
                 del theta, x
@@ -61,7 +59,6 @@ def main(config_file, num_train_samples, num_val_samples, file_name, save_as_ten
         del val_data, val_x, val_theta, thetas, xs
 
     else:
-
         H5Dataset.store(
             loader, f"{file_name}_train.h5", size=num_train_samples, overwrite=True
         )
@@ -71,7 +68,6 @@ def main(config_file, num_train_samples, num_val_samples, file_name, save_as_ten
 
 
 if __name__ == "__main__":
-
     cl_parser = argparse.ArgumentParser()
 
     cl_parser.add_argument("--config_file", action="store", type=str, required=True)
@@ -81,6 +77,7 @@ if __name__ == "__main__":
     )
 
     cl_parser.add_argument("--num_val_samples", action="store", type=int, required=True)
+
 
     cl_parser.add_argument("--file_name", action="store", type=str, required=True)
 
@@ -94,11 +91,14 @@ if __name__ == "__main__":
         default=False,
     )
     
+    cl_parser.add_argument("--n_workers", action="store", type=int, required=True)
+
     args = cl_parser.parse_args()
-    main(
+    gen_training_set(
         args.config_file,
         args.num_train_samples,
         args.num_val_samples,
         args.file_name,
         args.save_as_tensor,
+        args.n_workers
     )

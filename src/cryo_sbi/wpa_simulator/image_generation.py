@@ -3,10 +3,8 @@ import torch
 
 
 def gen_quat():
-
     count = 0
     while count < 1:
-
         quat = np.random.uniform(
             -1, 1, 4
         )  # note this is a half-open interval, so 1 is not included but -1 is
@@ -20,7 +18,6 @@ def gen_quat():
 
 
 def gen_img(coord, image_params):
-
     n_atoms = coord.shape[1]
     norm = 1 / (2 * torch.pi * image_params["SIGMA"] ** 2 * n_atoms)
 

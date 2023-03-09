@@ -29,7 +29,6 @@ def main(
     train_from_checkpoint,
     model_state_dict,
 ):
-
     cryo_simulator = CryoEmSimulator(image_config)
 
     train_config = json.load(open(train_config))
