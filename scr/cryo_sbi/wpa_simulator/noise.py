@@ -16,6 +16,7 @@ def circular_mask(n_pixels, radius):
     return mask
 
 def add_noise(img, image_params):
+    """Adds gaussian noise to image"""
 
     mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
 
@@ -27,13 +28,32 @@ def add_noise(img, image_params):
     return img_noise
 
 
-def add_noise_to_dataset(dataset, preproc_params):
-    images_with_noise = torch.empty_like(dataset, device=preproc_params["DEVICE"])
-    n_pixels = int(np.sqrt(dataset.shape[1]))
+def add_shot_noise(img):
+    """Adds shot noise to image"""
+    pass
 
-    for i in range(dataset.shape[0]):
-        tmp_image = add_noise(dataset[i].reshape(n_pixels, n_pixels), preproc_params)
 
-        images_with_noise[i] = tmp_image.reshape(1, -1).to(preproc_params["DEVICE"])
+def add_colored_noise(img):
+    """Adds colored noise to image"""
+    pass
 
-    return images_with_noise
+
+def add_gradient_snr(img, image_params, delta_snr=0.5):
+    """Adds gaussian noise with gradient along x"""
+
+    mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
+    signal_std = img[mask].pow(2).mean().sqrt()
+    gradient_snr = np.logspace(
+        np.log10(image_params["SNR"]) + delta_snr, np.log10(image_params["SNR"]) - delta_snr, img.shape[0]
+    )
+
+    noise = torch.stack(
+        [
+            torch.distributions.normal.Normal(0, signal_std / np.sqrt(snr)).sample([img.shape[0],]) 
+            for snr in gradient_snr
+        ],
+        dim=1
+    )
+    
+    img_noise = img + noise
+    return img_noise
