@@ -1,6 +1,3 @@
-# temporal ignores
-messing_around/
-
 #SBI related folders
 sbi-logs/
 *.png
@@ -11,7 +8,6 @@ sbi-logs/
 data/
 notebooks/
 results/
-tutorials/
 production/
 *.estimator
 *epoch=*

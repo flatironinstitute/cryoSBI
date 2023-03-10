@@ -17,11 +17,6 @@ def circular_mask(n_pixels, radius):
 
 
 def add_noise(img, image_params):
-<<<<<<< HEAD:scr/cryo_sbi/wpa_simulator/noise.py
-    """Adds gaussian noise to image"""
-
-=======
->>>>>>> iss4:src/cryo_sbi/wpa_simulator/noise.py
     mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
 
     signal_std = img[mask].pow(2).mean().sqrt()
