@@ -1,7 +1,6 @@
 import numpy as np
 import torch
-#defocus, snr, and types of noise
-#types of noise: gradient, shot noise, 
+
 
 def calc_ctf(image_params):
     # Attention look into def pad_image function to know the image size after padding 
