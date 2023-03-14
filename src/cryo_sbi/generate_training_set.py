@@ -91,7 +91,7 @@ if __name__ == "__main__":
         default=False,
     )
     
-    cl_parser.add_argument("--n_workers", action="store", type=int, required=False)
+    cl_parser.add_argument("--n_workers", action="store", type=int, required=True)
 
     cl_parser.add_argument("--batch_size", action="store", type=int, required=False, default=1000)
 
