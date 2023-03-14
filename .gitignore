@@ -9,7 +9,6 @@ sbi-logs/
 
 # Training data, models and other datafiles
 data/
-notebooks/
 results/
 tutorials/
 production/
