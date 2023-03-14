@@ -26,11 +26,11 @@ def calc_ctf(image_params):
     freq2_2d = x**2 + y**2
     imag = torch.zeros_like(freq2_2d) * 1j
 
-    env = torch.exp(torch.tensor(-image_params["B_FACTOR"] * freq2_2d * 0.5))
+    env = torch.exp(-image_params["B_FACTOR"] * freq2_2d * 0.5)
     ctf = (
-        image_params["AMP"] * torch.tensor(phase * freq2_2d * 0.5).cos()
-        - torch.tensor(1 - image_params["AMP"] ** 2).sqrt()
-        * torch.tensor(phase * freq2_2d * 0.5).sin()
+        image_params["AMP"] * torch.cos(phase * freq2_2d * 0.5)
+        - np.sqrt(1 - image_params["AMP"] ** 2)
+        * torch.sin(phase * freq2_2d * 0.5)
         + imag
     )
     return ctf * env / image_params["AMP"]

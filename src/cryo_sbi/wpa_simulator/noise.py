@@ -19,7 +19,7 @@ def add_noise(img, image_params):
         snr = image_params["SNR"]
 
     elif isinstance(image_params["SNR"], list) and len(image_params["SNR"]) == 2:
-        snr = np.random.uniform(low=image_params["SNR"][0], high=image_params["SNR"][1])
+        snr = 10 ** np.random.uniform(low=np.log10(image_params["SNR"][0]), high=np.log10(image_params["SNR"][1]))
 
     else:
         raise ValueError("SNR should be a single value or a list of [min_defocus, max_defocus]")
