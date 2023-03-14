@@ -11,21 +11,15 @@ def circular_mask(n_pixels, radius):
 
 
 def add_noise(img, image_params):
-    """Adds gaussian noise to image"""
-
     mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
 
     signal_std = img[mask].pow(2).mean().sqrt()
 
-    if len(np.asarray(image_params["SNR"]).reshape(-1)) == 1:
+    if isinstance(image_params["SNR"], float):
         snr = image_params["SNR"]
 
-    elif len(np.asarray(image_params["SNR"]).reshape(-1)) == 2:
-        snr = (
-            np.random.rand()
-            * (image_params["SNR"][1] - image_params["SNR"][0])
-            + image_params["SNR"][0]
-        )
+    elif isinstance(image_params["SNR"], list) and len(image_params["SNR"]) == 2:
+        snr = np.random.uniform(low=image_params["SNR"][0], high=image_params["SNR"][1])
 
     else:
         raise ValueError("SNR should be a single value or a list of [min_defocus, max_defocus]")
