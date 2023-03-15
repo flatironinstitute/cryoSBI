@@ -9,7 +9,13 @@ from cryo_sbi import CryoEmSimulator
 
 
 def gen_training_set(
-    config_file, num_train_samples, num_val_samples, file_name, save_as_tensor, n_workers, batch_size
+    config_file,
+    num_train_samples,
+    num_val_samples,
+    file_name,
+    save_as_tensor,
+    n_workers,
+    batch_size,
 ):
     cryo_simulator = CryoEmSimulator(config_file)
 
@@ -78,7 +84,6 @@ if __name__ == "__main__":
 
     cl_parser.add_argument("--num_val_samples", action="store", type=int, required=True)
 
-
     cl_parser.add_argument("--file_name", action="store", type=str, required=True)
 
     cl_parser.add_argument(
@@ -90,10 +95,12 @@ if __name__ == "__main__":
         const=True,
         default=False,
     )
-    
+
     cl_parser.add_argument("--n_workers", action="store", type=int, required=True)
 
-    cl_parser.add_argument("--batch_size", action="store", type=int, required=False, default=1000)
+    cl_parser.add_argument(
+        "--batch_size", action="store", type=int, required=False, default=1000
+    )
 
     args = cl_parser.parse_args()
     gen_training_set(
@@ -103,5 +110,5 @@ if __name__ == "__main__":
         args.file_name,
         args.save_as_tensor,
         args.n_workers,
-        args.batch_size
+        args.batch_size,
     )

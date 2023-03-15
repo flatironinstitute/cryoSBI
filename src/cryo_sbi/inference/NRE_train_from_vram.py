@@ -18,8 +18,8 @@ def nre_train_from_vram(
     epochs,
     estimator_file,
     loss_file,
-    train_from_checkpoint,
-    model_state_dict,
+    train_from_checkpoint=False,
+    model_state_dict=None,
 ):
     train_config = json.load(open(train_config))
     check_train_params(train_config)
@@ -117,15 +117,19 @@ if __name__ == "__main__":
     cl_parser.add_argument(
         "--state_dict_file", action="store", type=str, required=False, default=False
     )
+    cl_parser.add_argument(
+        "--n_workers", action="store", type=int, required=False, default=0
+    )
     args = cl_parser.parse_args()
 
     nre_train_from_vram(
-        args.train_config_file,
-        args.training_data_file,
-        args.validation_data_file,
-        args.epochs,
-        args.estimator_file,
-        args.loss_file,
-        args.train_from_checkpoint,
-        args.state_dict_file,
+        train_config=args.train_config_file,
+        epochs=args.epochs,
+        train_data_dir=args.training_data_file,
+        val_data_Dir=args.validation_data_file,
+        estimator_file=args.estimator_file,
+        loss_file=args.loss_file,
+        train_from_checkpoint=args.train_from_checkpoint,
+        state_dict_file=args.state_dict_file,
+        n_workers=args.n_workers,
     )

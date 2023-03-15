@@ -22,7 +22,7 @@ def npe_train_no_saving(
     loss_file,
     train_from_checkpoint=False,
     model_state_dict=None,
-    n_workers=1
+    n_workers=1,
 ):
     cryo_simulator = CryoEmSimulator(image_config)
 
@@ -100,14 +100,18 @@ if __name__ == "__main__":
     cl_parser.add_argument(
         "--state_dict_file", action="store", type=str, required=False, default=False
     )
+    cl_parser.add_argument(
+        "--n_workers", action="store", type=int, required=False, default=1
+    )
     args = cl_parser.parse_args()
 
     npe_train_no_saving(
-        args.image_config_file,
-        args.train_config_file,
-        args.epochs,
-        args.estimator_file,
-        args.loss_file,
-        args.train_from_checkpoint,
-        args.state_dict_file,
+        image_config=args.image_config_file,
+        train_config=args.train_config_file,
+        epochs=args.epochs,
+        estimator_file=args.estimator_file,
+        loss_file=args.loss_file,
+        train_from_checkpoint=args.train_from_checkpoint,
+        state_dict_file=args.state_dict_file,
+        n_workers=args.n_workers
     )

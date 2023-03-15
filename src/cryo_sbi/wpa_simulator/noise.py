@@ -19,10 +19,14 @@ def add_noise(img, image_params):
         snr = image_params["SNR"]
 
     elif isinstance(image_params["SNR"], list) and len(image_params["SNR"]) == 2:
-        snr = 10 ** np.random.uniform(low=np.log10(image_params["SNR"][0]), high=np.log10(image_params["SNR"][1]))
+        snr = 10 ** np.random.uniform(
+            low=np.log10(image_params["SNR"][0]), high=np.log10(image_params["SNR"][1])
+        )
 
     else:
-        raise ValueError("SNR should be a single value or a list of [min_defocus, max_defocus]")
+        raise ValueError(
+            "SNR should be a single value or a list of [min_defocus, max_defocus]"
+        )
 
     noise_std = signal_std / np.sqrt(snr)
 
@@ -47,16 +51,22 @@ def add_gradient_snr(img, image_params, delta_snr=0.5):
     mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
     signal_std = img[mask].pow(2).mean().sqrt()
     gradient_snr = np.logspace(
-        np.log10(image_params["SNR"]) + delta_snr, np.log10(image_params["SNR"]) - delta_snr, img.shape[0]
+        np.log10(image_params["SNR"]) + delta_snr,
+        np.log10(image_params["SNR"]) - delta_snr,
+        img.shape[0],
     )
 
     noise = torch.stack(
         [
-            torch.distributions.normal.Normal(0, signal_std / np.sqrt(snr)).sample([img.shape[0],]) 
+            torch.distributions.normal.Normal(0, signal_std / np.sqrt(snr)).sample(
+                [
+                    img.shape[0],
+                ]
+            )
             for snr in gradient_snr
         ],
-        dim=1
+        dim=1,
     )
-    
+
     img_noise = img + noise
     return img_noise

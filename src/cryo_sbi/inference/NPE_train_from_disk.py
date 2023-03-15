@@ -18,9 +18,9 @@ def npe_train_from_disk(
     val_data_dir,
     estimator_file,
     loss_file,
-    train_from_checkpoint,
-    model_state_dict,
-    n_workers,
+    train_from_checkpoint=False,
+    model_state_dict=None,
+    n_workers=1,
 ):
     train_config = json.load(open(train_config))
     check_train_params(train_config)
@@ -53,11 +53,19 @@ def npe_train_from_disk(
     )
 
     train_loader = torch.utils.data.DataLoader(
-        trainset, batch_size=None, num_workers=n_workers, pin_memory=True, prefetch_factor=100
+        trainset,
+        batch_size=None,
+        num_workers=n_workers,
+        pin_memory=True,
+        prefetch_factor=100,
     )
 
     val_loader = torch.utils.data.DataLoader(
-        validset, batch_size=None, num_workers=n_workers, pin_memory=True, prefetch_factor=100
+        validset,
+        batch_size=None,
+        num_workers=n_workers,
+        pin_memory=True,
+        prefetch_factor=100,
     )
 
     loss = NPELoss(estimator)
@@ -118,15 +126,20 @@ if __name__ == "__main__":
     cl_parser.add_argument(
         "--state_dict_file", action="store", type=str, required=False, default=False
     )
+
+    cl_parser.add_argument(
+        "--n_workers", action="store", type=int, required=False, default=1
+    )
     args = cl_parser.parse_args()
 
     npe_train_from_disk(
-        args.train_config_file,
-        args.epochs,
-        args.training_data_file,
-        args.validation_data_file,
-        args.estimator_file,
-        args.loss_file,
-        args.train_from_checkpoint,
-        args.state_dict_file,
+        train_config=args.train_config_file,
+        epochs=args.epochs,
+        train_data_dir=args.training_data_file,
+        val_data_Dir=args.validation_data_file,
+        estimator_file=args.estimator_file,
+        loss_file=args.loss_file,
+        train_from_checkpoint=args.train_from_checkpoint,
+        state_dict_file=args.state_dict_file,
+        n_workers=args.n_workers,
     )
