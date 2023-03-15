@@ -1,4 +1,8 @@
+# Project specific files
 messing_around/
+*.estimator
+*.h5
+
 #SBI related folders
 sbi-logs/
 *.png
