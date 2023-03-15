@@ -86,12 +86,14 @@ if __name__ == "__main__":
         action="store",
         type=bool,
         nargs="?",
-        required=True,
+        required=False,
         const=True,
         default=False,
     )
     
     cl_parser.add_argument("--n_workers", action="store", type=int, required=True)
+
+    cl_parser.add_argument("--batch_size", action="store", type=int, required=False, default=1000)
 
     args = cl_parser.parse_args()
     gen_training_set(
@@ -100,5 +102,6 @@ if __name__ == "__main__":
         args.num_val_samples,
         args.file_name,
         args.save_as_tensor,
-        args.n_workers
+        args.n_workers,
+        args.batch_size
     )

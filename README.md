@@ -29,5 +29,16 @@ David Silva-Sánchez, Lars Dingeldein, Roberto Covino, Pilar Cossio
 ## Generating data from command line
 
 ```bash
-python3 -m cryo_sbi.generate_training_set --config_file image_params_snr01_128.json --num_train_samples 10 --num_val_samples 10 --file_name "test1" --save_as_tensor false
+python3 -m cryo_sbi.generate_training_set --config_file experiments/benchmark_hsp90/image_params_snr01_128.json --num_train_samples 10 --num_val_samples 10 --file_name "test1" --n_workers 24
+```
+
+## Train posterior from command line
+
+```bash
+python3 -m cryo_sbi.inference.NPE_train_without_saving \
+    --image_config_file experiments/benchmark_hsp90/image_params_training.json \
+    --train_config_file experiments/benchmark_hsp90/resnet18_encoder.json\
+    --epochs 100 \
+    --estimator_file experiments/benchmark_hsp90/posterior_hsp90.estimator \
+    --loss_file experiments/benchmark_hsp90/posterior_hsp90.loss 
 ```
