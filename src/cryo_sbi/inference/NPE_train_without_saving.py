@@ -20,8 +20,9 @@ def npe_train_no_saving(
     epochs,
     estimator_file,
     loss_file,
-    train_from_checkpoint,
-    model_state_dict,
+    train_from_checkpoint=False,
+    model_state_dict=None,
+    n_workers=1
 ):
     cryo_simulator = CryoEmSimulator(image_config)
 
@@ -40,7 +41,7 @@ def npe_train_no_saving(
         cryo_simulator.simulator,
         vectorized=False,
         batch_size=train_config["BATCH_SIZE"],
-        num_workers=24,
+        num_workers=n_workers,
         pin_memory=True,
         prefetch_factor=1,
     )

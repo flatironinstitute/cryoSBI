@@ -20,8 +20,8 @@ def nre_train_no_saving(
     epochs,
     estimator_file,
     loss_file,
-    train_from_checkpoint,
-    model_state_dict,
+    train_from_checkpoint=False,
+    model_state_dict=None,
 ):
     cryo_simulator = CryoEmSimulator(image_config)
 
