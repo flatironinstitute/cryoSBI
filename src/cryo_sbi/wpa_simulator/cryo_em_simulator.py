@@ -89,7 +89,7 @@ class CryoEmSimulator:
 
         image = gaussian_normalize_image(image)
 
-        return image.to(dtype=torch.float), quat
+        return image.to(dtype=torch.float)
 
     def _simulator_with_quat(self, index_quat):
         index = int(torch.round(index_quat[0]))
