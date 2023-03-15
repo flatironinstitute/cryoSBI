@@ -19,7 +19,6 @@ class CryoEmSimulator:
         self.rot_mode = None
         self.quaternions = None
         self._config_rotations()
-        self._ctf = calc_ctf(self.config)
         self._pad_width = int(np.ceil(self.config["N_PIXELS"] * 0.1)) + 1
 
     def _load_params(self, config_fname):
@@ -77,7 +76,7 @@ class CryoEmSimulator:
         image = pad_image(image, self.config)
 
         if self.config["CTF"]:
-            image = apply_ctf(image, self._ctf)
+            image = apply_ctf(image, calc_ctf(self.config))
 
         if self.config["NOISE"]:
             image = add_noise(image, self.config)
