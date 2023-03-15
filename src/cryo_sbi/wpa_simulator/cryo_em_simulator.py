@@ -32,7 +32,7 @@ class CryoEmSimulator:
 
         elif "6wxb" in self.config["MODEL_FILE"]:
             self.models = np.load(self.config["MODEL_FILE"])
-            
+
         elif "square" in self.config["MODEL_FILE"]:
             self.models = np.transpose(
                 np.load(self.config["MODEL_FILE"]).diagonal(), [2, 0, 1]
