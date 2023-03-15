@@ -59,7 +59,9 @@ class CryoEmSimulator:
 
     def simulator(self, index):
         index = int(torch.round(index))
-        coord = self.models[index]
+        coord = np.copy(self.models[index])
+
+        coord[[1, 2]] = coord[[2, 1]]
 
         if self.rot_mode == "random":
             quat = gen_quat()
