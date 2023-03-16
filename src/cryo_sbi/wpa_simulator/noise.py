@@ -10,10 +10,13 @@ def circular_mask(n_pixels, radius):
     return mask
 
 
-def add_noise(img, image_params):
-    mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
+def add_noise(image, image_params, seed=None):
 
-    signal_std = img[mask].pow(2).mean().sqrt()
+    if seed is not None:
+        torch.manual_seed(seed)
+
+    mask = circular_mask(n_pixels=image.shape[0], radius=image_params["RADIUS_MASK"])
+    signal_power = image[mask].pow(2).mean().sqrt()
 
     if isinstance(image_params["SNR"], float):
         snr = image_params["SNR"]
@@ -25,42 +28,41 @@ def add_noise(img, image_params):
 
     else:
         raise ValueError(
-            "SNR should be a single value or a list of [min_defocus, max_defocus]"
+            "SNR should be a single value or a list of [min_snr, max_snr]"
         )
 
-    noise_std = signal_std / np.sqrt(snr)
+    noise_power = signal_power / np.sqrt(snr)
+    image_noise = image + torch.distributions.normal.Normal(0, noise_power).sample(image.shape)
 
-    img_noise = img + torch.distributions.normal.Normal(0, noise_std).sample(img.shape)
-
-    return img_noise
+    return image_noise
 
 
-def add_shot_noise(img):
+def add_shot_noise(image):
     """Adds shot noise to image"""
     pass
 
 
-def add_colored_noise(img):
+def add_colored_noise(image):
     """Adds colored noise to image"""
     pass
 
 
-def add_gradient_snr(img, image_params, delta_snr=0.5):
+def add_gradient_snr(image, image_params, delta_snr=0.5):
     """Adds gaussian noise with gradient along x"""
 
-    mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
-    signal_std = img[mask].pow(2).mean().sqrt()
+    mask = circular_mask(n_pixels=image.shape[0], radius=image_params["RADIUS_MASK"])
+    signal_power = image[mask].pow(2).mean().sqrt()
     gradient_snr = np.logspace(
         np.log10(image_params["SNR"]) + delta_snr,
         np.log10(image_params["SNR"]) - delta_snr,
-        img.shape[0],
+        image.shape[0],
     )
 
     noise = torch.stack(
         [
-            torch.distributions.normal.Normal(0, signal_std / np.sqrt(snr)).sample(
+            torch.distributions.normal.Normal(0, signal_power / np.sqrt(snr)).sample(
                 [
-                    img.shape[0],
+                    image.shape[0],
                 ]
             )
             for snr in gradient_snr
@@ -68,5 +70,5 @@ def add_gradient_snr(img, image_params, delta_snr=0.5):
         dim=1,
     )
 
-    img_noise = img + noise
-    return img_noise
+    image_noise = image + noise
+    return image_noise

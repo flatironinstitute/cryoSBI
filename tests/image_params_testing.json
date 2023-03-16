@@ -1,0 +1,15 @@
+{"N_PIXELS": 128,
+"PIXEL_SIZE": 1.5,
+"SIGMA": 4.0,
+"MODEL_FILE": "protein_models/hsp90_models.npy",
+"ROTATIONS": false,
+"SHIFT": true,
+"CTF": true,
+"NOISE": true,
+"DEFOCUS": 1.5,
+"SNR": 1.0,
+"RADIUS_MASK": 16,
+"AMP": 0.1,
+"B_FACTOR": 1,
+"ELECWAVE": 0.019866
+}
