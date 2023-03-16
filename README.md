@@ -1,3 +1,4 @@
+[![](https://github.com/DSilva27/cryo_em_SBI/blob/iss6/.github/workflows/python-package.yml/badge.svg)](https://github.com/DSilva27/cryo_em_SBI/actions)
 # cryo_em_SBI
 
 
