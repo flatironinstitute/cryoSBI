@@ -57,7 +57,6 @@ class CryoEmSimulator:
         return len(self.models) - 1
 
     def simulator(self, index, seed=None):
-        
         # if seed is not None:
         #     torch.manual_seed(seed)
 

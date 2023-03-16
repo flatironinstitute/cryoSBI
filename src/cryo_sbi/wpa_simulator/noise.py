@@ -11,7 +11,6 @@ def circular_mask(n_pixels, radius):
 
 
 def add_noise(image, image_params, seed=None):
-
     if seed is not None:
         torch.manual_seed(seed)
 
@@ -27,12 +26,12 @@ def add_noise(image, image_params, seed=None):
         )
 
     else:
-        raise ValueError(
-            "SNR should be a single value or a list of [min_snr, max_snr]"
-        )
+        raise ValueError("SNR should be a single value or a list of [min_snr, max_snr]")
 
     noise_power = signal_power / np.sqrt(snr)
-    image_noise = image + torch.distributions.normal.Normal(0, noise_power).sample(image.shape)
+    image_noise = image + torch.distributions.normal.Normal(0, noise_power).sample(
+        image.shape
+    )
 
     return image_noise
 
