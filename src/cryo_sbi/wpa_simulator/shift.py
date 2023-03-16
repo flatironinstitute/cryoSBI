@@ -1,13 +1,14 @@
 import torch
 import numpy as np
 
+
 def apply_random_shift(padded_image, image_params, seed=None):
     if seed is not None:
         torch.manual_seed(seed)
 
     max_shift = int(np.round(image_params["N_PIXELS"] * 0.1))
-    shift_x = int(torch.randint(low=-max_shift, high=max_shift+1, size=(1,)))
-    shift_y = int(torch.randint(low=-max_shift, high=max_shift+1, size=(1,)))
+    shift_x = int(torch.randint(low=-max_shift, high=max_shift + 1, size=(1,)))
+    shift_y = int(torch.randint(low=-max_shift, high=max_shift + 1, size=(1,)))
 
     pad_width = int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1
 
