@@ -27,7 +27,8 @@ dependencies = [
     "zuko",
     "torch",
     "numpy",
-    "matplotlib"
+    "matplotlib",
+    "scipy"
 ]
 #dynamic = ["version"]
 
