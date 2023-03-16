@@ -1,5 +1,6 @@
 # Project specific files
 messing_around/
+tests/test_simulator.ipynb
 *.estimator
 *.h5
 

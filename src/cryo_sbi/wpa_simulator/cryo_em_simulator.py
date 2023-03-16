@@ -56,16 +56,19 @@ class CryoEmSimulator:
     def max_index(self):
         return len(self.models) - 1
 
-    def simulator(self, index):
+    def simulator(self, index, seed=None):
+        
+        # if seed is not None:
+        #     torch.manual_seed(seed)
+
         index = int(torch.round(index))
         coord = np.copy(self.models[index])
 
-        coord[[1, 2]] = coord[[2, 1]]
-
         if self.rot_mode == "random":
-            quat = gen_quat()
-            rot_mat = Rotation.from_quat(quat).as_matrix()
-            coord = np.matmul(rot_mat, coord)
+            if self.config["ROTATIONS"]:
+                quat = gen_quat()
+                rot_mat = Rotation.from_quat(quat).as_matrix()
+                coord = np.matmul(rot_mat, coord)
 
         elif self.rot_mode == "list":
             quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
@@ -79,10 +82,10 @@ class CryoEmSimulator:
             image = apply_ctf(image, calc_ctf(self.config))
 
         if self.config["NOISE"]:
-            image = add_noise(image, self.config)
+            image = add_noise(image, self.config, seed)
 
         if self.config["SHIFT"]:
-            image = apply_random_shift(image, self.config)
+            image = apply_random_shift(image, self.config, seed)
         else:
             image = apply_no_shift(image, self.config)
 
