@@ -21,10 +21,12 @@ class CryoEmSimulator:
         self._config_rotations()
         self._pad_width = int(np.ceil(self.config["N_PIXELS"] * 0.1)) + 1
 
+
     def _load_params(self, config_fname):
         config = json.load(open(config_fname))
         check_params(config)
         self.config = config
+
 
     def _load_models(self):
         if "hsp90" in self.config["MODEL_FILE"]:
@@ -52,26 +54,19 @@ class CryoEmSimulator:
                 self.quaternions.shape[1] == 4
             ), "Quaternion shape is not 4. Corrupted file?"
 
+
     @property
     def max_index(self):
         return len(self.models) - 1
 
-    def simulator(self, index, seed=None):
-        # if seed is not None:
-        #     torch.manual_seed(seed)
 
+    def _simulator_with_quat(self, index, quaternion, seed):
         index = int(torch.round(index))
+
         coord = np.copy(self.models[index])
 
-        if self.rot_mode == "random":
-            if self.config["ROTATIONS"]:
-                quat = gen_quat()
-                rot_mat = Rotation.from_quat(quat).as_matrix()
-                coord = np.matmul(rot_mat, coord)
-
-        elif self.rot_mode == "list":
-            quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
-            rot_mat = Rotation.from_quat(quat).as_matrix()
+        if quaternion is not None:
+            rot_mat = Rotation.from_quat(quaternion).as_matrix()
             coord = np.matmul(rot_mat, coord)
 
         image = gen_img(coord, self.config)
@@ -92,27 +87,16 @@ class CryoEmSimulator:
 
         return image.to(dtype=torch.float)
 
-    def _simulator_with_quat(self, index_quat):
-        index = int(torch.round(index_quat[0]))
-        coord = self.models[index]
-        rot_mat = Rotation.from_quat(index_quat[1:]).as_matrix()
-        coord = np.matmul(rot_mat, coord)
 
-        image = gen_img(coord, self.config)
+    def simulator(self, index, seed=None):
 
-        image = pad_image(image, self.config)
-
-        if self.config["CTF"]:
-            image = apply_ctf(image, calc_ctf(self.config))
-
-        if self.config["NOISE"]:
-            image = add_noise(image, self.config)
-
-        if self.config["SHIFT"]:
-            image = apply_random_shift(image, self.config)
+        if self.rot_mode == "random":
+            quat = gen_quat()
+        elif self.rot_mode == "list":
+            quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
         else:
-            image = apply_no_shift(image, self.config)
+            quat = None
 
-        image = gaussian_normalize_image(image)
+        image = self._simulator_with_quat(index, quat, seed)
 
-        return image.to(dtype=torch.float)
+        return image
