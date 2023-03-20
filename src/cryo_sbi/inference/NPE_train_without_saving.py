@@ -112,6 +112,6 @@ if __name__ == "__main__":
         estimator_file=args.estimator_file,
         loss_file=args.loss_file,
         train_from_checkpoint=args.train_from_checkpoint,
-        state_dict_file=args.state_dict_file,
+        model_state_dict=args.state_dict_file,
         n_workers=args.n_workers,
     )

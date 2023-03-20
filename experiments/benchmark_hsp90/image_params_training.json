@@ -2,7 +2,7 @@
     "N_PIXELS": 128,
     "PIXEL_SIZE": 1.5,
     "SIGMA": 4.0,
-    "MODEL_FILE": "../protein_models/hsp90_models.npy",
+    "MODEL_FILE": "../data/protein_models/hsp90_models.npy",
     "SHIFT": true,
     "ROTATIONS": true,
     "CTF": true,

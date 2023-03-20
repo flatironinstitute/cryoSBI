@@ -27,7 +27,7 @@ def calc_ctf(image_params):
             "Defocus should be a single float value or a list of [min_defocus, max_defocus]"
         )
 
-    x, y = torch.meshgrid(freq_pix_1d, freq_pix_1d)
+    x, y = torch.meshgrid(freq_pix_1d, freq_pix_1d, indexing='ij')
 
     freq2_2d = x**2 + y**2
     imag = torch.zeros_like(freq2_2d) * 1j
