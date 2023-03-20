@@ -112,7 +112,7 @@ def test_noise():
 
 def test_simulation():
     simul = CryoEmSimulator("tests/image_params_testing.json")
-    image_sim = simul.simulator(index=torch.tensor(0.), seed=0)
+    image_sim = simul.simulator(index=torch.tensor(0.0), seed=0)
 
     image_params = _get_config()
     model = np.load(image_params["MODEL_FILE"])[0, 0]

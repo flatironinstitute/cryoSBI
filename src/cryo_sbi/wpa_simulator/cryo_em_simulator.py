@@ -21,12 +21,10 @@ class CryoEmSimulator:
         self._config_rotations()
         self._pad_width = int(np.ceil(self.config["N_PIXELS"] * 0.1)) + 1
 
-
     def _load_params(self, config_fname):
         config = json.load(open(config_fname))
         check_params(config)
         self.config = config
-
 
     def _load_models(self):
         if "hsp90" in self.config["MODEL_FILE"]:
@@ -54,11 +52,9 @@ class CryoEmSimulator:
                 self.quaternions.shape[1] == 4
             ), "Quaternion shape is not 4. Corrupted file?"
 
-
     @property
     def max_index(self):
         return len(self.models) - 1
-
 
     def _simulator_with_quat(self, index, quaternion, seed):
         index = int(torch.round(index))
@@ -87,9 +83,7 @@ class CryoEmSimulator:
 
         return image.to(dtype=torch.float)
 
-
     def simulator(self, index, seed=None):
-
         if self.rot_mode == "random":
             quat = gen_quat()
         elif self.rot_mode == "list":
