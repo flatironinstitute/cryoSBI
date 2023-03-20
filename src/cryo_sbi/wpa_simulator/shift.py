@@ -35,20 +35,3 @@ def apply_no_shift(padded_image, image_params):
     shifted_image = padded_image[low_ind_x:high_ind_x, low_ind_y:high_ind_y]
 
     return shifted_image
-
-
-def shift_dataset(dataset, preproc_params, image_params):
-    shifted_images = torch.empty(
-        (dataset.shape[0], image_params["N_PIXELS"] ** 2),
-        device=preproc_params["DEVICE"],
-    )
-    n_pixels = int(np.sqrt(dataset.shape[1]))
-
-    for i in range(dataset.shape[0]):
-        tmp_image = apply_random_shift(
-            dataset[i].reshape(n_pixels, n_pixels), image_params
-        )
-
-        shifted_images[i] = tmp_image.reshape(1, -1).to(preproc_params["DEVICE"])
-
-    return shifted_images
