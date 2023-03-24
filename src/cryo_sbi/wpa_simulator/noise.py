@@ -15,7 +15,7 @@ def add_noise(image, image_params, seed=None):
         torch.manual_seed(seed)
 
     mask = circular_mask(n_pixels=image.shape[0], radius=image_params["RADIUS_MASK"])
-    signal_power = image[mask].pow(2).mean().sqrt()
+    signal_power = torch.std(image[mask])
 
     if isinstance(image_params["SNR"], float):
         snr = image_params["SNR"]
