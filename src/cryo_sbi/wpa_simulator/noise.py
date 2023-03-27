@@ -5,7 +5,7 @@ import torch
 def circular_mask(n_pixels, radius):
     grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
-    mask = r_2d < radius**2
+    mask = r_2d < radius ** 2
 
     return mask
 
@@ -36,19 +36,23 @@ def add_noise(image, image_params, seed=None):
     return image_noise
 
 
-def add_colored_noise(img, image_params, noise_scale):
+def add_colored_noise(image, image_params, seed, noise_intensity=1, noise_scale=1.5):
     """Adds colored noise to image"""
     # Similar to pink noise https://en.wikipedia.org/wiki/Pink_noise
+    if seed is not None:
+        torch.manual_seed(seed)
 
-    image_L = img.shape[0]
+    image_L = image.shape[0]
 
-    mask = circular_mask(n_pixels=img.shape[0], radius=image_params["RADIUS_MASK"])
+    mask = circular_mask(n_pixels=image.shape[0], radius=image_params["RADIUS_MASK"])
 
-    signal_std = img[mask].pow(2).mean().sqrt()
+    signal_std = image[mask].pow(2).mean().sqrt()
     noise_std = signal_std / np.sqrt(image_params["SNR"])
 
-    img_noise = torch.distributions.normal.Normal(0, noise_std).sample(img.shape)
-    fft_noise = torch.fft.fft2(img_noise)
+    image_noise = torch.distributions.normal.Normal(0, noise_std).sample(
+        (image_L, image_L)
+    )
+    fft_noise = torch.fft.fft2(image_noise)
 
     along_x, along_y = np.linspace(-1, 1, image_L), np.linspace(-1, 1, image_L)
     mesh_x, mesh_y = np.meshgrid(along_x, along_y)
@@ -63,20 +67,25 @@ def add_colored_noise(img, image_params, noise_scale):
 
     t = torch.abs(torch.fft.ifft2(fft_noise / f))
 
-    noise_scale = 1.0 / (t.max() - t.median())
-    t = ((t - t.median()) * noise_scale) + 1
+    # Scaling with respect to the lenght max to median
+    scale = noise_intensity / (t.max() - t.median())
 
-    img_noise = torch.distributions.normal.Normal(0, noise_std * t).sample()
-    return img_noise + img
+    # Adjusting noise so that 50% of the pixels have higer and the other 50% lower snr
+    t = ((t - t.median()) * scale) + 1
+
+    image_noise = torch.distributions.normal.Normal(0, noise_std * t).sample()
+    return image_noise + image
 
 
 def add_shot_noise(image):
     """Adds shot noise to image"""
-    pass
+    raise NotImplementedError
 
 
-def add_gradient_snr(image, image_params, delta_snr=0.5):
+def add_gradient_snr(image, image_params, seed, delta_snr=0.5):
     """Adds gaussian noise with gradient along x"""
+    if seed is not None:
+        torch.manual_seed(seed)
 
     mask = circular_mask(n_pixels=image.shape[0], radius=image_params["RADIUS_MASK"])
     signal_power = image[mask].pow(2).mean().sqrt()
