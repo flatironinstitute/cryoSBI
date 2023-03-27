@@ -50,7 +50,7 @@ def add_colored_noise(image, image_params, seed, noise_intensity=1, noise_scale=
     noise_std = signal_std / np.sqrt(image_params["SNR"])
 
     image_noise = torch.distributions.normal.Normal(0, noise_std).sample(
-        (image_L, image_L)
+        image.shape
     )
     fft_noise = torch.fft.fft2(image_noise)
 
