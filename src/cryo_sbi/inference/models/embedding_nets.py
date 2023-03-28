@@ -313,7 +313,7 @@ class ShuffleNet_Encoder(nn.Module):
         x = x.unsqueeze(1)
         x = self.shuffle_net(x)
         return x
-    
+
 
 @add_embedding("RESNET18_FFT_FILTER")
 class ResNet18_FFT_Encoder(nn.Module):
