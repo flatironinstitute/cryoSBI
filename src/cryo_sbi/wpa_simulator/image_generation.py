@@ -8,7 +8,7 @@ def gen_quat():
         quat = np.random.uniform(
             -1, 1, 4
         )  # note this is a half-open interval, so 1 is not included but -1 is
-        norm = np.sqrt(np.sum(quat ** 2))
+        norm = np.sqrt(np.sum(quat**2))
 
         if 0.2 <= norm <= 1.0:
             quat /= norm
