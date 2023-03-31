@@ -327,7 +327,7 @@ class ResNet18_FFT_Encoder(nn.Module):
             in_features=512, out_features=output_dimension, bias=True
         )
 
-        self._fft_filter = LowPassFilter(128, 64)
+        self._fft_filter = LowPassFilter(128, 80)
 
     def forward(self, x):
         # Low pass filter images
