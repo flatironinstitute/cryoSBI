@@ -29,7 +29,7 @@ def calc_ctf(image_params):
 
     x, y = torch.meshgrid(freq_pix_1d, freq_pix_1d, indexing="ij")
 
-    freq2_2d = x**2 + y**2
+    freq2_2d = x ** 2 + y ** 2
     imag = torch.zeros_like(freq2_2d) * 1j
 
     env = torch.exp(-image_params["B_FACTOR"] * freq2_2d * 0.5)
