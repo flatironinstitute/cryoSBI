@@ -10,7 +10,7 @@ from cryo_sbi.inference.validate_train_config import check_train_params
 def test_embedding():
     for num_images in [1, 10, 100]:
         for out_dim in [10, 100]:
-            test_images = torch.randn(num_images, 64, 64)
+            test_images = torch.randn(num_images, 128, 128)
             for name, embedding in EMBEDDING_NETS.items():
                 if name == "CNN" or name == "DEEPCNN":
                     continue

@@ -1,52 +1,71 @@
 import torch
 import torchvision.transforms as transforms
 import mrcfile
-from cryo_sbi.wpa_simulator.noise import circular_mask
+
+
+def circular_mask(n_pixels, radius, inside=True):
+    grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
+    r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
+
+    if inside is True:
+        mask = r_2d < radius ** 2
+    else:
+        mask = r_2d > radius ** 2
+
+    return mask
 
 
 class Mask:
-    def __init__(self, image_size, radius):
+    def __init__(self, image_size, radius, inside=False):
         self.image_size = image_size
         self.n_pixels = radius
-        self.mask = circular_mask(image_size, radius)
+        self.mask = circular_mask(image_size, radius, inside=inside)
 
     def __call__(self, image):
         if len(image.shape) == 2:
-            image[cm] = 0
+            image[self.mask] = 0
         elif len(image.shape) == 3:
-            image[:, cm] = 0
+            image[:, self.mask] = 0
         else:
             raise NotImplementedError
 
         return image
 
 
+def fourier_down_sample(image, image_size, n_pixels):
+    fft_image = torch.fft.fft2(image)
+    fft_image = torch.fft.fftshift(fft_image)
+
+    if len(image.shape) == 2:
+        fft_image = fft_image[
+            n_pixels : image_size - n_pixels,
+            n_pixels : image_size - n_pixels,
+        ]
+    elif len(image.shape) == 3:
+        fft_image = fft_image[
+            :,
+            n_pixels : image_size - n_pixels,
+            n_pixels : image_size - n_pixels,
+        ]
+    else:
+        raise NotImplementedError
+
+    fft_image = torch.fft.fftshift(fft_image)
+    reconstructed = torch.fft.ifft2(fft_image).real
+    return reconstructed
+
+
 class FourierDownSample:
-    def __init__(self, image_size, n_pixels):
-        self.image_size = image_size
-        self.n_pixels = n_pixels
+    def __init__(self, image_size, down_sampled_size):
+        self._image_size = image_size
+        self._n_pixels = (image_size - down_sampled_size) // 2
 
     def __call__(self, image):
-        fft_image = torch.fft.fft2(image)
-        fft_image = torch.fft.fftshift(fft_image)
+        down_sampled = fourier_down_sample(
+            image, image_size=self._image_size, n_pixels=self._n_pixels
+        )
 
-        if len(image.shape) == 2:
-            fft_image = fft_image[
-                self.n_pixels : self.image_size - self.n_pixels,
-                self.n_pixels : self.image_size - self.n_pixels,
-            ]
-        elif len(image.shape) == 3:
-            fft_image = fft_image[
-                :,
-                self.n_pixels : self.image_size - self.n_pixels,
-                self.n_pixels : self.image_size - self.n_pixels,
-            ]
-        else:
-            raise NotImplementedError
-        fft_image = torch.fft.fftshift(fft_image)
-        reconstructed = torch.fft.ifft2(fft_image).real
-
-        return reconstructed
+        return down_sampled
 
 
 class LowPassFilter:
