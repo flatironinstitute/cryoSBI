@@ -8,7 +8,7 @@ def gen_quat():
         quat = np.random.uniform(
             -1, 1, 4
         )  # note this is a half-open interval, so 1 is not included but -1 is
-        norm = np.sqrt(np.sum(quat ** 2))
+        norm = np.sqrt(np.sum(quat**2))
 
         if 0.2 <= norm <= 1.0:
             quat /= norm
@@ -29,9 +29,11 @@ def gen_img(coord, image_params):
         )
 
     else:
-        raise ValueError("SIGMA should be a single value or a list of [min_sigma, max_sigma]")
+        raise ValueError(
+            "SIGMA should be a single value or a list of [min_sigma, max_sigma]"
+        )
 
-    norm = 1 / (2 * torch.pi * atom_sigma ** 2 * n_atoms)
+    norm = 1 / (2 * torch.pi * atom_sigma**2 * n_atoms)
 
     grid_min = -image_params["PIXEL_SIZE"] * (image_params["N_PIXELS"] - 1) * 0.5
     grid_max = (

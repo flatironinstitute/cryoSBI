@@ -8,9 +8,9 @@ def circular_mask(n_pixels, radius, inside=True):
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
 
     if inside is True:
-        mask = r_2d < radius ** 2
+        mask = r_2d < radius**2
     else:
-        mask = r_2d > radius ** 2
+        mask = r_2d > radius**2
 
     return mask
 
