@@ -41,7 +41,7 @@ def npe_train_from_disk(
         shuffle=True,
         batch_size=train_config["BATCH_SIZE"],
         chunk_size=train_config["BATCH_SIZE"],
-        chunk_step=2 ** 2,
+        chunk_step=2**2,
     )
 
     validset = H5Dataset(
@@ -49,7 +49,7 @@ def npe_train_from_disk(
         shuffle=True,
         batch_size=train_config["BATCH_SIZE"],
         chunk_size=train_config["BATCH_SIZE"],
-        chunk_step=2 ** 2,
+        chunk_step=2**2,
     )
 
     train_loader = torch.utils.data.DataLoader(
