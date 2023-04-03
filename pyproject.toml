@@ -29,7 +29,8 @@ dependencies = [
     "numpy",
     "matplotlib",
     "scipy",
-    "torchvision"
+    "torchvision",
+    "mrcfile"
 ]
 #dynamic = ["version"]
 
