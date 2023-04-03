@@ -339,9 +339,9 @@ class ResNet18_FFT_Encoder(nn.Module):
 
 
 @add_embedding("RESNET18_FFT_FILTER_MASK")
-class ResNet18_FFT_Encoder(nn.Module):
+class ResNet18_FFTMASK_Encoder(nn.Module):
     def __init__(self, output_dimension):
-        super(ResNet18_FFT_Encoder, self).__init__()
+        super(ResNet18_FFTMASK_Encoder, self).__init__()
         self.resnet = models.resnet18()
         self.resnet.conv1 = nn.Conv2d(
             1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
