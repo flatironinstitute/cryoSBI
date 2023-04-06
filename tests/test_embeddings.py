@@ -14,5 +14,9 @@ def test_embedding():
             for name, embedding in EMBEDDING_NETS.items():
                 if name == "CNN" or name == "DEEPCNN":
                     continue
+                if name == "RESNET18_FFT_NOISE":
+                    out = embedding(out_dim, noise_device="cpu")(test_images).shape
+                    assert out == torch.Size([num_images, out_dim]), name
+                    continue
                 out = embedding(out_dim)(test_images).shape
                 assert out == torch.Size([num_images, out_dim]), name

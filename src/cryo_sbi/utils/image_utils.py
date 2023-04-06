@@ -1,5 +1,6 @@
 import torch
 import torchvision.transforms as transforms
+import torch.distributions as d
 import mrcfile
 
 
@@ -105,3 +106,48 @@ class MRCtoTensor:
         with mrcfile.open(image_path) as mrc:
             image = mrc.data
         return torch.from_numpy(image)
+
+
+class AddLowFrequencyNoise:
+    """Adding low frequency noise, also serving as a low pass filter"""
+
+    def __init__(self, image_size, min_frequency, amplitude, device="cpu") -> None:
+        self.device = device
+        self._imge_size = image_size
+        self._mask = circular_mask(image_size, min_frequency, inside=False).to(
+            self.device
+        )
+        self._num_frequencies = self._mask.sum()
+
+        if isinstance(amplitude, (float, int)):
+            self._amplitude = d.uniform.Uniform(
+                low=torch.tensor(float(amplitude), device=device),
+                high=torch.tensor(float(amplitude), device=device),
+            )
+        elif isinstance(amplitude, (list, tuple)) and len(amplitude) == 2:
+            self._amplitude = d.uniform.Uniform(
+                low=torch.tensor(float(amplitude[0]), device=device),
+                high=torch.tensor(float(amplitude[1]), device=device),
+            )
+
+    def __call__(self, image):
+        fft_image = torch.fft.fft2(image)
+
+        if len(image.shape) == 2:
+            fft_image[self._mask] += self._amplitude.sample() * torch.randn(
+                (self._num_frequencies,), dtype=torch.complex64, device=self.device
+            )
+            fft_image[self._mask == False] = 0 + 0j
+        elif len(image.shape) == 3:
+            fft_image[:, self._mask] += self._amplitude.sample(
+                (image.shape[0], 1)
+            ) * torch.randn(
+                (image.shape[0], self._num_frequencies),
+                dtype=torch.complex64,
+                device=self.device,
+            )
+            fft_image[:, self._mask == False] = 0 + 0j
+        else:
+            raise NotImplementedError
+
+        return torch.fft.ifft2(fft_image).real

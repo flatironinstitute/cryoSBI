@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
-from cryo_sbi.utils.image_utils import LowPassFilter, Mask
+from cryo_sbi.utils.image_utils import LowPassFilter, Mask, AddLowFrequencyNoise
 
 
 EMBEDDING_NETS = {}
@@ -358,6 +358,35 @@ class ResNet18_FFTMASK_Encoder(nn.Module):
         x = self._masking(x)
         # Low pass filter images
         x = self._fft_filter(x)
+        # Proceed as normal
+        x = x.unsqueeze(1)
+        x = self.resnet(x)
+        return x
+
+
+@add_embedding("RESNET18_FFT_NOISE")
+class ResNet18_NOISE_Encoder(nn.Module):
+    def __init__(self, output_dimension, noise_device="cuda"):
+        super(ResNet18_NOISE_Encoder, self).__init__()
+        self.resnet = models.resnet18()
+        self.resnet.conv1 = nn.Conv2d(
+            1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
+        )
+        self.resnet.fc = nn.Linear(
+            in_features=512, out_features=output_dimension, bias=True
+        )
+
+        self._fft_noise = AddLowFrequencyNoise(
+            128, 80, (0.0, 500.0), device=noise_device
+        )
+        self._fft_filter = LowPassFilter(128, 80)
+
+    def forward(self, x):
+        # Low pass filter images and adding noise
+        if self.training is True:
+            x = self._fft_noise(x)
+        elif self.training is False:
+            x = self._fft_filter(x)
         # Proceed as normal
         x = x.unsqueeze(1)
         x = self.resnet(x)
