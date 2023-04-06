@@ -1,4 +1,6 @@
 import torch
+import json
+from cryo_sbi.inference.models import build_models
 
 
 def sample_posterior(estimator, images, num_samples, batch_size=100, device="cpu"):
@@ -37,3 +39,13 @@ def compute_latent_repr(estimator, images, batch_size=100, device="cpu"):
             latent_space_samples.append(samples.reshape(image_batch.shape[0], -1))
 
     return torch.cat(latent_space_samples, dim=0)
+
+
+def load_estimator(config_file_path, estimator_path, device="cpu"):
+    train_config = json.load(open(config_file_path))
+    estimator = build_models.build_npe_flow_model(train_config)
+    estimator.load_state_dict(torch.load(estimator_path))
+    estimator.to(device)
+    estimator.eval()
+
+    return estimator
