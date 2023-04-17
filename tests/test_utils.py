@@ -9,7 +9,7 @@ from cryo_sbi.utils.estimator_utils import sample_posterior, compute_latent_repr
 
 
 def _get_config():
-    config = json.load(open("tests/training_params_testing.json"))
+    config = json.load(open("tests/training_params_npe_testing.json"))
     check_train_params(config)
 
     return config
