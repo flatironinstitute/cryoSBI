@@ -3,6 +3,21 @@ import torch
 
 
 def calc_ctf(image_params):
+    """Calculate the CTF for a given image size and defocus
+    
+    Args:
+        image_params (dict): Dictionary containing the image parameters
+            N_PIXELS (int): Number of pixels in the image
+            PIXEL_SIZE (float): Pixel size in Angstrom
+            DEFOCUS (float or list): Defocus in Angstrom
+            B_FACTOR (float): B-factor in Angstrom
+            AMP (float): Amplitude contrast
+            ELECWAVE (float): Electron wavelength in Angstrom
+    
+    Returns:
+        ctf (torch.Tensor): CTF for the given image size and defocus
+    """
+
     # Attention look into def pad_image function to know the image size after padding
     image_size = (
         2 * (int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1)
@@ -42,6 +57,16 @@ def calc_ctf(image_params):
 
 
 def apply_ctf(image, ctf):
+    """Apply the CTF to an image.
+    
+    Args:
+        image (torch.Tensor): Image to apply the CTF to
+        ctf (torch.Tensor): CTF to apply to the image
+    
+    Returns:
+        image_ctf (torch.Tensor): Image with the CTF applied
+    """
+
     conv_image_ctf = torch.fft.fft2(image) * ctf
     image_ctf = torch.fft.ifft2(conv_image_ctf).real
 
