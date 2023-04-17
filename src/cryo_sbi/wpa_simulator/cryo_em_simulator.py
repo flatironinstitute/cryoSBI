@@ -13,6 +13,19 @@ from cryo_sbi.wpa_simulator.validate_image_config import check_params
 
 
 class CryoEmSimulator:
+    """Simulator for cryo-EM images.
+
+    Args:
+        config_fname (str): Path to the configuration file.
+
+    Attributes:
+        config (dict): Configuration parameters.
+        models (np.ndarray): The models to use for image generation.
+        rot_mode (str): The rotation mode to use. Can be "random", "list" or None.
+        quaternions (np.ndarray): The quaternions to use for image generation.
+        add_noise (bool): function which adds noise to images. Defaults to Gaussian noise.
+    """
+
     def __init__(self, config_fname):
         self._load_params(config_fname)
         self._load_models()
