@@ -24,6 +24,25 @@ def npe_train_no_saving(
     model_state_dict=None,
     n_workers=1,
 ):
+    """Train NPE model without saving the model
+
+    Args:
+        image_config (str): path to image config file
+        train_config (str): path to train config file
+        epochs (int): number of epochs
+        estimator_file (str): path to estimator file
+        loss_file (str): path to loss file
+        train_from_checkpoint (bool, optional): train from checkpoint. Defaults to False.
+        model_state_dict (str, optional): path to model state dict. Defaults to None.
+        n_workers (int, optional): number of workers. Defaults to 1.
+
+    Raises:
+        Warning: No model state dict specified! --model_state_dict is empty
+
+    Returns:
+        None
+    """
+
     cryo_simulator = CryoEmSimulator(image_config)
 
     train_config = json.load(open(train_config))
