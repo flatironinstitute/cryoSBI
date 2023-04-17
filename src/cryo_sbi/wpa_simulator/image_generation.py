@@ -4,10 +4,10 @@ import torch
 
 def gen_quat():
     """Generate a random quaternion.
-    
+
     Returns:
         quat (np.ndarray): Random quaternion
-    
+
     """
     count = 0
     while count < 1:
@@ -25,7 +25,7 @@ def gen_quat():
 
 def gen_img(coord, image_params):
     """Generate an image from a set of coordinates.
-    
+
     Args:
         coord (torch.Tensor): Coordinates of the atoms in the image
         image_params (dict): Dictionary containing the image parameters
@@ -33,7 +33,7 @@ def gen_img(coord, image_params):
             PIXEL_SIZE (float): Pixel size in Angstrom
             SIGMA (float or list): Standard deviation of the Gaussian function used to model electron density.
             ELECWAVE (float): Electron wavelength in Angstrom
-    
+
     Returns:
         image (torch.Tensor): Image generated from the coordinates
     """

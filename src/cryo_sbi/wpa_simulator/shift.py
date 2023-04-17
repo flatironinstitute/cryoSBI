@@ -3,6 +3,18 @@ import numpy as np
 
 
 def apply_random_shift(padded_image, image_params, seed=None):
+    """Applies random shift to image.
+
+    Args:
+        padded_image (torch.Tensor): Padded image of shape (n_pixels + 2 * pad_width, n_pixels + 2 * pad_width).
+            With pad_width = int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1.
+        image_params (dict): Dictionary containing image parameters.
+        seed (int, optional): Seed for random number generator. Defaults to None.
+
+    Returns:
+        shifted_image (torch.Tensor): Shifted image of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+    """
+
     if seed is not None:
         torch.manual_seed(seed)
 
