@@ -3,6 +3,16 @@ import torch
 
 
 def circular_mask(n_pixels, radius):
+    """Creates a circular mask of radius RADIUS_MASK centered in the image
+
+    Args:
+        n_pixels (int): Number of pixels along image side.
+        radius (int): Radius of the mask.
+
+    Returns:
+        mask (torch.Tensor): Mask of shape (n_pixels, n_pixels).
+    """
+
     grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
     mask = r_2d < radius**2
@@ -11,6 +21,17 @@ def circular_mask(n_pixels, radius):
 
 
 def add_noise(image, image_params, seed=None):
+    """Adds noise to image
+
+    Args:
+        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+        image_params (dict): Dictionary with image parameters.
+        seed (int, optional): Seed for random number generator. Defaults to None.
+
+    Returns:
+        image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+    """
+
     if seed is not None:
         torch.manual_seed(seed)
 
@@ -37,7 +58,19 @@ def add_noise(image, image_params, seed=None):
 
 
 def add_colored_noise(image, image_params, seed, noise_intensity=1, noise_scale=1.5):
-    """Adds colored noise to image"""
+    """Adds colored noise to image.
+
+    Args:
+        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+        image_params (dict): Dictionary with image parameters.
+        seed (int, optional): Seed for random number generator. Defaults to None.
+        noise_intensity (float, optional): Noise intensity. Defaults to 1.
+        noise_scale (float, optional): Noise scale. Defaults to 1.5.
+
+    Returns:
+        image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+    """
+
     # Similar to pink noise https://en.wikipedia.org/wiki/Pink_noise
     if seed is not None:
         torch.manual_seed(seed)
@@ -81,7 +114,18 @@ def add_shot_noise(image):
 
 
 def add_gradient_snr(image, image_params, seed, delta_snr=0.5):
-    """Adds gaussian noise with gradient along x"""
+    """Adds gaussian noise with gradient along x.
+
+    Args:
+        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+        image_params (dict): Dictionary with image parameters.
+        seed (int, optional): Seed for random number generator. Defaults to None.
+        delta_snr (float, optional): Delta SNR. Defaults to 0.5.
+
+    Returns:
+        image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+    """
+
     if seed is not None:
         torch.manual_seed(seed)
 

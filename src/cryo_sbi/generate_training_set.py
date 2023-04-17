@@ -17,6 +17,20 @@ def gen_training_set(
     n_workers,
     batch_size,
 ):
+    """Generate training set with cryo-EM simulator.
+
+    Args:
+        config_file (str): Path to the config file.
+        num_train_samples (int): Number of training samples.
+        num_val_samples (int): Number of validation samples.
+        file_name (str): Name of the file to save the training set.
+        save_as_tensor (bool): Whether to save the training set as a torch.tensor.
+        n_workers (int): Number of workers to use.
+        batch_size (int): Batch size.
+
+    Returns:
+        None
+    """
     cryo_simulator = CryoEmSimulator(config_file)
 
     loader = JointLoader(

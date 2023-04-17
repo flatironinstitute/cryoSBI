@@ -1,4 +1,13 @@
 def check_params(config):
+    """Checks if all necessary parameters are provided.
+
+    Args:
+        config (dict): Dictionary containing image parameters.
+
+    Returns:
+        None
+    """
+
     needed_keys = [
         "N_PIXELS",
         "PIXEL_SIZE",
