@@ -82,6 +82,9 @@ class CryoEmSimulator:
 
         image = gen_img(coord, self.config)
         image = pad_image(image, self.config)
+        image = add_noise_field(
+            image, min_image_intensity=1e-12, max_noise_intensity=image.max() * 0.5
+        )
 
         if self.config["CTF"]:
             image = apply_ctf(image, calc_ctf(self.config))

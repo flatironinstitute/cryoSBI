@@ -15,9 +15,9 @@ def gen_noise_field(num_pixels, num_sin_func=10, max_intensity=1e-3):
 
     x = torch.linspace(-100, 100, num_pixels)
     y = torch.linspace(-100, 100, num_pixels)
-    xx, yy = torch.meshgrid(x, y)
+    xx, yy = torch.meshgrid(x, y, indexing="ij")
 
-    b = 0.6 * (torch.rand((num_sin_func, 2)) - 0.5)
+    b = torch.rand(1) * (torch.rand((num_sin_func, 2)) - 0.5)
     c = 2 * torch.pi * (torch.rand(num_sin_func, 2) - 0.5)
 
     noise_field = torch.zeros_like(xx, dtype=torch.double)
@@ -29,7 +29,7 @@ def gen_noise_field(num_pixels, num_sin_func=10, max_intensity=1e-3):
     return noise_field
 
 
-def add_noise_field(image, min_intensity):
+def add_noise_field(image, min_image_intensity=1e-12, max_noise_intensity=1e-3):
     """Add a noise field to an image.
 
     Args:
@@ -40,8 +40,10 @@ def add_noise_field(image, min_intensity):
         torch.Tensor: Image with noise field.
     """
 
-    noise_field = gen_noise_field(image.shape[0], max_intensity=1e-12)
-    idx_replace = image < min_intensity
+    noise_field = gen_noise_field(
+        image.shape[0], num_sin_func=500, max_intensity=max_noise_intensity
+    )
+    idx_replace = image < min_image_intensity
     image[idx_replace] = noise_field[idx_replace]
 
     return image

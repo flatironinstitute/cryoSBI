@@ -232,3 +232,24 @@ class AddLowFrequencyNoise:
             raise NotImplementedError
 
         return torch.fft.ifft2(fft_image).real
+
+
+def radial_profile(data, center):
+    """Compute the radial profile of a 2D image.
+    Code from https://stackoverflow.com/questions/21242011/most-efficient-way-to-calculate-radial-profile
+
+    Args:
+        data (torch.Tensor): Image of shape (n_pixels, n_pixels).
+        center (tuple): Center of the image.
+
+    Returns:
+        radialprofile (torch.Tensor): Radial profile of the image.
+    """
+
+    y, x = torch.meshgrid(torch.arange(data.shape[0]), torch.arange(data.shape[1]))
+    r = torch.sqrt((x - center[0]) ** 2 + (y - center[1]) ** 2)
+    r = r.to(torch.int)
+    tbin = torch.bincount(r.ravel(), data.ravel())
+    nr = torch.bincount(r.ravel())
+    radialprofile = tbin / nr
+    return radialprofile
