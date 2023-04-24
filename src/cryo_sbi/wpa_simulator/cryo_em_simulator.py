@@ -10,6 +10,7 @@ from cryo_sbi.wpa_simulator.normalization import gaussian_normalize_image
 from cryo_sbi.wpa_simulator.padding import pad_image
 from cryo_sbi.wpa_simulator.shift import apply_no_shift, apply_random_shift
 from cryo_sbi.wpa_simulator.validate_image_config import check_params
+from cryo_sbi.wpa_simulator.implicit_water import add_noise_field
 
 
 class CryoEmSimulator:

@@ -1,9 +1,9 @@
 {
     "N_PIXELS": 128,
     "PIXEL_SIZE": 2.06,
-    "SIGMA": [4.0, 15.0],
+    "SIGMA": [0.5, 5.0],
     "MODEL_FILE": "../data/protein_models/6wxb_mixed_models.npy",
-    "ROTATIONS": false,
+    "ROTATIONS": true,
     "SHIFT": true,
     "CTF": true,
     "NOISE": true,
