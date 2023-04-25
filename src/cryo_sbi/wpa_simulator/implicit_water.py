@@ -41,7 +41,7 @@ def add_noise_field(image, min_image_intensity=1e-12, max_noise_intensity=1e-3):
     """
 
     noise_field = gen_noise_field(
-        image.shape[0], num_sin_func=500, max_intensity=max_noise_intensity
+        image.shape[0], num_sin_func=50, max_intensity=max_noise_intensity
     )
     idx_replace = image < min_image_intensity
     image[idx_replace] = noise_field[idx_replace]

@@ -84,7 +84,7 @@ def fourier_down_sample(image, image_size, n_pixels):
     else:
         raise NotImplementedError
 
-    fft_image = torch.fft.fftshift(fft_image)
+    fft_image = torch.fft.ifftshift(fft_image)
     reconstructed = torch.fft.ifft2(fft_image).real
     return reconstructed
 
@@ -124,10 +124,11 @@ class LowPassFilter:
     """
 
     def __init__(self, image_size, frequency_cutoff):
-        self.mask = circular_mask(image_size, frequency_cutoff)
+        self.mask = circular_mask(image_size, frequency_cutoff, inside=False)
 
     def __call__(self, image):
         fft_image = torch.fft.fft2(image)
+        fft_image = torch.fft.fftshift(fft_image, dim=[-2, -1])
 
         if len(image.shape) == 2:
             fft_image[self.mask] = 0 + 0j
@@ -136,6 +137,7 @@ class LowPassFilter:
         else:
             raise NotImplementedError
 
+        fft_image = torch.fft.ifftshift(fft_image, dim=[-2, -1])
         reconstructed = torch.fft.ifft2(fft_image).real
         return reconstructed
 
