@@ -1,7 +1,7 @@
 import torch
+import numpy as np
 
-
-def gen_noise_field(num_pixels, num_sin_func=10, max_intensity=1e-3):
+def gen_noise_field(num_pixels, num_sin_func=50, max_intensity=1e-3):
     """Generate a noise field with a given number of sinusoidal functions.
 
     Args:
@@ -17,13 +17,14 @@ def gen_noise_field(num_pixels, num_sin_func=10, max_intensity=1e-3):
     y = torch.linspace(-100, 100, num_pixels)
     xx, yy = torch.meshgrid(x, y, indexing="ij")
 
-    b = torch.rand(1) * (torch.rand((num_sin_func, 2)) - 0.5)
+    a = 1 * torch.rand(num_sin_func, 1)
+    b = 0.06 * torch.from_numpy(np.random.exponential(size=(num_sin_func,2)))
     c = 2 * torch.pi * (torch.rand(num_sin_func, 2) - 0.5)
 
     noise_field = torch.zeros_like(xx, dtype=torch.double)
     for i in range(num_sin_func):
-        noise_field += torch.sin(b[i, 0] * xx + c[i, 0]) * torch.sin(
-            b[i, 1] * yy + c[i, 1]
+        noise_field += (
+            a[i] * torch.sin(b[i, 0] * xx + c[i, 0]) * torch.sin(b[i, 1] * yy + c[i, 1])
         )
     noise_field = max_intensity * (noise_field / noise_field.max())
     return noise_field
@@ -41,9 +42,10 @@ def add_noise_field(image, min_image_intensity=1e-12, max_noise_intensity=1e-3):
     """
 
     noise_field = gen_noise_field(
-        image.shape[0], num_sin_func=50, max_intensity=max_noise_intensity
+        image.shape[0], num_sin_func=80, max_intensity=max_noise_intensity
     )
     idx_replace = image < min_image_intensity
     image[idx_replace] = noise_field[idx_replace]
+    #image += noise_field
 
     return image
