@@ -225,3 +225,6 @@ class MRCtoTensor:
         with mrcfile.open(image_path) as mrc:
             image = mrc.data
         return torch.from_numpy(image)
+
+
+# TODO: add whitening transform
