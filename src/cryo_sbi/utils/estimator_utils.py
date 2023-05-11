@@ -3,18 +3,25 @@ import json
 from cryo_sbi.inference.models import build_models
 
 
-def sample_posterior(estimator, images, num_samples, batch_size=100, device="cpu"):
-    """Samples from the posterior distribution
+def sample_posterior(
+    estimator: torch.nn.Module,
+    images: torch.Tensor,
+    num_samples: int,
+    batch_size: int = 100,
+    device: str = "cpu",
+) -> torch.Tensor:
+    """
+    Samples from the posterior distribution
 
     Args:
         estimator (torch.nn.Module): The posterior to use for sampling.
         images (torch.Tensor): The images used to condition the posterio.
         num_samples (int): The number of samples to draw
-        batch_size (int, optional): The batch size to use. Defaults to 100.
+        batch_size (int, optional): The batch size for sampling. Defaults to 100.
         device (str, optional): The device to use. Defaults to "cpu".
 
     Returns:
-        torch.Tensor: The samples
+        torch.Tensor: The posterior samples
     """
 
     theta_samples = []
@@ -35,8 +42,14 @@ def sample_posterior(estimator, images, num_samples, batch_size=100, device="cpu
     return torch.cat(theta_samples, dim=1)
 
 
-def compute_latent_repr(estimator, images, batch_size=100, device="cpu"):
-    """Computes the latent representation of images.
+def compute_latent_repr(
+    estimator: torch.nn.Module,
+    images: torch.Tensor,
+    batch_size: int = 100,
+    device: str = "cpu",
+) -> torch.Tensor:
+    """
+    Computes the latent representation of images.
 
     Args:
         estimator (torch.nn.Module): Posterior model for which to compute the latent representation.
@@ -66,8 +79,11 @@ def compute_latent_repr(estimator, images, batch_size=100, device="cpu"):
     return torch.cat(latent_space_samples, dim=0)
 
 
-def load_estimator(config_file_path, estimator_path, device="cpu"):
-    """Loads a trained estimator.
+def load_estimator(
+    config_file_path: str, estimator_path: str, device: str = "cpu"
+) -> torch.nn.Module:
+    """
+    Loads a trained estimator.
 
     Args:
         config_file_path (str): Path to the config file used to train the estimator.
