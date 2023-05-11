@@ -2,8 +2,9 @@ import numpy as np
 import torch
 
 
-def calc_ctf(image_params):
-    """Calculate the CTF for a given image size and defocus
+def calc_ctf(image_params: dict) -> torch.Tensor:
+    """
+    Calculate the CTF for parameters specified in image_params.
 
     Args:
         image_params (dict): Dictionary containing the image parameters
@@ -56,8 +57,9 @@ def calc_ctf(image_params):
     return ctf * env / image_params["AMP"]
 
 
-def apply_ctf(image, ctf):
-    """Apply the CTF to an image.
+def apply_ctf(image: torch.Tensor, ctf: torch.Tensor) -> torch.Tensor:
+    """
+    Apply the CTF to an image.
 
     Args:
         image (torch.Tensor): Image to apply the CTF to
