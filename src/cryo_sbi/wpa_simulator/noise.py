@@ -1,9 +1,11 @@
+from typing import Union
 import numpy as np
 import torch
 
 
-def circular_mask(n_pixels, radius):
-    """Creates a circular mask of radius RADIUS_MASK centered in the image
+def circular_mask(n_pixels: int, radius: int) -> torch.Tensor:
+    """
+    Creates a circular mask of radius RADIUS_MASK centered in the image
 
     Args:
         n_pixels (int): Number of pixels along image side.
@@ -20,8 +22,11 @@ def circular_mask(n_pixels, radius):
     return mask
 
 
-def add_noise(image, image_params, seed=None):
-    """Adds noise to image
+def add_noise(
+    image: torch.Tensor, image_params: dict, seed: Union[None, int] = None
+) -> torch.Tensor:
+    """
+    Adds noise to image
 
     Args:
         image (torch.Tensor): Image of shape (n_pixels, n_pixels).
@@ -57,7 +62,13 @@ def add_noise(image, image_params, seed=None):
     return image_noise
 
 
-def add_colored_noise(image, image_params, seed, noise_intensity=1, noise_scale=1.5):
+def add_colored_noise(
+    image: torch.Tensor,
+    image_params: dict,
+    seed: int,
+    noise_intensity: float = 1,
+    noise_scale: float = 1.5,
+):
     """Adds colored noise to image.
 
     Args:
@@ -108,12 +119,17 @@ def add_colored_noise(image, image_params, seed, noise_intensity=1, noise_scale=
     return image_noise + image
 
 
-def add_shot_noise(image):
+def add_shot_noise(image: torch.Tensor) -> torch.Tensor:
     """Adds shot noise to image"""
     raise NotImplementedError
 
 
-def add_gradient_snr(image, image_params, seed, delta_snr=0.5):
+def add_gradient_snr(
+    image: torch.Tensor,
+    image_params: dict,
+    seed: Union[None, int] = None,
+    delta_snr: float = 0.5,
+) -> torch.Tensor:
     """Adds gaussian noise with gradient along x.
 
     Args:
