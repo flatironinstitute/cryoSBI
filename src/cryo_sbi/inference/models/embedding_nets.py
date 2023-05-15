@@ -11,10 +11,10 @@ EMBEDDING_NETS = {}
 def add_embedding(name):
     """
     Add embedding net to EMBEDDING_NETS dict
-    
+
     Args:
         name (str): name of embedding net
-    
+
     Returns:
         add (function): function to add embedding net to EMBEDDING_NETS dict
     """

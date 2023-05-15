@@ -11,11 +11,11 @@ sys.path.insert(0, "../inference/models")
 class Standardize(nn.Module):
     """
     Module to standardize inputs and retransform them to the original space
-    
+
     Args:
         mean (torch.Tensor): mean of the data
         std (torch.Tensor): standard deviation of the data
-    
+
     Returns:
         standardized (torch.Tensor): standardized data
     """
@@ -32,10 +32,10 @@ class Standardize(nn.Module):
     def forward(self, tensor: torch.Tensor) -> torch.Tensor:
         """
         Standardize the input tensor
-        
+
         Args:
             tensor (torch.Tensor): input tensor
-        
+
         Returns:
             standardized (torch.Tensor): standardized tensor
         """
@@ -48,7 +48,7 @@ class Standardize(nn.Module):
 
         Args:
             tensor (torch.Tensor): input tensor
-        
+
         Returns:
             retransformed (torch.Tensor): retransformed tensor
         """
@@ -58,7 +58,7 @@ class Standardize(nn.Module):
 
 class NPEWithEmbedding(nn.Module):
     """Neural Posterior Estimation with embedding net
-    
+
     Attributes:
         npe (NPE): NPE model
         embedding (nn.Module): embedding net
@@ -79,7 +79,7 @@ class NPEWithEmbedding(nn.Module):
     ) -> None:
         """
         Neural Posterior Estimation with embedding net.
-        
+
         Args:
             embedding_net (nn.Module): embedding net
             output_embedding_dim (int): output embedding dimension
@@ -103,7 +103,7 @@ class NPEWithEmbedding(nn.Module):
             transforms=num_transforms,
             build=flow,
             hidden_features=[*[hidden_flow_dim] * num_hidden_flow, 128, 64],
-            **kwargs
+            **kwargs,
         )
 
         self.embedding = embedding_net()
@@ -118,4 +118,3 @@ class NPEWithEmbedding(nn.Module):
     def sample(self, x: torch.Tensor, shape=(1,)):
         samples_standardized = self.flow(x).sample(shape)
         return self.standardize.transform(samples_standardized)
-

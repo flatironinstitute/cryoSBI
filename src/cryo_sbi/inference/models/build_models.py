@@ -14,7 +14,7 @@ def build_npe_flow_model(config: dict, **embedding_kwargs) -> nn.Module:
     Args:
         config (dict): config file
         embedding_kwargs (dict): kwargs for embedding net
-    
+
     Returns:
         estimator (nn.Module): NPE estimator
     """
