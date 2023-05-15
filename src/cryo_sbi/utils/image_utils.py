@@ -124,10 +124,11 @@ class LowPassFilter:
     """
 
     def __init__(self, image_size, frequency_cutoff):
-        self.mask = circular_mask(image_size, frequency_cutoff)
+        self.mask = circular_mask(image_size, frequency_cutoff, inside=False)
 
     def __call__(self, image):
         fft_image = torch.fft.fft2(image)
+        fft_image = torch.fft.fftshift(fft_image)
 
         if len(image.shape) == 2:
             fft_image[self.mask] = 0 + 0j
@@ -136,6 +137,7 @@ class LowPassFilter:
         else:
             raise NotImplementedError
 
+        fft_image = torch.fft.fftshift(fft_image)
         reconstructed = torch.fft.ifft2(fft_image).real
         return reconstructed
 
@@ -179,56 +181,21 @@ class MRCtoTensor:
         return torch.from_numpy(image)
 
 
-class AddLowFrequencyNoise:
-    """Adding low frequency noise, also serving as a low pass filter.
-
+class WhitenImage():
+    """Whiten an image by dividing by the noise PSD.
+    
     Args:
-        image_size (int): Side length of the image in pixels.
-        min_frequency (int): Minimum frequency to keep.
-        amplitude (float or list): Amplitude of the noise. If a float, the noise will have the same amplitude everywhere. If a list, the noise will have a uniform distribution between the two values.
-        device (str, optional): Device to use. Defaults to "cpu".
-
+        noise_psd (torch.Tensor): Noise PSD of shape (n_pixels, n_pixels).
+    
     Returns:
-        image (torch.Tensor): Image with added noise.
+        reconstructed (torch.Tensor): Whiten image.
     """
 
-    def __init__(self, image_size, min_frequency, amplitude, device="cpu") -> None:
-        self.device = device
-        self._imge_size = image_size
-        self._mask = circular_mask(image_size, min_frequency, inside=False).to(
-            self.device
-        )
-        self._num_frequencies = self._mask.sum()
-
-        if isinstance(amplitude, (float, int)):
-            self._amplitude = d.uniform.Uniform(
-                low=torch.tensor(float(amplitude), device=device),
-                high=torch.tensor(float(amplitude), device=device),
-            )
-        elif isinstance(amplitude, (list, tuple)) and len(amplitude) == 2:
-            self._amplitude = d.uniform.Uniform(
-                low=torch.tensor(float(amplitude[0]), device=device),
-                high=torch.tensor(float(amplitude[1]), device=device),
-            )
-
+    def __init__(self, noise_psd):
+        self.noise_psd = noise_psd
+    
     def __call__(self, image):
         fft_image = torch.fft.fft2(image)
-
-        if len(image.shape) == 2:
-            fft_image[self._mask] += self._amplitude.sample() * torch.randn(
-                (self._num_frequencies,), dtype=torch.complex64, device=self.device
-            )
-            fft_image[self._mask == False] = 0 + 0j
-        elif len(image.shape) == 3:
-            fft_image[:, self._mask] += self._amplitude.sample(
-                (image.shape[0], 1)
-            ) * torch.randn(
-                (image.shape[0], self._num_frequencies),
-                dtype=torch.complex64,
-                device=self.device,
-            )
-            fft_image[:, self._mask == False] = 0 + 0j
-        else:
-            raise NotImplementedError
-
-        return torch.fft.ifft2(fft_image).real
+        fft_image = fft_image / torch.sqrt(self.noise_psd)
+        reconstructed = torch.fft.ifft2(fft_image).real
+        return reconstructed
