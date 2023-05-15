@@ -1,10 +1,12 @@
 import numpy as np
+import torch
 from torch.nn.functional import pad
 from torch.nn import ConstantPad2d
 
 
-def pad_image(image, image_params):
-    """Pads image with zeros to randomly crop image later.
+def pad_image(image: torch.Tensor, image_params: dict) -> torch.Tensor:
+    """
+    Pads image with zeros to randomly crop image later.
 
     Args:
         image (torch.Tensor): Image of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).

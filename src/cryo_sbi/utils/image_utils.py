@@ -205,6 +205,12 @@ class NormalizeIndividual:
 class MRCtoTensor:
     """
     Convert an MRC file to a tensor.
+
+    Args:
+        image_path (str): Path to the MRC file.
+
+    Returns:
+        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
     """
 
     def __init__(self) -> None:
@@ -227,4 +233,33 @@ class MRCtoTensor:
         return torch.from_numpy(image)
 
 
-# TODO: add whitening transform
+class WhitenImage:
+    """
+    Whiten an image by dividing by the noise PSD.
+
+    Args:
+        noise_psd (torch.Tensor): Noise PSD of shape (n_pixels, n_pixels).
+            Square root of the noise PSD is used to whiten the image.
+
+    Returns:
+        reconstructed (torch.Tensor): Whiten image.
+    """
+
+    def __init__(self, noise_psd: torch.Tensor) -> None:
+        self.noise_psd = noise_psd
+
+    def __call__(self, image: torch.Tensor) -> torch.Tensor:
+        """
+        Whiten an image by dividing by the noise PSD.
+
+        Args:
+            image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+
+        Returns:
+            reconstructed (torch.Tensor): Whiten image.
+        """
+
+        fft_image = torch.fft.fft2(image)
+        fft_image = fft_image / torch.sqrt(self.noise_psd)
+        reconstructed = torch.fft.ifft2(fft_image).real
+        return reconstructed
