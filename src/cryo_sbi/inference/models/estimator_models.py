@@ -9,10 +9,19 @@ sys.path.insert(0, "../inference/models")
 
 
 class Standardize(nn.Module):
-    """Module to standardize inputs and retransform them to the original space"""
+    """
+    Module to standardize inputs and retransform them to the original space
+    
+    Args:
+        mean (torch.Tensor): mean of the data
+        std (torch.Tensor): standard deviation of the data
+    
+    Returns:
+        standardized (torch.Tensor): standardized data
+    """
 
     # Code adapted from :https://github.com/mackelab/sbi/blob/main/sbi/utils/sbiutils.py
-    def __init__(self, mean, std):
+    def __init__(self, mean: float, std: float) -> None:
         super(Standardize, self).__init__()
         mean, std = map(torch.as_tensor, (mean, std))
         self.mean = mean
@@ -20,26 +29,72 @@ class Standardize(nn.Module):
         self.register_buffer("_mean", mean)
         self.register_buffer("_std", std)
 
-    def forward(self, tensor):
+    def forward(self, tensor: torch.Tensor) -> torch.Tensor:
+        """
+        Standardize the input tensor
+        
+        Args:
+            tensor (torch.Tensor): input tensor
+        
+        Returns:
+            standardized (torch.Tensor): standardized tensor
+        """
+
         return (tensor - self._mean) / self._std
 
-    def transform(self, tensor):
+    def transform(self, tensor: torch.Tensor) -> torch.Tensor:
+        """
+        Transform the standardized tensor back to the original space
+
+        Args:
+            tensor (torch.Tensor): input tensor
+        
+        Returns:
+            retransformed (torch.Tensor): retransformed tensor
+        """
+
         return (tensor * self._std) + self._mean
 
 
 class NPEWithEmbedding(nn.Module):
+    """Neural Posterior Estimation with embedding net
+    
+    Attributes:
+        npe (NPE): NPE model
+        embedding (nn.Module): embedding net
+        standardize (Standardize): standardization module
+    """
+
     def __init__(
         self,
-        embedding_net,
-        output_embedding_dim,
-        num_transforms=4,
-        num_hidden_flow=2,
-        hidden_flow_dim=128,
-        flow=zuko.flows.MAF,
-        theta_shift=0,
-        theta_scale=1,
-        **kwargs
-    ):
+        embedding_net: nn.Module,
+        output_embedding_dim: int,
+        num_transforms: int = 4,
+        num_hidden_flow: int = 2,
+        hidden_flow_dim: int = 128,
+        flow: nn.Module = zuko.flows.MAF,
+        theta_shift: float = 0.0,
+        theta_scale: float = 1.0,
+        **kwargs,
+    ) -> None:
+        """
+        Neural Posterior Estimation with embedding net.
+        
+        Args:
+            embedding_net (nn.Module): embedding net
+            output_embedding_dim (int): output embedding dimension
+            num_transforms (int, optional): number of transforms. Defaults to 4.
+            num_hidden_flow (int, optional): number of hidden layers in flow. Defaults to 2.
+            hidden_flow_dim (int, optional): hidden dimension in flow. Defaults to 128.
+            flow (nn.Module, optional): flow. Defaults to zuko.flows.MAF.
+            theta_shift (float, optional): Shift of the theta for standardization. Defaults to 0.0.
+            theta_scale (float, optional): Scale of the theta for standardization. Defaults to 1.0.
+            kwargs: additional arguments for the flow
+
+        Returns:
+            None
+        """
+
         super().__init__()
 
         self.npe = NPE(
@@ -64,29 +119,3 @@ class NPEWithEmbedding(nn.Module):
         samples_standardized = self.flow(x).sample(shape)
         return self.standardize.transform(samples_standardized)
 
-
-class NREWithEmbedding(nn.Module):
-    def __init__(
-        self,
-        embedding_net,
-        output_embedding_dim,
-        hidden_features,
-        activation,
-        network,
-        theta_shift=0,
-        theta_scale=1,
-    ):
-        super().__init__()
-
-        self.nre = NRE(
-            1,
-            output_embedding_dim,
-            hidden_features=hidden_features,
-            activation=activation,
-            build=network,
-        )
-        self.embedding = embedding_net
-        self.standardize = Standardize(theta_shift, theta_scale)
-
-    def forward(self, theta, x):
-        return self.nre(self.standardize(theta), self.embedding(x))
