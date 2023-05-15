@@ -6,7 +6,7 @@ import cryo_sbi.inference.models.estimator_models as estimator_models
 from cryo_sbi.inference.models.embedding_nets import EMBEDDING_NETS
 
 
-def build_npe_flow_model(config, **embedding_kwargs):
+def build_npe_flow_model(config, embedding_kwargs={}):
     """
     Function to build NPE estimator with embedding net
     from config_file
@@ -27,7 +27,7 @@ def build_npe_flow_model(config, **embedding_kwargs):
         embedding = partial(
             EMBEDDING_NETS[config["EMBEDDING"]], config["OUT_DIM"], **embedding_kwargs
         )
-    except:
+    except KeyError:
         raise NotImplementedError(
             f"Model : {config['EMBEDDING']} has not been implemented yet! \
 The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys()]}"
