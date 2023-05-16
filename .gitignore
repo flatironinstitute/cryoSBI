@@ -3,7 +3,7 @@ messing_around/
 tests/test_simulator.ipynb
 *.estimator
 *.h5
-
+.vscode/
 #SBI related folders
 sbi-logs/
 *.png

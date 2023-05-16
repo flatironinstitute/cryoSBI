@@ -2,8 +2,9 @@ import torch
 import zuko
 
 
-def get_uniform_prior_1d(max_index):
-    """Return uniform prior in 1d from 0 to 19
+def get_uniform_prior_1d(max_index: int) -> zuko.distributions.BoxUniform:
+    """
+    Return uniform prior in 1d from 0 to 19
 
     Args:
         max_index (int): max index of the 1d prior

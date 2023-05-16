@@ -1,4 +1,14 @@
-def check_train_params(config):
+def check_train_params(config: dict) -> None:
+    """
+    Checks if all necessary parameters are provided.
+
+    Args:
+        config (dict): Dictionary containing training parameters.
+
+    Returns:
+        None
+    """
+
     needed_keys = [
         "EMBEDDING",
         "OUT_DIM",

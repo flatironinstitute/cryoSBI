@@ -17,7 +17,7 @@ from cryo_sbi import CryoEmSimulator
 
 def load_model(
     train_config: str, model_state_dict: str, device: str, train_from_checkpoint: bool
-):
+) -> torch.nn.Module:
     """
     Load model from checkpoint or from scratch.
 
@@ -49,7 +49,7 @@ def npe_train_no_saving(
     n_workers: int = 1,
     device: str = "cpu",
     saving_frequency: int = 20,
-):
+) -> None:
     """
     Train NPE model by simulating training data on the fly.
     Saves model and loss to disk.
@@ -131,7 +131,7 @@ def npe_train_from_vram(
     device: str = "cpu",
     saving_frequency: int = 20,
     num_workers: int = 0,
-):
+) -> None:
     """
     Train NPE model with data loaded from VRAM.
     Saves model and loss to disk.
@@ -230,7 +230,7 @@ def npe_train_from_disk(
     n_workers: int = 1,
     device: str = "cpu",
     saving_frequency: int = 20,
-):
+) -> None:
     """
     Train NPE model with data loaded from disk.
     Saves model and loss to disk.
