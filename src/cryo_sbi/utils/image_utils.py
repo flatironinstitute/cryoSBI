@@ -144,9 +144,9 @@ class LowPassFilter:
     Returns:
         reconstructed (torch.Tensor): Low pass filtered image.
     """
-
-    def __init__(self, image_size: int, frequency_cutoff: int) -> None:
-        self.mask = circular_mask(image_size, frequency_cutoff)
+    
+    def __init__(self, image_size: int, frequency_cutoff: int):
+        self.mask = circular_mask(image_size, frequency_cutoff, inside=False)
 
     def __call__(self, image: torch.Tensor) -> torch.Tensor:
         """
@@ -187,7 +187,7 @@ class NormalizeIndividual:
     def __init__(self) -> None:
         pass
 
-    def __call__(self, images: torch.Tensor) -> torch.Tensor:
+    def __call__(self, images):
         """
         Normalize an image by subtracting the mean and dividing by the standard deviation.
 
@@ -197,9 +197,34 @@ class NormalizeIndividual:
         Returns:
             normalized (torch.Tensor): Normalized image.
         """
-        mean = images.mean(dim=[1, 2])
-        std = images.std(dim=[1, 2])
+        if len(images.shape) == 2:
+            mean = images.mean()
+            std = images.std()
+            images = images.unsqueeze(0)
+        elif len(images.shape) == 3:
+            mean = images.mean(dim=[1, 2])
+            std = images.std(dim=[1, 2])
+        else:
+            raise NotImplementedError
+        
         return transforms.functional.normalize(images, mean=mean, std=std)
+
+
+def mrc_to_tensor(image_path):
+    """
+    Convert an MRC file to a tensor.
+
+    Args:
+        image_path (str): Path to the MRC file.
+
+    Returns:
+        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+    """
+
+    assert isinstance(image_path, str), "image path needs to be a string"
+    with mrcfile.open(image_path) as mrc:
+        image = mrc.data
+    return torch.from_numpy(image)
 
 
 class MRCtoTensor:
@@ -244,7 +269,7 @@ class WhitenImage:
     Returns:
         reconstructed (torch.Tensor): Whiten image.
     """
-
+  
     def __init__(self, noise_psd: torch.Tensor) -> None:
         self.noise_psd = noise_psd
 
@@ -258,7 +283,7 @@ class WhitenImage:
         Returns:
             reconstructed (torch.Tensor): Whiten image.
         """
-
+        
         fft_image = torch.fft.fft2(image)
         fft_image = fft_image / torch.sqrt(self.noise_psd)
         reconstructed = torch.fft.ifft2(fft_image).real
