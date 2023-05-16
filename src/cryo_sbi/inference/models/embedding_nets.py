@@ -3,7 +3,12 @@ import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 
-from cryo_sbi.utils.image_utils import LowPassFilter, Mask, WhitenImage, NormalizeIndividual
+from cryo_sbi.utils.image_utils import (
+    LowPassFilter,
+    Mask,
+    WhitenImage,
+    NormalizeIndividual,
+)
 
 
 EMBEDDING_NETS = {}
@@ -338,6 +343,6 @@ class ResNet18_FFT_Encoder(nn.Module):
         x = self.resnet(x)
         return x
 
-    
+
 if __name__ == "__main__":
     pass

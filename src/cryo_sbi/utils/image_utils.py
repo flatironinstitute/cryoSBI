@@ -205,19 +205,19 @@ class MRCtoTensor:
         return torch.from_numpy(image)
 
 
-class WhitenImage():
+class WhitenImage:
     """Whiten an image by dividing by the noise PSD.
-    
+
     Args:
         noise_psd (torch.Tensor): Noise PSD of shape (n_pixels, n_pixels).
-    
+
     Returns:
         reconstructed (torch.Tensor): Whiten image.
     """
 
     def __init__(self, noise_psd):
         self.noise_psd = noise_psd
-    
+
     def __call__(self, image):
         fft_image = torch.fft.fft2(image)
         fft_image = fft_image / torch.sqrt(self.noise_psd)
