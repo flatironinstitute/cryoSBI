@@ -156,9 +156,33 @@ class NormalizeIndividual:
         pass
 
     def __call__(self, images):
-        mean = images.mean(dim=[1, 2])
-        std = images.std(dim=[1, 2])
+        if len(images.shape) == 2:
+            mean = images.mean()
+            std = images.std()
+            images = images.unsqueeze(0)
+        elif len(images.shape) == 3:
+            mean = images.mean(dim=[1, 2])
+            std = images.std(dim=[1, 2])
+        else:
+            raise NotImplementedError
         return transforms.functional.normalize(images, mean=mean, std=std)
+
+
+def mrc_to_tensor(image_path):
+    """
+    Convert an MRC file to a tensor.
+
+    Args:
+        image_path (str): Path to the MRC file.
+
+    Returns:
+        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+    """
+
+    assert isinstance(image_path, str), "image path needs to be a string"
+    with mrcfile.open(image_path) as mrc:
+        image = mrc.data
+    return torch.from_numpy(image)
 
 
 class MRCtoTensor:
