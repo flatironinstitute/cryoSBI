@@ -2,8 +2,9 @@ import numpy as np
 import torch
 
 
-def gen_quat():
-    """Generate a random quaternion.
+def gen_quat() -> np.ndarray:
+    """
+    Generate a random quaternion.
 
     Returns:
         quat (np.ndarray): Random quaternion
@@ -23,11 +24,11 @@ def gen_quat():
     return quat
 
 
-def gen_img(coord, image_params):
+def gen_img(coord: np.ndarray, image_params: dict) -> torch.Tensor:
     """Generate an image from a set of coordinates.
 
     Args:
-        coord (torch.Tensor): Coordinates of the atoms in the image
+        coord (np.ndarray): Coordinates of the atoms in the image
         image_params (dict): Dictionary containing the image parameters
             N_PIXELS (int): Number of pixels along one image size.
             PIXEL_SIZE (float): Pixel size in Angstrom
