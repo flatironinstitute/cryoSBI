@@ -34,10 +34,10 @@ class RandomMicrographPatches:
         self._max_iter = max_iter
         self._current_iter = 0
 
-    def __iter__(self):
+    def __iter__(self) -> "RandomMicrographPatches":
         return self
 
-    def __next__(self):
+    def __next__(self) -> torch.Tensor:
         if self._current_iter == self._max_iter:
             self._current_iter = 0
             raise StopIteration
@@ -61,11 +61,11 @@ class RandomMicrographPatches:
         self._current_iter += 1
         return patch
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._max_iter
 
     @property
-    def shape(self):
+    def shape(self) -> torch.Size:
         """
         Shape of the transformed patches.
 
@@ -75,7 +75,9 @@ class RandomMicrographPatches:
         return self.__next__().shape
 
 
-def compute_average_psd(images: Union[torch.Tensor, RandomMicrographPatches]):
+def compute_average_psd(
+    images: Union[torch.Tensor, RandomMicrographPatches]
+) -> torch.Tensor:
     """
     Compute the average PSD of a set of images.
 

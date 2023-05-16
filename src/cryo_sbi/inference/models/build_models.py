@@ -6,7 +6,6 @@ import cryo_sbi.inference.models.estimator_models as estimator_models
 from cryo_sbi.inference.models.embedding_nets import EMBEDDING_NETS
 
 
-
 def build_npe_flow_model(config: dict, **embedding_kwargs) -> nn.Module:
     """
     Function to build NPE estimator with embedding net
