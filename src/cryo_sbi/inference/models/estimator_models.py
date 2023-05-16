@@ -110,11 +110,42 @@ class NPEWithEmbedding(nn.Module):
         self.standardize = Standardize(theta_shift, theta_scale)
 
     def forward(self, theta: torch.Tensor, x: torch.Tensor):
+        """
+        Forward pass of the NPE model
+
+        Args:
+            theta (torch.Tensor): Conformational parameters.
+            x (torch.Tensor): Image to condition the posterior on.
+
+        Returns:
+            torch.Tensor: Log probability of the posterior.
+        """
+
         return self.npe(self.standardize(theta), self.embedding(x))
 
     def flow(self, x: torch.Tensor):
+        """
+        Conditions the posterior on an image.
+
+        Args:
+            x (torch.Tensor): Image to condition the posterior on.
+
+        Returns:
+            zuko.flows.Flow: The posterior distribution.
+        """
         return self.npe.flow(self.embedding(x))
 
     def sample(self, x: torch.Tensor, shape=(1,)):
+        """
+        Generate samples from the posterior distribution.
+
+        Args:
+            x (torch.Tensor): Image to condition the posterior on.
+            shape (tuple, optional): Shape of the samples. Defaults to (1,).
+
+        Returns:
+            torch.Tensor: Samples from the posterior distribution.
+        """
+
         samples_standardized = self.flow(x).sample(shape)
         return self.standardize.transform(samples_standardized)

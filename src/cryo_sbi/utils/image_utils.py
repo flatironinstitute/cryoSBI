@@ -144,7 +144,7 @@ class LowPassFilter:
     Returns:
         reconstructed (torch.Tensor): Low pass filtered image.
     """
-    
+
     def __init__(self, image_size: int, frequency_cutoff: int):
         self.mask = circular_mask(image_size, frequency_cutoff, inside=False)
 
@@ -206,7 +206,7 @@ class NormalizeIndividual:
             std = images.std(dim=[1, 2])
         else:
             raise NotImplementedError
-        
+
         return transforms.functional.normalize(images, mean=mean, std=std)
 
 
@@ -252,10 +252,7 @@ class MRCtoTensor:
             image (torch.Tensor): Image of shape (n_pixels, n_pixels).
         """
 
-        assert isinstance(image_path, str), "image_path should be a string"
-        with mrcfile.open(image_path) as mrc:
-            image = mrc.data
-        return torch.from_numpy(image)
+        return mrc_to_tensor(image_path)
 
 
 class WhitenImage:
@@ -269,9 +266,9 @@ class WhitenImage:
     Returns:
         reconstructed (torch.Tensor): Whiten image.
     """
-  
+
     def __init__(self, noise_psd: torch.Tensor) -> None:
-        self.noise_psd = noise_psd
+        self._noise_psd = noise_psd
 
     def __call__(self, image: torch.Tensor) -> torch.Tensor:
         """
@@ -283,8 +280,8 @@ class WhitenImage:
         Returns:
             reconstructed (torch.Tensor): Whiten image.
         """
-        
+
         fft_image = torch.fft.fft2(image)
-        fft_image = fft_image / torch.sqrt(self.noise_psd)
+        fft_image = fft_image / torch.sqrt(self._noise_psd)
         reconstructed = torch.fft.ifft2(fft_image).real
         return reconstructed
