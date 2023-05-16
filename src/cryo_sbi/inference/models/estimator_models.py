@@ -109,7 +109,7 @@ class NPEWithEmbedding(nn.Module):
         self.embedding = embedding_net()
         self.standardize = Standardize(theta_shift, theta_scale)
 
-    def forward(self, theta: torch.Tensor, x: torch.Tensor):
+    def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of the NPE model
 
@@ -123,7 +123,7 @@ class NPEWithEmbedding(nn.Module):
 
         return self.npe(self.standardize(theta), self.embedding(x))
 
-    def flow(self, x: torch.Tensor):
+    def flow(self, x: torch.Tensor) -> zuko.flows.FlowModule:
         """
         Conditions the posterior on an image.
 
@@ -135,7 +135,7 @@ class NPEWithEmbedding(nn.Module):
         """
         return self.npe.flow(self.embedding(x))
 
-    def sample(self, x: torch.Tensor, shape=(1,)):
+    def sample(self, x: torch.Tensor, shape=(1,)) -> torch.Tensor:
         """
         Generate samples from the posterior distribution.
 

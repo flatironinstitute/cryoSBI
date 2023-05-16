@@ -13,15 +13,14 @@ from cryo_sbi.wpa_simulator.validate_image_config import check_params
 from cryo_sbi import CryoEmSimulator
 
 
-def _get_config():
-    config = json.load(open("tests/image_params_testing.json"))
+@pytest.fixture
+def image_params():
+    config = json.load(open("tests/config_files/image_params_testing.json"))
     check_params(config)
-
     return config
 
 
-def test_padding():
-    image_params = _get_config()
+def test_padding(image_params):
     pad_width = int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1
     image = torch.zeros((image_params["N_PIXELS"], image_params["N_PIXELS"]))
     padded_image = pad_image(image, image_params)
@@ -31,8 +30,7 @@ def test_padding():
     return
 
 
-def test_shift_size():
-    image_params = _get_config()
+def test_shift_size(image_params):
     image = torch.zeros((image_params["N_PIXELS"], image_params["N_PIXELS"]))
     padded_image = pad_image(image, image_params)
     shifted_image = apply_random_shift(padded_image, image_params)
@@ -42,9 +40,7 @@ def test_shift_size():
     return
 
 
-def test_shift_bias():
-    image_params = _get_config()
-
+def test_shift_bias(image_params):
     x_0 = image_params["N_PIXELS"] // 2
     y_0 = image_params["N_PIXELS"] // 2
 
@@ -68,8 +64,7 @@ def test_shift_bias():
     return
 
 
-def test_no_shift():
-    image_params = _get_config()
+def test_no_shift(image_params):
     image = torch.zeros((image_params["N_PIXELS"], image_params["N_PIXELS"]))
     padded_image = pad_image(image, image_params)
     shifted_image = apply_no_shift(padded_image, image_params)
@@ -81,8 +76,7 @@ def test_no_shift():
     return
 
 
-def test_normalization():
-    image_params = _get_config()
+def test_normalization(image_params):
     img_shape = (image_params["N_PIXELS"], image_params["N_PIXELS"])
     image = torch.distributions.normal.Normal(23, 1.30432).sample(img_shape)
     gnormed_image = gaussian_normalize_image(image)
@@ -92,8 +86,7 @@ def test_normalization():
     return
 
 
-def test_noise():
-    image_params = _get_config()
+def test_noise(image_params):
     N = 10000
     stds = torch.zeros(N)
 
@@ -110,11 +103,10 @@ def test_noise():
 # def test_ctf():
 
 
-def test_simulation():
-    simul = CryoEmSimulator("tests/image_params_testing.json")
+def test_simulation(image_params):
+    simul = CryoEmSimulator("tests/config_files/image_params_testing.json")
     image_sim = simul.simulator(index=torch.tensor(0.0), seed=0)
 
-    image_params = _get_config()
     model = np.load(image_params["MODEL_FILE"])[0, 0]
     image = gen_img(model, image_params)
     image = pad_image(image, image_params)

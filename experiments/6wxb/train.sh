@@ -2,18 +2,30 @@ python3 -m cryo_sbi.inference.NPE_train_without_saving \
     --image_config_file 6wxb/image_params_mixed_training.json \
     --train_config_file 6wxb/resnet18_fft_encoder.json\
     --epochs 200 \
-    --estimator_file 6wxb/6wxb_mixed_posterior.estimator \
-    --loss_file 6wxb/6wxb_mixed_posterior.loss \
+    --estimator_file 6wxb/posterior_6wxb_mixed.estimator \
+    --loss_file 6wxb/posterior_6wxb_mixed.loss \
     --n_workers 24 \
     --train_from_checkpoint \
-    --state_dict_file 6wxb/posterior_torsion.estimator
+    --state_dict_file 6wxb/posterior_6wxb.estimator \
 
 python3 -m cryo_sbi.inference.NPE_train_without_saving \
-    --image_config_file 6wxb/image_params_mixed_training.json \
-    --train_config_file 6wxb/resnet18_fft_noise_encoder.json\
+    --image_config_file 6wxb/image_params_torsion_training.json \
+    --train_config_file 6wxb/resnet18_fft_encoder.json\
     --epochs 200 \
-    --estimator_file 6wxb/6wxb_mixed_posterior_noise.estimator \
-    --loss_file 6wxb/6wxb_mixed_posterior_noise.loss \
+    --estimator_file 6wxb/posterior_6wxb_torsion.estimator \
+    --loss_file 6wxb/whitening_posterior.loss \
     --n_workers 24 \
     --train_from_checkpoint \
-    --state_dict_file 6wxb/6wxb_mixed_posterior.estimator
+    --state_dict_file 6wxb/posterior_6wxb.estimator \
+    --train_from_checkpoint \
+    --state_dict_file 6wxb/posterior_6wxb.estimator \
+
+python3 -m cryo_sbi.inference.NPE_train_without_saving \
+    --image_config_file 6wxb/image_params_bending_training.json \
+    --train_config_file 6wxb/resnet18_fft_encoder.json\
+    --epochs 200 \
+    --estimator_file 6wxb/posterior_6wxb_bending.estimator \
+    --loss_file 6wxb/posterior_6wxb_bending.loss \
+    --n_workers 24 \
+    --train_from_checkpoint \
+    --state_dict_file 6wxb/posterior_6wxb.estimator \

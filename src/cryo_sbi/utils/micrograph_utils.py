@@ -43,12 +43,8 @@ class RandomMicrographPatches:
             raise StopIteration
         random_micrograph = random.choice(self._micro_graphs)
         assert random_micrograph.ndim == 2, "Micrograph should be 2D"
-        x = random.randint(
-            self._patch_size, random_micrograph.shape[0] - self._patch_size
-        )
-        y = random.randint(
-            self._patch_size, random_micrograph.shape[1] - self._patch_size
-        )
+        x = random.randint(0, random_micrograph.shape[0] - self._patch_size)
+        y = random.randint(0, random_micrograph.shape[1] - self._patch_size)
         patch = TF.crop(
             random_micrograph,
             top=y,
@@ -58,6 +54,8 @@ class RandomMicrographPatches:
         )
         if self._transform is not None:
             patch = self._transform(patch)
+        else:
+            patch = patch.unsqueeze(0)
         self._current_iter += 1
         return patch
 
