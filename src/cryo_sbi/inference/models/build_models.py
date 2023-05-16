@@ -53,3 +53,7 @@ The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys(
     )
 
     return estimator
+
+
+def build_nre_classifier_model(config: dict, **embedding_kwargs) -> nn.Module:
+    raise NotImplementedError("NRE classifier model has not been implemented yet!")
