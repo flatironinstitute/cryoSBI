@@ -1,3 +1,4 @@
+from typing import Union, Callable
 import torch
 import numpy as np
 import json
@@ -27,7 +28,7 @@ class CryoEmSimulator:
         add_noise (bool): function which adds noise to images. Defaults to Gaussian noise.
     """
 
-    def __init__(self, config_fname):
+    def __init__(self, config_fname: str, add_noise: Callable = add_noise):
         self._load_params(config_fname)
         self._load_models()
         self.rot_mode = None
@@ -36,12 +37,29 @@ class CryoEmSimulator:
         self._pad_width = int(np.ceil(self.config["N_PIXELS"] * 0.1)) + 1
         self.add_noise = add_noise
 
-    def _load_params(self, config_fname):
+    def _load_params(self, config_fname: str) -> None:
+        """
+        Loads the parameters from the config file into a dictionary.
+
+        Args:
+            config_fname (str): Path to the configuration file.
+
+        Returns:
+            None
+        """
+
         config = json.load(open(config_fname))
         check_params(config)
         self.config = config
 
-    def _load_models(self):
+    def _load_models(self) -> None:
+        """
+        Loads the models from the model file specified in the config file.
+
+        Returns:
+            None
+
+        """
         if "hsp90" in self.config["MODEL_FILE"]:
             self.models = np.load(self.config["MODEL_FILE"])[:, 0]
 
@@ -54,7 +72,13 @@ class CryoEmSimulator:
             )
         print(self.config["MODEL_FILE"])
 
-    def _config_rotations(self):
+    def _config_rotations(self) -> None:
+        """
+        Configures the rotation mode for the simulator.
+
+        Returns:
+            None
+        """
         if isinstance(self.config["ROTATIONS"], bool):
             if self.config["ROTATIONS"]:
                 self.rot_mode = "random"
@@ -68,10 +92,30 @@ class CryoEmSimulator:
             ), "Quaternion shape is not 4. Corrupted file?"
 
     @property
-    def max_index(self):
+    def max_index(self) -> int:
+        """
+        Returns the maximum index of the model file.
+
+        Returns:
+            int: Maximum index of the model file.
+        """
         return len(self.models) - 1
 
-    def _simulator_with_quat(self, index, quaternion, seed):
+    def _simulator_with_quat(
+        self, index: torch.Tensor, quaternion: np.ndarray, seed: Union[None, int] = None
+    ) -> torch.Tensor:
+        """
+        Simulates an image with a given quaternion.
+
+        Args:
+            index (torch.Tensor): Index of the model to use.
+            quaternion (np.ndarray): Quaternion to rotate structure.
+            seed (Union[None, int], optional): Seed for random number generator. Defaults to None.
+
+        Returns:
+            torch.Tensor: Simulated image.
+        """
+
         index = int(torch.round(index))
 
         coord = np.copy(self.models[index])
@@ -98,7 +142,20 @@ class CryoEmSimulator:
 
         return image.to(dtype=torch.float)
 
-    def simulator(self, index, seed=None):
+    def simulator(
+        self, index: torch.Tensor, seed: Union[None, int] = None
+    ) -> torch.Tensor:
+        """
+        Simulates an image with parameters specified in the config file.
+
+        Args:
+            index (torch.Tensor): Index of the model to use.
+            seed (Union[None, int], optional): Seed for random number generator. Defaults to None.
+
+        Returns:
+            torch.Tensor: Simulated image.
+        """
+
         if self.rot_mode == "random":
             quat = gen_quat()
         elif self.rot_mode == "list":

@@ -3,19 +3,22 @@ import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 
-from cryo_sbi.utils.image_utils import (
-    LowPassFilter,
-    Mask,
-    WhitenImage,
-    NormalizeIndividual,
-)
+from cryo_sbi.utils.image_utils import LowPassFilter, Mask
 
 
 EMBEDDING_NETS = {}
 
 
 def add_embedding(name):
-    """Adds the class to the embedding_nets dict with specific key"""
+    """
+    Add embedding net to EMBEDDING_NETS dict
+
+    Args:
+        name (str): name of embedding net
+
+    Returns:
+        add (function): function to add embedding net to EMBEDDING_NETS dict
+    """
 
     def add(class_):
         EMBEDDING_NETS[name] = class_

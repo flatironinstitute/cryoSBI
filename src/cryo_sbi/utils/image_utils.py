@@ -4,8 +4,9 @@ import torch.distributions as d
 import mrcfile
 
 
-def circular_mask(n_pixels, radius, inside=True):
-    """Create a circular mask for a given image size and radius.
+def circular_mask(n_pixels: int, radius: int, inside: bool = True) -> torch.Tensor:
+    """
+    Create a circular mask for a given image size and radius.
 
     Args:
         n_pixels (int): Side length of the image in pixels.
@@ -28,23 +29,30 @@ def circular_mask(n_pixels, radius, inside=True):
 
 
 class Mask:
-    """Mask a circular region in an image.
+    """
+    Mask a circular region in an image.
 
     Args:
         image_size (int): Number of pixels in the image.
         radius (int): Radius of the circle.
         inside (bool, optional): If True, the mask will be True inside the circle. Defaults to True.
-
-    Returns:
-        image (torch.Tensor): Masked image.
     """
 
-    def __init__(self, image_size, radius, inside=False):
+    def __init__(self, image_size: int, radius: int, inside: bool = False) -> None:
         self.image_size = image_size
         self.n_pixels = radius
         self.mask = circular_mask(image_size, radius, inside=inside)
 
-    def __call__(self, image):
+    def __call__(self, image: torch.Tensor) -> torch.Tensor:
+        """Mask a circular region in an image.
+
+        Args:
+            image (torch.Tensor): Image of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+
+        Returns:
+            image (torch.Tensor): Image with masked region equal to zero.
+        """
+
         if len(image.shape) == 2:
             image[self.mask] = 0
         elif len(image.shape) == 3:
@@ -55,8 +63,11 @@ class Mask:
         return image
 
 
-def fourier_down_sample(image, image_size, n_pixels):
-    """Downsample an image by removing the outer frequencies.
+def fourier_down_sample(
+    image: torch.Tensor, image_size: int, n_pixels: int
+) -> torch.Tensor:
+    """
+    Downsample an image by removing the outer frequencies.
 
     Args:
         image (torch.Tensor): Image of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
@@ -90,21 +101,31 @@ def fourier_down_sample(image, image_size, n_pixels):
 
 
 class FourierDownSample:
-    """Downsample an image by removing the outer frequencies.
+    """
+    Downsample an image by removing the outer frequencies.
 
     Args:
-        image_size (int): Side length of the image in pixels.
-        down_sampled_size (int): Number of pixels in the downsampled image.
+        image_size (int): Size of image in pixels.
+        down_sampled_size (int): Size of downsampled image in pixels.
 
     Returns:
         down_sampled (torch.Tensor): Downsampled image.
     """
 
-    def __init__(self, image_size, down_sampled_size):
+    def __init__(self, image_size: int, down_sampled_size: int) -> None:
         self._image_size = image_size
         self._n_pixels = (image_size - down_sampled_size) // 2
 
-    def __call__(self, image):
+    def __call__(self, image: torch.Tensor) -> torch.Tensor:
+        """Downsample an image by removing the outer frequencies.
+
+        Args:
+            image (torch.Tensor): Image of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+
+        Returns:
+            down_sampled (torch.Tensor): Downsampled image.
+        """
+
         down_sampled = fourier_down_sample(
             image, image_size=self._image_size, n_pixels=self._n_pixels
         )
@@ -113,7 +134,8 @@ class FourierDownSample:
 
 
 class LowPassFilter:
-    """Low pass filter an image by removing the outer frequencies.
+    """
+    Low pass filter an image by removing the outer frequencies.
 
     Args:
         image_size (int): Side length of the image in pixels.
@@ -122,11 +144,20 @@ class LowPassFilter:
     Returns:
         reconstructed (torch.Tensor): Low pass filtered image.
     """
-
-    def __init__(self, image_size, frequency_cutoff):
+    
+    def __init__(self, image_size: int, frequency_cutoff: int):
         self.mask = circular_mask(image_size, frequency_cutoff, inside=False)
 
-    def __call__(self, image):
+    def __call__(self, image: torch.Tensor) -> torch.Tensor:
+        """
+        Low pass filter an image by removing the outer frequencies.
+
+        Args:
+            image (torch.Tensor): Image of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+
+        Returns:
+            reconstructed (torch.Tensor): Low pass filtered image.
+        """
         fft_image = torch.fft.fft2(image)
         fft_image = torch.fft.fftshift(fft_image)
 
@@ -143,7 +174,8 @@ class LowPassFilter:
 
 
 class NormalizeIndividual:
-    """Normalize an image by subtracting the mean and dividing by the standard deviation.
+    """
+    Normalize an image by subtracting the mean and dividing by the standard deviation.
 
     Args:
         images (torch.Tensor): Image of shape (n_channels, n_pixels, n_pixels).
@@ -156,6 +188,15 @@ class NormalizeIndividual:
         pass
 
     def __call__(self, images):
+        """
+        Normalize an image by subtracting the mean and dividing by the standard deviation.
+
+        Args:
+            images (torch.Tensor): Image of shape (n_channels, n_pixels, n_pixels).
+
+        Returns:
+            normalized (torch.Tensor): Normalized image.
+        """
         if len(images.shape) == 2:
             mean = images.mean()
             std = images.std()
@@ -165,6 +206,7 @@ class NormalizeIndividual:
             std = images.std(dim=[1, 2])
         else:
             raise NotImplementedError
+        
         return transforms.functional.normalize(images, mean=mean, std=std)
 
 
@@ -186,7 +228,8 @@ def mrc_to_tensor(image_path):
 
 
 class MRCtoTensor:
-    """Convert an MRC file to a tensor.
+    """
+    Convert an MRC file to a tensor.
 
     Args:
         image_path (str): Path to the MRC file.
@@ -198,27 +241,49 @@ class MRCtoTensor:
     def __init__(self) -> None:
         pass
 
-    def __call__(self, image_path):
-        assert isinstance(image_path, str), "image path needs to be a string"
+    def __call__(self, image_path: str) -> torch.Tensor:
+        """
+        Convert an MRC file to a tensor.
+
+        Args:
+            image_path (str): Path to the MRC file.
+
+        Returns:
+            image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+        """
+
+        assert isinstance(image_path, str), "image_path should be a string"
         with mrcfile.open(image_path) as mrc:
             image = mrc.data
         return torch.from_numpy(image)
 
 
 class WhitenImage:
-    """Whiten an image by dividing by the noise PSD.
+    """
+    Whiten an image by dividing by the noise PSD.
 
     Args:
         noise_psd (torch.Tensor): Noise PSD of shape (n_pixels, n_pixels).
+            Square root of the noise PSD is used to whiten the image.
 
     Returns:
         reconstructed (torch.Tensor): Whiten image.
     """
-
-    def __init__(self, noise_psd):
+  
+    def __init__(self, noise_psd: torch.Tensor) -> None:
         self.noise_psd = noise_psd
 
-    def __call__(self, image):
+    def __call__(self, image: torch.Tensor) -> torch.Tensor:
+        """
+        Whiten an image by dividing by the noise PSD.
+
+        Args:
+            image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+
+        Returns:
+            reconstructed (torch.Tensor): Whiten image.
+        """
+        
         fft_image = torch.fft.fft2(image)
         fft_image = fft_image / torch.sqrt(self.noise_psd)
         reconstructed = torch.fft.ifft2(fft_image).real
