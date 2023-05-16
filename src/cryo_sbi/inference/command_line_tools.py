@@ -4,6 +4,7 @@ from cryo_sbi.inference.train_npe_model import (
     npe_train_from_vram,
     npe_train_from_disk,
 )
+from cryo_sbi.inference.generate_training_set import gen_training_set
 
 
 def cl_npe_train_no_saving():
@@ -153,4 +154,45 @@ def cl_npe_train_from_disk():
         state_dict_file=args.state_dict_file,
         device=args.train_device,
         saving_freq=args.saving_freq,
+    )
+
+
+def cl_generate_training_data():
+    cl_parser = argparse.ArgumentParser()
+
+    cl_parser.add_argument("--config_file", action="store", type=str, required=True)
+
+    cl_parser.add_argument(
+        "--num_train_samples", action="store", type=int, required=True
+    )
+
+    cl_parser.add_argument("--num_val_samples", action="store", type=int, required=True)
+
+    cl_parser.add_argument("--file_name", action="store", type=str, required=True)
+
+    cl_parser.add_argument(
+        "--save_as_tensor",
+        action="store",
+        type=bool,
+        nargs="?",
+        required=False,
+        const=True,
+        default=False,
+    )
+
+    cl_parser.add_argument("--n_workers", action="store", type=int, required=True)
+
+    cl_parser.add_argument(
+        "--batch_size", action="store", type=int, required=False, default=1000
+    )
+
+    args = cl_parser.parse_args()
+    gen_training_set(
+        args.config_file,
+        args.num_train_samples,
+        args.num_val_samples,
+        args.file_name,
+        args.save_as_tensor,
+        args.n_workers,
+        args.batch_size,
     )

@@ -9,28 +9,31 @@ from cryo_sbi import CryoEmSimulator
 
 
 def gen_training_set(
-    config_file,
-    num_train_samples,
-    num_val_samples,
-    file_name,
-    save_as_tensor,
-    n_workers,
-    batch_size,
+    config_file: str,
+    num_train_samples: int,
+    num_val_samples: int,
+    file_name: str,
+    save_as_tensor: bool,
+    n_workers: int,
+    batch_size: int,
 ):
-    """Generate training set with cryo-EM simulator.
+    """
+    Generate training set for the NPE.
+    Saves the training set as a tensor or as a h5 file.
 
     Args:
-        config_file (str): Path to the config file.
-        num_train_samples (int): Number of training samples.
-        num_val_samples (int): Number of validation samples.
-        file_name (str): Name of the file to save the training set.
-        save_as_tensor (bool): Whether to save the training set as a torch.tensor.
-        n_workers (int): Number of workers to use.
-        batch_size (int): Batch size.
+        config_file (str): path to the config file
+        num_train_samples (int): number of training samples
+        num_val_samples (int): number of validation samples
+        file_name (str): name of the file to save the training set
+        save_as_tensor (bool): save as tensor or as h5 file
+        n_workers (int): number of workers for data generation
+        batch_size (int): batch size for data generation
 
     Returns:
         None
     """
+
     cryo_simulator = CryoEmSimulator(config_file)
 
     loader = JointLoader(
