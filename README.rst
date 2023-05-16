@@ -39,26 +39,31 @@ Download this repository
 
 Install the module
 ~~~~~~~~~~~~~~~~~~
-::
+.. code:: bash
+
     python3 -m pip install .
 
 Using the code
-==============
+--------------
 
 Generating data from command line
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: bash
 
-    python3 -m cryo_sbi.generate_training_set --config_file experiments/benchmark_hsp90/image_params_snr01_128.json --num_train_samples 10 --num_val_samples 10 --file_name "test1" --n_workers 24
+    generate_training_data 
+        --config_file experiments/benchmark_hsp90/image_params_snr01_128.json \
+        --num_train_samples 10 \
+        --num_val_samples 10 \
+        --file_name "test1" \
+        --n_workers 24
 
 
 Train posterior from command line
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. code:: bash
 
-    python3 -m cryo_sbi.inference.NPE_train_without_saving \
+    train_npe_model \
         --image_config_file experiments/benchmark_hsp90/image_params_training.json \
         --train_config_file experiments/benchmark_hsp90/resnet18_encoder.json\
         --epochs 100 \
