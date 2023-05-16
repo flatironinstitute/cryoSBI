@@ -11,22 +11,14 @@ authors = [
    { name = "Pilar Cossio"},
    { name = "Roberto Covino"}
 ]
-#description = "My package description"
-#readme = "README.rst"
-#requires-python = ">=3.7"
-#keywords = ["one", "two"]
-#license = {text = "BSD-3-Clause"}
-#classifiers = [
-#    "Framework :: Django",
-#    "Programming Language :: Python :: 3",
-#]
+
 
 version = "0.2"
 dependencies = [
     "lampe",
     "zuko",
     "torch",
-    "numpy",
+    "numpy", 
     "matplotlib",
     "scipy",
     "torchvision",
@@ -34,3 +26,8 @@ dependencies = [
 ]
 
 
+[project.scripts]
+train_npe_model = "cryo_sbi.inference.command_line_tools:cl_npe_train_no_saving"
+train_npe_model_vram = "cryo_sbi.inference.command_line_tools:cl_npe_train_from_vram"
+train_npe_model_disk = "cryo_sbi.inference.command_line_tools:cl_npe_train_from_disk"
+generate_training_data = "cryo_sbi.inference.command_line_tools:cl_generate_training_data"
