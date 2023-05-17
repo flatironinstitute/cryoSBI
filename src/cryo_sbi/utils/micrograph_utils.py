@@ -74,25 +74,27 @@ class RandomMicrographPatches:
 
 
 def compute_average_psd(
-    images: Union[torch.Tensor, RandomMicrographPatches]
+    images: Union[torch.Tensor, RandomMicrographPatches],
+    device: str = "cpu",
 ) -> torch.Tensor:
     """
     Compute the average PSD of a set of images.
 
     Args:
         images (Union[torch.Tensor, RandomMicrographPatches]): Images to compute the average PSD of.
+        device (str, optional): Device to compute the PSD on. Defaults to "cpu".
 
     Returns:
         avg_psd (torch.Tensor): Average PSD of the images.
     """
 
     if isinstance(images, RandomMicrographPatches):
-        avg_psd = torch.zeros(images.shape[1:])
+        avg_psd = torch.zeros(images.shape[1:], device=device)
         for image in images:
-            fft_image = torch.fft.fft2(image[0])
+            fft_image = torch.fft.fft2(image[0].to(device, non_blocking=True))
             psd = torch.abs(fft_image) ** 2
             avg_psd += psd / len(images)
     elif isinstance(images, torch.Tensor):
-        fft_images = torch.fft.fft2(images, dim=(-2, -1))
+        fft_images = torch.fft.fft2(images.to(device=device), dim=(-2, -1))
         avg_psd = torch.mean(torch.abs(fft_images) ** 2, dim=0)
-    return avg_psd
+    return avg_psd.cpu()

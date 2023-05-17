@@ -53,7 +53,7 @@ def cl_npe_train_no_saving():
         model_state_dict=args.state_dict_file,
         n_workers=args.n_workers,
         device=args.train_device,
-        saving_freq=args.saving_freq,
+        saving_frequency=args.saving_freq,
     )
 
 
@@ -101,7 +101,7 @@ def cl_npe_train_from_vram():
         train_from_checkpoint=args.train_from_checkpoint,
         state_dict_file=args.state_dict_file,
         device=args.train_device,
-        saving_freq=args.saving_freq,
+        saving_frequency=args.saving_freq,
     )
 
 
@@ -153,7 +153,7 @@ def cl_npe_train_from_disk():
         train_from_checkpoint=args.train_from_checkpoint,
         state_dict_file=args.state_dict_file,
         device=args.train_device,
-        saving_freq=args.saving_freq,
+        saving_frequency=args.saving_freq,
     )
 
 
