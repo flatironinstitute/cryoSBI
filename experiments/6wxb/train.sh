@@ -9,7 +9,7 @@ train_npe_model \
     --state_dict_file 6wxb/posterior_6wxb.estimator \
     --train_from_checkpoint \
     --state_dict_file 6wxb/posterior_6wxb.estimator \
-    --train_device cudaa
+    --train_device cuda
 
 train_npe_model \
     --image_config_file 6wxb/image_params_torsion_training.json \
