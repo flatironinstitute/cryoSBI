@@ -36,6 +36,7 @@ def load_model(
         print(f"Loading model parameters from {model_state_dict}")
         estimator.load_state_dict(torch.load(model_state_dict))
     estimator.to(device=device)
+    return estimator
 
 
 def npe_train_no_saving(
@@ -78,6 +79,8 @@ def npe_train_no_saving(
     estimator = load_model(
         train_config, model_state_dict, device, train_from_checkpoint
     )
+
+    train_config = json.load(open(train_config))
 
     loader = JointLoader(
         get_uniform_prior_1d(cryo_simulator.max_index),
@@ -159,6 +162,8 @@ def npe_train_from_vram(
     estimator = load_model(
         train_config, model_state_dict, device, train_from_checkpoint
     )
+
+    train_config = json.load(open(train_config))
 
     trainset = TensorDataset(
         torch.load(
@@ -257,6 +262,8 @@ def npe_train_from_disk(
     estimator = load_model(
         train_config, model_state_dict, device, train_from_checkpoint
     )
+
+    train_config = json.load(open(train_config))
 
     trainset = H5Dataset(
         train_data_dir,
