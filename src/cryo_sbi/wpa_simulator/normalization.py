@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-
+@torch.jit.script
 def gaussian_normalize_image(image: torch.Tensor) -> torch.Tensor:
     """
     Normalize an image by subtracting the mean and dividing by the standard deviation.
