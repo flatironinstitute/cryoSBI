@@ -1,6 +1,7 @@
 from typing import Union
 import numpy as np
 import torch
+from cryo_sbi.wpa_simulator.implicit_water import add_noise_field
 
 
 def circular_mask(n_pixels: int, radius: int) -> torch.Tensor:
@@ -167,3 +168,20 @@ def add_gradient_snr(
 
     image_noise = image + noise
     return image_noise
+
+
+def correlated_gaussian_noise(image: torch.Tensor, image_params: dict) -> torch.Tensor:
+    """
+    Adds correlated gaussian noise to image.
+    
+    Args:
+        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+        image_params (dict): Dictionary with image parameters.
+    
+    Returns:
+        image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+    """
+
+    image = add_noise(image, image_params)
+    image = add_noise_field(image, image_params)
+    return image
