@@ -1,7 +1,5 @@
 import numpy as np
 import torch
-from torch.nn.functional import pad
-from torch.nn import ConstantPad2d
 
 
 def pad_image(image: torch.Tensor, image_params: dict) -> torch.Tensor:
@@ -18,7 +16,8 @@ def pad_image(image: torch.Tensor, image_params: dict) -> torch.Tensor:
     """
 
     pad_width = int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1
-    padder = ConstantPad2d(pad_width, 0.0)
-    padded_image = padder(image)
+    padded_image = torch.nn.functional.pad(
+        image, 4 * [pad_width], mode="constant", value=0.0
+    )
 
     return padded_image
