@@ -26,10 +26,7 @@ def gen_quat() -> np.ndarray:
 
 @torch.jit.script
 def project_density(
-    coord: torch.Tensor,
-    sigma: float,
-    num_pxels: int,
-    pixel_size: float
+    coord: torch.Tensor, sigma: float, num_pxels: int, pixel_size: float
 ) -> torch.Tensor:
     """
     Generate a 2D projection from a set of coordinates.
