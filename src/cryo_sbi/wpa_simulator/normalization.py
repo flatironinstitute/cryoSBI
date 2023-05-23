@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+
 @torch.jit.script
 def gaussian_normalize_image(image: torch.Tensor) -> torch.Tensor:
     """
