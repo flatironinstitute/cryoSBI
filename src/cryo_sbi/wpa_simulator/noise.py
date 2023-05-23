@@ -4,6 +4,7 @@ import torch
 from cryo_sbi.wpa_simulator.implicit_water import add_noise_field
 
 
+@torch.jit.script
 def circular_mask(n_pixels: int, radius: int) -> torch.Tensor:
     """
     Creates a circular mask of radius RADIUS_MASK centered in the image
