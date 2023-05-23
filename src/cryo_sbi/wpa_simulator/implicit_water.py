@@ -50,9 +50,15 @@ def gen_noise_field(image_params: dict, num_sin_func: int = 50) -> torch.Tensor:
         torch.Tensor: Noise field.
     """
 
+    # Attention look into def pad_image function to know the image size after padding
+    image_size = (
+        2 * (int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1)
+        + image_params["N_PIXELS"]
+    )
+
     noise_field = generate_noise_field(
         pixel_size=image_params["PIXEL_SIZE"],
-        num_pixels=image_params["N_PIXELS"],
+        num_pixels=image_size,
         sigma=0.1,
         num_sin_func=num_sin_func,
     )

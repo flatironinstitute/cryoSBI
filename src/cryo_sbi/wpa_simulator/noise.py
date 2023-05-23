@@ -171,7 +171,9 @@ def add_gradient_snr(
     return image_noise
 
 
-def correlated_gaussian_noise(image: torch.Tensor, image_params: dict) -> torch.Tensor:
+def correlated_gaussian_noise(
+    image: torch.Tensor, image_params: dict, seed: Union[None, int] = None
+) -> torch.Tensor:
     """
     Adds correlated gaussian noise to image.
 
@@ -183,7 +185,7 @@ def correlated_gaussian_noise(image: torch.Tensor, image_params: dict) -> torch.
         image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels).
     """
 
-    image = add_noise(image, image_params)
+    image = add_noise(image, image_params, seed=seed)
     image = add_noise_field(image, image_params)
 
     return image
