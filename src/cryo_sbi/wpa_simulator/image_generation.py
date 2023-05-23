@@ -24,8 +24,46 @@ def gen_quat() -> np.ndarray:
     return quat
 
 
+@torch.jit.script
+def project_density(
+    coord: torch.Tensor,
+    sigma: float,
+    num_pxels: int,
+    pixel_size: float
+) -> torch.Tensor:
+    """
+    Generate a 2D projection from a set of coordinates.
+
+    Args:
+        coord (torch.Tensor): Coordinates of the atoms in the image
+        sigma (float): Standard deviation of the Gaussian function used to model electron density.
+        num_pxels (int): Number of pixels along one image size.
+        pixel_size (float): Pixel size in Angstrom
+
+    Returns:
+        image (torch.Tensor): Image generated from the coordinates
+    """
+
+    num_atoms = coord.shape[1]
+    norm = 1 / (2 * torch.pi * sigma**2 * num_atoms)
+
+    grid_min = -pixel_size * (num_pxels - 1) * 0.5
+    grid_max = pixel_size * (num_pxels - 1) * 0.5 + pixel_size
+
+    grid = torch.arange(grid_min, grid_max, pixel_size)
+
+    gauss_x = torch.exp_(-0.5 * (((grid[:, None] - coord[0, :]) / sigma) ** 2))
+
+    gauss_y = torch.exp_(-0.5 * (((grid[:, None] - coord[1, :]) / sigma) ** 2))
+
+    image = torch.matmul(gauss_x, gauss_y.T) * norm
+
+    return image
+
+
 def gen_img(coord: np.ndarray, image_params: dict) -> torch.Tensor:
-    """Generate an image from a set of coordinates.
+    """
+    Generate an image from a set of coordinates.
 
     Args:
         coord (np.ndarray): Coordinates of the atoms in the image
@@ -38,8 +76,6 @@ def gen_img(coord: np.ndarray, image_params: dict) -> torch.Tensor:
     Returns:
         image (torch.Tensor): Image generated from the coordinates
     """
-
-    n_atoms = coord.shape[1]
 
     if isinstance(image_params["SIGMA"], float):
         atom_sigma = image_params["SIGMA"]
@@ -54,20 +90,11 @@ def gen_img(coord: np.ndarray, image_params: dict) -> torch.Tensor:
             "SIGMA should be a single value or a list of [min_sigma, max_sigma]"
         )
 
-    norm = 1 / (2 * torch.pi * atom_sigma**2 * n_atoms)
-
-    grid_min = -image_params["PIXEL_SIZE"] * (image_params["N_PIXELS"] - 1) * 0.5
-    grid_max = (
-        image_params["PIXEL_SIZE"] * (image_params["N_PIXELS"] - 1) * 0.5
-        + image_params["PIXEL_SIZE"]
+    image = project_density(
+        torch.from_numpy(coord),
+        atom_sigma,
+        image_params["N_PIXELS"],
+        image_params["PIXEL_SIZE"],
     )
-
-    grid = torch.arange(grid_min, grid_max, image_params["PIXEL_SIZE"])
-
-    gauss_x = torch.exp(-0.5 * (((grid[:, None] - coord[0, :]) / atom_sigma) ** 2))
-
-    gauss_y = torch.exp(-0.5 * (((grid[:, None] - coord[1, :]) / atom_sigma) ** 2))
-
-    image = torch.matmul(gauss_x, gauss_y.T) * norm
 
     return image
