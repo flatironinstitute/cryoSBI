@@ -50,6 +50,7 @@ def npe_train_no_saving(
     n_workers: int = 1,
     device: str = "cpu",
     saving_frequency: int = 20,
+    **simulator_kwargs,
 ) -> None:
     """
     Train NPE model by simulating training data on the fly.
@@ -74,7 +75,7 @@ def npe_train_no_saving(
         None
     """
 
-    cryo_simulator = CryoEmSimulator(image_config)
+    cryo_simulator = CryoEmSimulator(image_config, **simulator_kwargs)
 
     estimator = load_model(
         train_config, model_state_dict, device, train_from_checkpoint
