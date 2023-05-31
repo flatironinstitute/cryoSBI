@@ -107,9 +107,6 @@ class FourierDownSample:
     Args:
         image_size (int): Size of image in pixels.
         down_sampled_size (int): Size of downsampled image in pixels.
-
-    Returns:
-        down_sampled (torch.Tensor): Downsampled image.
     """
 
     def __init__(self, image_size: int, down_sampled_size: int) -> None:
@@ -140,9 +137,6 @@ class LowPassFilter:
     Args:
         image_size (int): Side length of the image in pixels.
         frequency_cutoff (int): Frequency cutoff.
-
-    Returns:
-        reconstructed (torch.Tensor): Low pass filtered image.
     """
 
     def __init__(self, image_size: int, frequency_cutoff: int):
@@ -176,12 +170,6 @@ class LowPassFilter:
 class NormalizeIndividual:
     """
     Normalize an image by subtracting the mean and dividing by the standard deviation.
-
-    Args:
-        images (torch.Tensor): Image of shape (n_channels, n_pixels, n_pixels).
-
-    Returns:
-        normalized (torch.Tensor): Normalized image.
     """
 
     def __init__(self) -> None:
@@ -230,12 +218,6 @@ def mrc_to_tensor(image_path):
 class MRCtoTensor:
     """
     Convert an MRC file to a tensor.
-
-    Args:
-        image_path (str): Path to the MRC file.
-
-    Returns:
-        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
     """
 
     def __init__(self) -> None:
@@ -261,10 +243,6 @@ class WhitenImage:
 
     Args:
         noise_psd (torch.Tensor): Noise PSD of shape (n_pixels, n_pixels).
-            Square root of the noise PSD is used to whiten the image.
-
-    Returns:
-        reconstructed (torch.Tensor): Whiten image.
     """
 
     def __init__(self, noise_psd: torch.Tensor) -> None:
