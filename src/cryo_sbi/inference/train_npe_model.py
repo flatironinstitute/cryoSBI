@@ -105,9 +105,9 @@ def npe_train_no_saving(
                 NormalizeIndividual(),
             ]
         )
-    else: # Refactor this so weird lambda is not needed
+    else:  # Refactor this so weird lambda is not needed
         whitening_transform = lambda x: x
-    
+
     loss = NPELoss(estimator)
     optimizer = optim.AdamW(estimator.parameters(), lr=train_config["LEARNING_RATE"])
     step = GDStep(optimizer, clip=train_config["CLIP_GRADIENT"])
