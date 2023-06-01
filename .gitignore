@@ -4,6 +4,7 @@ tests/test_simulator.ipynb
 *.estimator
 *.h5
 .vscode/
+.DS_Store
 #SBI related folders
 sbi-logs/
 *.png
