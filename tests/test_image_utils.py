@@ -89,3 +89,10 @@ def test_image_whithening():
     images = torch.randn((100, 100))
     images_whitened = whitening_transform(images)
     assert images_whitened.shape == (100, 100)
+
+
+def test_image_whithening_batched():
+    whitening_transform = iu.WhitenImage(torch.randn((100, 100)))
+    images = torch.randn((10, 100, 100))
+    images_whitened = whitening_transform(images)
+    assert images_whitened.shape == (10, 100, 100)

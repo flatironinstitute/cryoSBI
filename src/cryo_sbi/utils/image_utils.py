@@ -258,8 +258,12 @@ class WhitenImage:
         Returns:
             reconstructed (torch.Tensor): Whiten image.
         """
-
+        
         fft_image = torch.fft.fft2(image)
-        fft_image = fft_image / torch.sqrt(self._noise_psd)
+        if image.ndim == 3:
+            fft_image = fft_image / torch.sqrt(self._noise_psd.unsqueeze(0))
+        elif image.ndim == 2:
+            fft_image = fft_image / torch.sqrt(self._noise_psd)
         reconstructed = torch.fft.ifft2(fft_image).real
+
         return reconstructed

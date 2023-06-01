@@ -3,6 +3,7 @@ import json
 import torch
 import torch.optim as optim
 from torch.utils.data import TensorDataset
+from torchvision import transforms
 from tqdm import tqdm
 from lampe.data import JointLoader, H5Dataset
 from lampe.inference import NPELoss
@@ -13,6 +14,7 @@ from cryo_sbi.inference.priors import get_uniform_prior_1d
 from cryo_sbi.inference.models.build_models import build_npe_flow_model
 from cryo_sbi.inference.validate_train_config import check_train_params
 from cryo_sbi import CryoEmSimulator
+from cryo_sbi.utils.image_utils import WhitenImage, NormalizeIndividual
 
 
 def load_model(
@@ -50,6 +52,7 @@ def npe_train_no_saving(
     n_workers: int = 1,
     device: str = "cpu",
     saving_frequency: int = 20,
+    whiten_filter: Union[None, str] = None,
     **simulator_kwargs,
 ) -> None:
     """
@@ -67,6 +70,7 @@ def npe_train_no_saving(
         n_workers (int, optional): number of workers. Defaults to 1.
         device (str, optional): training device. Defaults to "cpu".
         saving_frequency (int, optional): frequency of saving model. Defaults to 20.
+        whiten_filter (Union[None, str], optional): path to whiten filter. Defaults to None.
 
     Raises:
         Warning: No model state dict specified! --model_state_dict is empty
@@ -93,6 +97,17 @@ def npe_train_no_saving(
         prefetch_factor=1,
     )
 
+    if isinstance(whiten_filter, str):
+        whiten_filter = torch.load(whiten_filter).to(device=device)
+        whitening_transform = transforms.Compose(
+            [
+                WhitenImage(whiten_filter),
+                NormalizeIndividual(),
+            ]
+        )
+    else: # Refactor this so weird lambda is not needed
+        whitening_transform = lambda x: x
+    
     loss = NPELoss(estimator)
     optimizer = optim.AdamW(estimator.parameters(), lr=train_config["LEARNING_RATE"])
     step = GDStep(optimizer, clip=train_config["CLIP_GRADIENT"])
@@ -107,7 +122,7 @@ def npe_train_no_saving(
                     step(
                         loss(
                             theta.to(device=device, non_blocking=True),
-                            x.to(device=device, non_blocking=True),
+                            whitening_transform(x.to(device=device, non_blocking=True)),
                         )
                     )
                     for theta, x in islice(loader, 1000)
