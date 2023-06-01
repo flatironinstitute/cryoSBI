@@ -27,6 +27,7 @@ def calc_ctf(image_params: dict) -> torch.Tensor:
 
     freq_pix_1d = torch.fft.fftfreq(image_size, d=image_params["PIXEL_SIZE"])
 
+    # Get phase shift from dictionary
     if isinstance(image_params["DEFOCUS"], float):
         phase = image_params["DEFOCUS"] * np.pi * 2.0 * 10000 * image_params["ELECWAVE"]
 
@@ -42,13 +43,27 @@ def calc_ctf(image_params: dict) -> torch.Tensor:
         raise ValueError(
             "Defocus should be a single float value or a list of [min_defocus, max_defocus]"
         )
+    
+    # Get B-factor from dictionary
+    if isinstance(image_params["B_FACTOR"], float):
+        b_factor = image_params["B_FACTOR"]
+    elif (
+        isinstance(image_params["B_FACTOR"], list) and len(image_params["B_FACTOR"]) == 2
+    ):
+        b_factor = np.random.uniform(
+            low=image_params["B_FACTOR"][0], high=image_params["B_FACTOR"][1]
+        )
+    else:
+        raise ValueError(
+            "B-factor should be a single float value or a list of [min_b_factor, max_b_factor]"
+        )
 
     x, y = torch.meshgrid(freq_pix_1d, freq_pix_1d, indexing="ij")
 
     freq2_2d = x**2 + y**2
     imag = torch.zeros_like(freq2_2d) * 1j
 
-    env = torch.exp(-image_params["B_FACTOR"] * freq2_2d * 0.5)
+    env = torch.exp(-b_factor * freq2_2d * 0.5)
     ctf = (
         -image_params["AMP"] * torch.cos(phase * freq2_2d * 0.5)
         - np.sqrt(1 - image_params["AMP"] ** 2) * torch.sin(phase * freq2_2d * 0.5)
