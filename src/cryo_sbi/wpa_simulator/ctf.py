@@ -43,12 +43,13 @@ def calc_ctf(image_params: dict) -> torch.Tensor:
         raise ValueError(
             "Defocus should be a single float value or a list of [min_defocus, max_defocus]"
         )
-    
+
     # Get B-factor from dictionary
     if isinstance(image_params["B_FACTOR"], float):
         b_factor = image_params["B_FACTOR"]
     elif (
-        isinstance(image_params["B_FACTOR"], list) and len(image_params["B_FACTOR"]) == 2
+        isinstance(image_params["B_FACTOR"], list)
+        and len(image_params["B_FACTOR"]) == 2
     ):
         b_factor = np.random.uniform(
             low=image_params["B_FACTOR"][0], high=image_params["B_FACTOR"][1]
