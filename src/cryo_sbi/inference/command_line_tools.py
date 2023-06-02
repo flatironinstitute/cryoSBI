@@ -40,6 +40,9 @@ def cl_npe_train_no_saving():
     cl_parser.add_argument(
         "--saving_freq", action="store", type=int, required=False, default=20
     )
+    cl_parser.add_argument(
+        "--whitening_filter", action="store", type=str, required=False, default=None
+    )
 
     args = cl_parser.parse_args()
 
@@ -54,6 +57,7 @@ def cl_npe_train_no_saving():
         n_workers=args.n_workers,
         device=args.train_device,
         saving_frequency=args.saving_freq,
+        whitening_filter=args.whitening_filter,
     )
 
 

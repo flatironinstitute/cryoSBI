@@ -52,7 +52,7 @@ def npe_train_no_saving(
     n_workers: int = 1,
     device: str = "cpu",
     saving_frequency: int = 20,
-    whiten_filter: Union[None, str] = None,
+    whitening_filter: Union[None, str] = None,
     **simulator_kwargs,
 ) -> None:
     """
@@ -97,11 +97,11 @@ def npe_train_no_saving(
         prefetch_factor=1,
     )
 
-    if isinstance(whiten_filter, str):
-        whiten_filter = torch.load(whiten_filter).to(device=device)
+    if isinstance(whitening_filter, str):
+        whitening_filter = torch.load(whitening_filter).to(device=device)
         whitening_transform = transforms.Compose(
             [
-                WhitenImage(whiten_filter),
+                WhitenImage(whitening_filter),
                 NormalizeIndividual(),
             ]
         )
