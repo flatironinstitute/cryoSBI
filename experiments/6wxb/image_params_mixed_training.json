@@ -8,9 +8,9 @@
     "CTF": true,
     "NOISE": true,
     "DEFOCUS": [0.5, 5.0],
-    "SNR": [0.01, 0.1],
+    "SNR": [0.001, 0.1],
     "RADIUS_MASK": 100,
     "AMP": 0.1,
-    "B_FACTOR": [1, 1000],
+    "B_FACTOR": [1.0, 1000.0],
     "ELECWAVE": 0.019866
 }

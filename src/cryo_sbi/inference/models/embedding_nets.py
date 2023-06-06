@@ -140,7 +140,7 @@ class EfficientNet_Encoder(nn.Module):
         return x
 
 
-@add_embedding("SWINS")
+@add_embedding("SWINS_FFT_FILTER")
 class SwinTransformerS_Encoder(nn.Module):
     def __init__(self, output_dimension: int):
         super(SwinTransformerS_Encoder, self).__init__()
@@ -152,8 +152,12 @@ class SwinTransformerS_Encoder(nn.Module):
         self.swin_transformer.head = nn.Linear(
             in_features=768, out_features=output_dimension, bias=True
         )
+        self._fft_filter = LowPassFilter(128, 25)
 
     def forward(self, x):
+        # Low pass filter images
+        x = self._fft_filter(x)
+        # Proceed as normal
         x = x.unsqueeze(1)
         x = self.swin_transformer(x)
         return x
