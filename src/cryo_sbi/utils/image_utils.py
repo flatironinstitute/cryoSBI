@@ -1,3 +1,4 @@
+import math
 import torch
 import torchvision.transforms as transforms
 import torch.distributions as d
@@ -267,3 +268,39 @@ class WhitenImage:
         reconstructed = torch.fft.ifft2(fft_image).real
 
         return reconstructed
+    
+
+class MRCdataset():
+    """
+    Creates a dataset of MRC files. 
+    Each MRC file is converted to a tensor and has a unique index.
+    
+    Args:
+        image_paths (list[str]): List of paths to MRC files.
+    """
+    
+    def __init__(self, image_paths: list[str]):
+        super().__init__()
+        self.paths = image_paths
+        self.num_paths = len(image_paths)
+
+    def __len__(self):
+        return self.num_paths
+
+    def __getitem__(self, idx):
+        return idx, mrc_to_tensor(self.paths[idx])
+    
+
+class MRCloader(torch.utils.data.DataLoader):
+    """
+    Creates a dataloader of MRC files.
+
+    Args:
+        image_paths (list[str]): List of paths to MRC files.
+        **kwargs: Keyword arguments passed to torch.utils.data.DataLoader.
+    """
+
+    def __init__(self, image_paths: list[str], **kwargs):
+        super().__init__(
+            MRCdataset(image_paths), batch_size=None, **kwargs
+        )
