@@ -1,4 +1,5 @@
 import math
+from typing import List
 import torch
 import torchvision.transforms as transforms
 import torch.distributions as d
@@ -176,7 +177,7 @@ class NormalizeIndividual:
     def __init__(self) -> None:
         pass
 
-    def __call__(self, images):
+    def __call__(self, images: torch.Tensor) -> torch.Tensor:
         """
         Normalize an image by subtracting the mean and dividing by the standard deviation.
 
@@ -199,7 +200,7 @@ class NormalizeIndividual:
         return transforms.functional.normalize(images, mean=mean, std=std)
 
 
-def mrc_to_tensor(image_path):
+def mrc_to_tensor(image_path: str) -> torch.Tensor:
     """
     Convert an MRC file to a tensor.
 
@@ -268,18 +269,18 @@ class WhitenImage:
         reconstructed = torch.fft.ifft2(fft_image).real
 
         return reconstructed
-    
 
-class MRCdataset():
+
+class MRCdataset:
     """
-    Creates a dataset of MRC files. 
+    Creates a dataset of MRC files.
     Each MRC file is converted to a tensor and has a unique index.
-    
+
     Args:
         image_paths (list[str]): List of paths to MRC files.
     """
-    
-    def __init__(self, image_paths: list[str]):
+
+    def __init__(self, image_paths: List[str]):
         super().__init__()
         self.paths = image_paths
         self.num_paths = len(image_paths)
@@ -289,7 +290,7 @@ class MRCdataset():
 
     def __getitem__(self, idx):
         return idx, mrc_to_tensor(self.paths[idx])
-    
+
 
 class MRCloader(torch.utils.data.DataLoader):
     """
@@ -300,7 +301,5 @@ class MRCloader(torch.utils.data.DataLoader):
         **kwargs: Keyword arguments passed to torch.utils.data.DataLoader.
     """
 
-    def __init__(self, image_paths: list[str], **kwargs):
-        super().__init__(
-            MRCdataset(image_paths), batch_size=None, **kwargs
-        )
+    def __init__(self, image_paths: List[str], **kwargs):
+        super().__init__(MRCdataset(image_paths), batch_size=None, **kwargs)

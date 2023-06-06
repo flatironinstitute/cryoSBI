@@ -90,7 +90,7 @@ def compute_average_psd(
 
     if isinstance(images, RandomMicrographPatches):
         avg_psd = torch.zeros(images.shape[1:], device=device)
-        for image in images: # TODO add progress bar with tqdm
+        for image in images:  # TODO add progress bar with tqdm
             fft_image = torch.fft.fft2(image[0].to(device, non_blocking=True))
             psd = torch.abs(fft_image) ** 2
             avg_psd += psd / len(images)
