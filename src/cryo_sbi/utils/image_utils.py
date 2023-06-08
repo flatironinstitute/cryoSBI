@@ -1,9 +1,11 @@
 import math
-from typing import List
+from typing import List, Union
+import numpy as np
 import torch
 import torchvision.transforms as transforms
 import torch.distributions as d
 import mrcfile
+from tqdm import tqdm
 
 
 def circular_mask(n_pixels: int, radius: int, inside: bool = True) -> torch.Tensor:
@@ -278,18 +280,65 @@ class MRCdataset:
 
     Args:
         image_paths (list[str]): List of paths to MRC files.
+
+    Methods:
+        build_index_map: Builds a map of indices to file paths and file indices.
+        getitem: Returns a at the given global index.
+        __getitem__: Returns tensor of the MRC file at the given index.
     """
 
     def __init__(self, image_paths: List[str]):
         super().__init__()
         self.paths = image_paths
-        self.num_paths = len(image_paths)
+        self._num_paths = len(image_paths)
+        self._index_map = None
 
     def __len__(self):
-        return self.num_paths
+        return self._num_paths
 
     def __getitem__(self, idx):
         return idx, mrc_to_tensor(self.paths[idx])
+
+    def _extract_num_particles(self, path):
+        future_mrc = mrcfile.open_async(path)
+        mrc = future_mrc.result()
+        data_shape = mrc.data.shape
+        img_stack = mrc.is_image_stack()
+        num_images = data_shape[0] if img_stack else 1
+        return num_images
+
+    def build_index_map(self):
+        """
+        Builds a map of image indices to file paths and file indices.
+        """
+        self._path_index = []
+        self._file_index = []
+        print("Initalizing indexing...")
+        for idx, path in tqdm(enumerate(self.paths), total=self._num_paths):
+            num_images = self._extract_num_particles(path)
+            self._path_index += [idx] * num_images
+            self._file_index += list(range(num_images))
+        self._index_map = True
+
+    def get_image(self, idx: Union[int, list]):
+        """
+        Returns the image at the given global index.
+
+        Args:
+            idx (int, List): Global index of the image.
+        """
+        assert (
+            self._index_map is not None
+        ), "Index map not built. First call build_index_map()"
+        if isinstance(idx, int):
+            return mrc_to_tensor(self.paths[self._path_index[idx]])[
+                self._file_index[idx]
+            ]
+        if isinstance(idx, (list, np.ndarray, torch.Tensor)):
+            return [
+                mrc_to_tensor(self.paths[self._path_index[i]])[self._file_index[i]]
+                for i in idx
+            ]
 
 
 class MRCloader(torch.utils.data.DataLoader):
