@@ -70,6 +70,9 @@ class CryoEmSimulator:
             self.models = np.transpose(
                 np.load(self.config["MODEL_FILE"]).diagonal(), [2, 0, 1]
             )
+        else:
+            print('Loading models without template... assuming shape (models, 3, atoms)')
+            self.models = np.load(self.config["MODEL_FILE"])
         print(self.config["MODEL_FILE"])
 
     def _config_rotations(self) -> None:
