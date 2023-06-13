@@ -57,7 +57,7 @@ def add_noise(
         raise ValueError("SNR should be a single value or a list of [min_snr, max_snr]")
 
     noise_power = signal_power / np.sqrt(snr)
-    image_noise = image + torch.distributions.normal.Normal(0, noise_power).sample(
+    image_noise = image + torch.distributions.normal.Normal(0, noise_power.to(image.device)).sample(
         image.shape
     )
 

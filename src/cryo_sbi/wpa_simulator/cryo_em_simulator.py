@@ -61,18 +61,22 @@ class CryoEmSimulator:
 
         """
         if "hsp90" in self.config["MODEL_FILE"]:
-            self.models = np.load(self.config["MODEL_FILE"])[:, 0]
+            models = np.load(self.config["MODEL_FILE"])[:, 0]
 
         elif "6wxb" in self.config["MODEL_FILE"]:
-            self.models = np.load(self.config["MODEL_FILE"])
+            models = np.load(self.config["MODEL_FILE"])
 
         elif "square" in self.config["MODEL_FILE"]:
-            self.models = np.transpose(
+            models = np.transpose(
                 np.load(self.config["MODEL_FILE"]).diagonal(), [2, 0, 1]
             )
         else:
-            print('Loading models without template... assuming shape (models, 3, atoms)')
-            self.models = np.load(self.config["MODEL_FILE"])
+            print(
+                "Loading models without template... assuming shape (models, 3, atoms)"
+            )
+            models = np.load(self.config["MODEL_FILE"])
+
+        self.models = torch.from_numpy(models).to(dtype=torch.float)
         print(self.config["MODEL_FILE"])
 
     def _config_rotations(self) -> None:
@@ -105,7 +109,11 @@ class CryoEmSimulator:
         return len(self.models) - 1
 
     def _simulator_with_quat(
-        self, index: torch.Tensor, quaternion: np.ndarray, seed: Union[None, int] = None
+        self,
+        index: torch.Tensor,
+        quaternion: np.ndarray,
+        device: str = "cpu",
+        seed: Union[None, int] = None,
     ) -> torch.Tensor:
         """
         Simulates an image with a given quaternion.
@@ -119,34 +127,30 @@ class CryoEmSimulator:
             torch.Tensor: Simulated image.
         """
 
-        index = int(torch.round(index))
+        index = index.round().to(torch.int64)
 
-        coord = np.copy(self.models[index])
-
-        if quaternion is not None:
-            rot_mat = Rotation.from_quat(quaternion).as_matrix()
-            coord = np.matmul(rot_mat, coord)
-
-        image = gen_img(coord, self.config)
-        image = pad_image(image, self.config)
+        coords = self.models[index.flatten()]
+        images = gen_img(coords.to(device), quaternion.to(device), self.config)
+        images = pad_image(images, self.config)
 
         if self.config["CTF"]:
-            image = apply_ctf(image, calc_ctf(self.config))
-
+            ctfs = torch.stack([calc_ctf(self.config) for _ in range(images.shape[0])])
+            images = apply_ctf(images, ctfs.to(device))
+        
         if self.config["NOISE"]:
-            image = self.add_noise(image, self.config, seed)
+            pass
+            #image = self.add_noise(image, self.config, seed)
 
         if self.config["SHIFT"]:
-            image = apply_random_shift(image, self.config, seed)
+            images = apply_random_shift(images, self.config, seed)
         else:
-            image = apply_no_shift(image, self.config)
+            images = apply_no_shift(images, self.config)
 
-        image = gaussian_normalize_image(image)
-
-        return image.to(dtype=torch.float)
+        #image = gaussian_normalize_image(image)
+        return images.cpu().to(dtype=torch.float)
 
     def simulator(
-        self, index: torch.Tensor, seed: Union[None, int] = None
+        self, index: torch.Tensor, device: str = "cuda", seed: Union[None, int] = None
     ) -> torch.Tensor:
         """
         Simulates an image with parameters specified in the config file.
@@ -159,13 +163,12 @@ class CryoEmSimulator:
             torch.Tensor: Simulated image.
         """
 
-        if self.rot_mode == "random":
-            quat = gen_quat()
-        elif self.rot_mode == "list":
-            quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
-        else:
-            quat = None
-
-        image = self._simulator_with_quat(index, quat, seed)
+        quat = torch.tensor([gen_quat() for _ in range(index.shape[0])])
+        image = self._simulator_with_quat(
+            index=index, 
+            quaternion=quat, 
+            device=device, 
+            seed=seed
+        )
 
         return image
