@@ -29,12 +29,12 @@ def apply_random_shift(
     pad_width = int(np.ceil(image_params["N_PIXELS"] * 0.1)) + 1
 
     low_ind_x = pad_width - shift_x
-    high_ind_x = padded_image.shape[0] - pad_width - shift_x
+    high_ind_x = padded_image.shape[-1] - pad_width - shift_x
 
     low_ind_y = pad_width - shift_y
-    high_ind_y = padded_image.shape[0] - pad_width - shift_y
+    high_ind_y = padded_image.shape[-1] - pad_width - shift_y
 
-    shifted_image = padded_image[low_ind_x:high_ind_x, low_ind_y:high_ind_y]
+    shifted_image = padded_image[:, low_ind_x:high_ind_x, low_ind_y:high_ind_y]
 
     return shifted_image
 
@@ -60,6 +60,6 @@ def apply_no_shift(padded_image: torch.Tensor, image_params: dict) -> torch.Tens
     low_ind_y = pad_width
     high_ind_y = padded_image.shape[0] - pad_width
 
-    shifted_image = padded_image[low_ind_x:high_ind_x, low_ind_y:high_ind_y]
+    shifted_image = padded_image[:, low_ind_x:high_ind_x, low_ind_y:high_ind_y]
 
     return shifted_image
