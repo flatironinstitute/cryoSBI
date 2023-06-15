@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 
-def calc_ctf(image_params: dict) -> torch.Tensor:
+def calc_ctf(image_params: dict, device='cpu') -> torch.Tensor:
     """
     Calculate the CTF for parameters specified in image_params.
 
@@ -61,8 +61,8 @@ def calc_ctf(image_params: dict) -> torch.Tensor:
 
     x, y = torch.meshgrid(freq_pix_1d, freq_pix_1d, indexing="ij")
 
-    freq2_2d = x**2 + y**2
-    imag = torch.zeros_like(freq2_2d) * 1j
+    freq2_2d = x.to(device)**2 + y.to(device)**2
+    imag = torch.zeros_like(freq2_2d, device=device) * 1j
 
     env = torch.exp(-b_factor * freq2_2d * 0.5)
     ctf = (

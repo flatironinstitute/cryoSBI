@@ -1,11 +1,10 @@
-import numpy as np
 import torch
+import torchvision.transforms as transforms
 
 
-@torch.jit.script
-def gaussian_normalize_image(image: torch.Tensor) -> torch.Tensor:
+def gaussian_normalize_image(images: torch.Tensor) -> torch.Tensor:
     """
-    Normalize an image by subtracting the mean and dividing by the standard deviation.
+    Normalize an images by subtracting the mean and dividing by the standard deviation.
 
     Args:
         image (torch.Tensor): Image of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
@@ -14,7 +13,7 @@ def gaussian_normalize_image(image: torch.Tensor) -> torch.Tensor:
         normalized (torch.Tensor): Normalized image.
     """
 
-    mean_img = torch.mean(image)
-    std_img = torch.std(image)
+    mean = images.mean(dim=[1, 2])
+    std = images.std(dim=[1, 2])
 
-    return (image - mean_img) / std_img
+    return transforms.functional.normalize(images, mean=mean, std=std)

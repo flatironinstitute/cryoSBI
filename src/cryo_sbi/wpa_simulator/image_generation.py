@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 
-def gen_quat() -> np.ndarray:
+def gen_quat() -> torch.Tensor:
     """
     Generate a random quaternion.
 
@@ -12,11 +12,8 @@ def gen_quat() -> np.ndarray:
     """
     count = 0
     while count < 1:
-        quat = np.random.uniform(
-            -1, 1, 4
-        )  # note this is a half-open interval, so 1 is not included but -1 is
-        norm = np.sqrt(np.sum(quat**2))
-
+        quat = 2 * torch.rand(size=(4,)) - 1
+        norm = torch.sqrt(torch.sum(quat**2))
         if 0.2 <= norm <= 1.0:
             quat /= norm
             count += 1
@@ -24,7 +21,6 @@ def gen_quat() -> np.ndarray:
     return quat
 
 
-@torch.jit.script
 def gen_rot_matrix_batched(quats: torch.Tensor) -> torch.Tensor:
     """
     Generate a rotation matrix from a quaternion.
@@ -53,7 +49,6 @@ def gen_rot_matrix_batched(quats: torch.Tensor) -> torch.Tensor:
     return -rot_matrix
 
 
-#@torch.jit.script
 def project_density_batched(
     coords: torch.Tensor,
     quats: torch.Tensor,
@@ -99,7 +94,9 @@ def project_density_batched(
     return image
 
 
-def gen_img(coord: torch.Tensor, quaternions: torch.Tensor, image_params: dict) -> torch.Tensor:
+def gen_img(
+    coord: torch.Tensor, quaternions: torch.Tensor, image_params: dict
+) -> torch.Tensor:
     """
     Generate an image from a set of coordinates.
 
@@ -125,11 +122,13 @@ def gen_img(coord: torch.Tensor, quaternions: torch.Tensor, image_params: dict) 
 
     elif isinstance(image_params["SIGMA"], list) and len(image_params["SIGMA"]) == 2:
         size = (1,) if not batched else (coord.shape[0], 1)
-        atom_sigma = torch.from_numpy(np.random.uniform(
-            low=image_params["SIGMA"][0],
-            high=image_params["SIGMA"][1],
-            size=size,
-        ))
+        atom_sigma = torch.from_numpy(
+            np.random.uniform(
+                low=image_params["SIGMA"][0],
+                high=image_params["SIGMA"][1],
+                size=size,
+            )
+        )
 
     else:
         raise ValueError(

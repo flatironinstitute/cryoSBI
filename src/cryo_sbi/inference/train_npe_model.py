@@ -19,8 +19,6 @@ from cryo_sbi.utils.image_utils import WhitenImage, NormalizeIndividual
 import torch.multiprocessing as mp
 
 
-
-
 def load_model(
     train_config: str, model_state_dict: str, device: str, train_from_checkpoint: bool
 ) -> torch.nn.Module:
@@ -82,9 +80,9 @@ def npe_train_no_saving(
     Returns:
         None
     """
-    mp.set_start_method('spawn')
+    mp.set_start_method("spawn")
 
-    cryo_simulator = CryoEmSimulator(image_config, **simulator_kwargs)
+    cryo_simulator = CryoEmSimulator(image_config, device=device, **simulator_kwargs)
 
     estimator = load_model(
         train_config, model_state_dict, device, train_from_checkpoint
@@ -97,8 +95,9 @@ def npe_train_no_saving(
         cryo_simulator.simulator,
         vectorized=True,
         batch_size=train_config["BATCH_SIZE"],
-        num_workers=2,
+        num_workers=n_workers,
         pin_memory=True,
+        prefetch_factor=1,
     )
 
     if isinstance(whitening_filter, str):

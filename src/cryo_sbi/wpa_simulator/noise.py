@@ -4,8 +4,8 @@ import torch
 from cryo_sbi.wpa_simulator.implicit_water import add_noise_field
 
 
-@torch.jit.script
-def circular_mask(n_pixels: int, radius: int) -> torch.Tensor:
+# @torch.jit.script
+def circular_mask(n_pixels: int, radius: int, device: str = "cpu") -> torch.Tensor:
     """
     Creates a circular mask of radius RADIUS_MASK centered in the image
 
@@ -17,7 +17,9 @@ def circular_mask(n_pixels: int, radius: int) -> torch.Tensor:
         mask (torch.Tensor): Mask of shape (n_pixels, n_pixels).
     """
 
-    grid = torch.linspace(-0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels)
+    grid = torch.linspace(
+        -0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels, device=device
+    )
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
     mask = r_2d < radius**2
 
@@ -42,26 +44,35 @@ def add_noise(
     if seed is not None:
         torch.manual_seed(seed)
 
-    mask = circular_mask(n_pixels=image.shape[0], radius=image_params["RADIUS_MASK"])
-    signal_power = image[mask].pow(2).mean().sqrt()  # torch.std(image[mask])
+    mask = circular_mask(
+        n_pixels=image.shape[-1],
+        radius=image_params["RADIUS_MASK"],
+        device=image.device,
+    )
+    signal_power = image[:, mask].pow(2).mean().sqrt()  # torch.std(image[mask])
 
     if isinstance(image_params["SNR"], float):
         snr = image_params["SNR"]
 
     elif isinstance(image_params["SNR"], list) and len(image_params["SNR"]) == 2:
+        size = (1,) if image.ndim == 2 else (image.shape[0],)
         snr = 10 ** np.random.uniform(
-            low=np.log10(image_params["SNR"][0]), high=np.log10(image_params["SNR"][1])
+            low=np.log10(image_params["SNR"][0]),
+            high=np.log10(image_params["SNR"][1]),
+            size=size,
         )
+        snr = torch.from_numpy(snr)
 
     else:
         raise ValueError("SNR should be a single value or a list of [min_snr, max_snr]")
 
-    noise_power = signal_power / np.sqrt(snr)
-    image_noise = image + torch.distributions.normal.Normal(0, noise_power.to(image.device)).sample(
-        image.shape
-    )
+    noise_power = signal_power / torch.sqrt(snr.to(image.device))
+    for i in range(image.shape[0]):
+        image[i] += torch.distributions.normal.Normal(0, noise_power[i]).sample(
+            image.shape[1:]
+        )
 
-    return image_noise
+    return image
 
 
 def add_colored_noise(
@@ -119,11 +130,6 @@ def add_colored_noise(
 
     image_noise = torch.distributions.normal.Normal(0, noise_std * t).sample()
     return image_noise + image
-
-
-def add_shot_noise(image: torch.Tensor) -> torch.Tensor:
-    """Adds shot noise to image"""
-    raise NotImplementedError
 
 
 def add_gradient_snr(

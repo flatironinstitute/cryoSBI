@@ -14,6 +14,7 @@ from cryo_sbi.wpa_simulator.validate_image_config import check_params
 from cryo_sbi.wpa_simulator.implicit_water import add_noise_field
 
 
+
 class CryoEmSimulator:
     """Simulator for cryo-EM images.
 
@@ -28,7 +29,7 @@ class CryoEmSimulator:
         add_noise (bool): function which adds noise to images. Defaults to Gaussian noise.
     """
 
-    def __init__(self, config_fname: str, add_noise: Callable = add_noise):
+    def __init__(self, config_fname: str, add_noise: Callable = add_noise, device: str = "cpu"):
         self._load_params(config_fname)
         self._load_models()
         self.rot_mode = None
@@ -36,6 +37,7 @@ class CryoEmSimulator:
         self._config_rotations()
         self._pad_width = int(np.ceil(self.config["N_PIXELS"] * 0.1)) + 1
         self.add_noise = add_noise
+        self.device = device
 
     def _load_params(self, config_fname: str) -> None:
         """
@@ -136,21 +138,20 @@ class CryoEmSimulator:
         if self.config["CTF"]:
             ctfs = torch.stack([calc_ctf(self.config) for _ in range(images.shape[0])])
             images = apply_ctf(images, ctfs.to(device))
-        
+
         if self.config["NOISE"]:
-            pass
-            #image = self.add_noise(image, self.config, seed)
+            images = self.add_noise(images, self.config, seed)
 
         if self.config["SHIFT"]:
             images = apply_random_shift(images, self.config, seed)
         else:
             images = apply_no_shift(images, self.config)
 
-        #image = gaussian_normalize_image(image)
+        images = gaussian_normalize_image(images)
         return images.cpu().to(dtype=torch.float)
 
     def simulator(
-        self, index: torch.Tensor, device: str = "cuda", seed: Union[None, int] = None
+        self, index: torch.Tensor, seed: Union[None, int] = None
     ) -> torch.Tensor:
         """
         Simulates an image with parameters specified in the config file.
@@ -163,12 +164,9 @@ class CryoEmSimulator:
             torch.Tensor: Simulated image.
         """
 
-        quat = torch.tensor([gen_quat() for _ in range(index.shape[0])])
+        quat = torch.stack([gen_quat() for _ in range(index.shape[0])])
         image = self._simulator_with_quat(
-            index=index, 
-            quaternion=quat, 
-            device=device, 
-            seed=seed
+            index=index, quaternion=quat, device=self.device, seed=seed
         )
 
         return image
