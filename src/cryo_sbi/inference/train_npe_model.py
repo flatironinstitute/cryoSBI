@@ -95,9 +95,8 @@ def npe_train_no_saving(
         cryo_simulator.simulator,
         vectorized=True,
         batch_size=train_config["BATCH_SIZE"],
-        num_workers=n_workers,
+        num_workers=2,
         pin_memory=True,
-        prefetch_factor=1,
     )
 
     if isinstance(whitening_filter, str):

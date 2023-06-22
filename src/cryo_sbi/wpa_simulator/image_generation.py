@@ -94,9 +94,7 @@ def project_density_batched(
     return image
 
 
-def gen_img(
-    coord: torch.Tensor, quaternions: torch.Tensor, image_params: dict
-) -> torch.Tensor:
+def gen_img(coord: torch.Tensor, quaternions: torch.Tensor, image_params: dict) -> torch.Tensor:
     """
     Generate an image from a set of coordinates.
 

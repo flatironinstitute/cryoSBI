@@ -151,7 +151,7 @@ class CryoEmSimulator:
         return images.cpu().to(dtype=torch.float)
 
     def simulator(
-        self, index: torch.Tensor, seed: Union[None, int] = None
+        self, index: torch.Tensor, device: str = "cuda", seed: Union[None, int] = None
     ) -> torch.Tensor:
         """
         Simulates an image with parameters specified in the config file.
@@ -164,9 +164,12 @@ class CryoEmSimulator:
             torch.Tensor: Simulated image.
         """
 
-        quat = torch.stack([gen_quat() for _ in range(index.shape[0])])
+        quat = torch.tensor([gen_quat() for _ in range(index.shape[0])])
         image = self._simulator_with_quat(
-            index=index, quaternion=quat, device=self.device, seed=seed
+            index=index, 
+            quaternion=quat, 
+            device=device, 
+            seed=seed
         )
 
         return image
