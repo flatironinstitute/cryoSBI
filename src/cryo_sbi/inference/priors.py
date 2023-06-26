@@ -1,22 +1,31 @@
 import torch
-import zuko
+from torch.distributions.distribution import Distribution
 
 
-def get_uniform_prior_1d(max_index: int) -> zuko.distributions.BoxUniform:
-    """
-    Return uniform prior in 1d from 0 to 19
+class QuatDistribution(Distribution):
 
-    Args:
-        max_index (int): max index of the 1d prior
+    arg_constraints = {}
+    has_rsample = True
 
-    Returns:
-        zuko.distributions.BoxUniform: prior
-    """
+    def __init__(self):
+        
+        batch_shape = (1, )
+        super().__init__(batch_shape,)
 
-    assert isinstance(max_index, int), "max_index is no INT"
+    def rsample(self, sample_shape=torch.Size()):
 
-    LOWER = torch.zeros(1)
-    UPPER = max_index * torch.ones(1)
-    prior = zuko.distributions.BoxUniform(LOWER, UPPER)
+        shape = self._extended_shape(sample_shape)
+        n_quats = shape[0]
 
-    return prior
+        quats = torch.zeros((n_quats, 4))
+        count = 0
+        while count < n_quats:
+            quat = torch.rand(4) * 2.0 - 1.0
+            norm = torch.linalg.vector_norm(quat, ord=2)
+
+            if 0.2 <= norm <= 1.0:
+                quat /= norm
+                quats[count] = quat
+                count += 1
+
+        return quats

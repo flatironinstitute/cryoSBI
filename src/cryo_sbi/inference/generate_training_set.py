@@ -4,7 +4,7 @@ from itertools import islice
 from lampe.data import JointLoader, H5Dataset
 from tqdm import tqdm
 
-from cryo_sbi.inference.priors import get_uniform_prior_1d
+from cryo_sbi.inference.priors import QuatDistribution
 from cryo_sbi import CryoEmSimulator
 
 
@@ -35,9 +35,10 @@ def gen_training_set(
     """
 
     cryo_simulator = CryoEmSimulator(config_file)
+    quat_uniform = QuatDistribution()
 
     loader = JointLoader(
-        get_uniform_prior_1d(cryo_simulator.max_index),
+        quat_uniform,
         cryo_simulator.simulator,
         vectorized=False,
         batch_size=batch_size,

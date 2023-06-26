@@ -5,7 +5,7 @@ import json
 from scipy.spatial.transform import Rotation
 
 from cryo_sbi.wpa_simulator.ctf import calc_ctf, apply_ctf
-from cryo_sbi.wpa_simulator.image_generation import gen_img, gen_quat
+from cryo_sbi.wpa_simulator.image_generation import gen_img
 from cryo_sbi.wpa_simulator.noise import add_noise
 from cryo_sbi.wpa_simulator.normalization import gaussian_normalize_image
 from cryo_sbi.wpa_simulator.padding import pad_image
@@ -31,9 +31,6 @@ class CryoEmSimulator:
     def __init__(self, config_fname: str, add_noise: Callable = add_noise):
         self._load_params(config_fname)
         self._load_models()
-        self.rot_mode = None
-        self.quaternions = None
-        self._config_rotations()
         self._pad_width = int(np.ceil(self.config["N_PIXELS"] * 0.1)) + 1
         self.add_noise = add_noise
 
@@ -60,54 +57,19 @@ class CryoEmSimulator:
             None
 
         """
-        if "hsp90" in self.config["MODEL_FILE"]:
-            self.models = np.load(self.config["MODEL_FILE"])[:, 0]
 
-        elif "6wxb" in self.config["MODEL_FILE"]:
-            self.models = np.load(self.config["MODEL_FILE"])
+        self.models = np.load(self.config["MODEL_FILE"])
+        if self.models.ndim == 3:
+            self.model = self.models[0]
+        
+        if self.models.ndim == 4:
+            self.model = self.models[0, 0]
 
-        elif "square" in self.config["MODEL_FILE"]:
-            self.models = np.transpose(
-                np.load(self.config["MODEL_FILE"]).diagonal(), [2, 0, 1]
-            )
-        else:
-            print(
-                "Loading models without template... assuming shape (models, 3, atoms)"
-            )
-            self.models = np.load(self.config["MODEL_FILE"])
         print(self.config["MODEL_FILE"])
 
-    def _config_rotations(self) -> None:
-        """
-        Configures the rotation mode for the simulator.
-
-        Returns:
-            None
-        """
-        if isinstance(self.config["ROTATIONS"], bool):
-            if self.config["ROTATIONS"]:
-                self.rot_mode = "random"
-
-        elif isinstance(self.config["ROTATIONS"], str):
-            self.rot_mode = "list"
-            self.quaternions = np.loadtxt(self.config["ROTATIONS"], skiprows=1)
-
-            assert (
-                self.quaternions.shape[1] == 4
-            ), "Quaternion shape is not 4. Corrupted file?"
-
-    @property
-    def max_index(self) -> int:
-        """
-        Returns the maximum index of the model file.
-
-        Returns:
-            int: Maximum index of the model file.
-        """
-        return len(self.models) - 1
 
     def _simulator_with_quat(
-        self, index: torch.Tensor, quaternion: np.ndarray, seed: Union[None, int] = None
+        self, quaternion: np.ndarray, seed: Union[None, int] = None
     ) -> torch.Tensor:
         """
         Simulates an image with a given quaternion.
@@ -121,13 +83,10 @@ class CryoEmSimulator:
             torch.Tensor: Simulated image.
         """
 
-        index = int(torch.round(index))
+        coord = np.copy(self.model)
 
-        coord = np.copy(self.models[index])
-
-        if quaternion is not None:
-            rot_mat = Rotation.from_quat(quaternion).as_matrix()
-            coord = np.matmul(rot_mat, coord)
+        rot_mat = Rotation.from_quat(quaternion).as_matrix()
+        coord = np.matmul(rot_mat, coord)
 
         image = gen_img(coord, self.config)
         image = pad_image(image, self.config)
@@ -148,7 +107,7 @@ class CryoEmSimulator:
         return image.to(dtype=torch.float)
 
     def simulator(
-        self, index: torch.Tensor, seed: Union[None, int] = None
+        self, quat: torch.Tensor, seed: Union[None, int] = None
     ) -> torch.Tensor:
         """
         Simulates an image with parameters specified in the config file.
@@ -161,13 +120,8 @@ class CryoEmSimulator:
             torch.Tensor: Simulated image.
         """
 
-        if self.rot_mode == "random":
-            quat = gen_quat()
-        elif self.rot_mode == "list":
-            quat = self.quaternions[np.random.randint(0, self.quaternions.shape[0])]
-        else:
-            quat = None
-
-        image = self._simulator_with_quat(index, quat, seed)
+        #print(quat)
+        quat = torch.reshape(quat, (4,)).numpy()
+        image = self._simulator_with_quat(quat, seed)
 
         return image
