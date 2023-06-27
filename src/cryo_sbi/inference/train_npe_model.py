@@ -9,6 +9,7 @@ from lampe.data import JointLoader, H5Dataset
 from lampe.inference import NPELoss
 from lampe.utils import GDStep
 from itertools import islice
+from zuko.distributions import BoxUniform
 
 from cryo_sbi.inference.priors import QuatDistribution
 from cryo_sbi.inference.models.build_models import build_npe_flow_model
@@ -86,7 +87,9 @@ def npe_train_no_saving(
     )
 
     train_config = json.load(open(train_config))
-    quat_uniform = QuatDistribution()
+    #quat_uniform = QuatDistribution()
+    quat_uniform = BoxUniform(-torch.ones(4), torch.ones(4))
+
 
     loader = JointLoader(
         quat_uniform,

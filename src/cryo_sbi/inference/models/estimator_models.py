@@ -98,7 +98,7 @@ class NPEWithEmbedding(nn.Module):
         super().__init__()
 
         self.npe = NPE(
-            1,
+            4,
             output_embedding_dim,
             transforms=num_transforms,
             build=flow,

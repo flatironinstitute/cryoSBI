@@ -120,8 +120,9 @@ class CryoEmSimulator:
             torch.Tensor: Simulated image.
         """
 
-        #print(quat)
-        quat = torch.reshape(quat, (4,)).numpy()
+        quat = torch.reshape(quat, (4,))
+        quat /= torch.linalg.vector_norm(quat, ord=2)
+        quat = quat.numpy()
         image = self._simulator_with_quat(quat, seed)
-
+        
         return image

@@ -3,6 +3,7 @@ import torch
 from itertools import islice
 from lampe.data import JointLoader, H5Dataset
 from tqdm import tqdm
+from zuko.distributions import BoxUniform
 
 from cryo_sbi.inference.priors import QuatDistribution
 from cryo_sbi import CryoEmSimulator
@@ -35,7 +36,8 @@ def gen_training_set(
     """
 
     cryo_simulator = CryoEmSimulator(config_file)
-    quat_uniform = QuatDistribution()
+    #quat_uniform = QuatDistribution()
+    quat_uniform = BoxUniform(-torch.ones(4), torch.ones(4))
 
     loader = JointLoader(
         quat_uniform,
