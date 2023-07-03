@@ -11,7 +11,7 @@
     "SNR": [0.01, 0.1],
     "RADIUS_MASK": 100,
     "AMP": 0.1,
-    "B_FACTOR": 1.0,
+    "B_FACTOR": [1.0, 100.0],
     "ELECWAVE": 0.019866,
     "NOISE_INTENSITY": 0.5    
 }

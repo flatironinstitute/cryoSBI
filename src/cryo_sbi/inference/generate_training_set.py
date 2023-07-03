@@ -4,8 +4,8 @@ from itertools import islice
 from lampe.data import JointLoader, H5Dataset
 from tqdm import tqdm
 
-from cryo_sbi.inference.priors import get_uniform_prior_1d
-from cryo_sbi import CryoEmSimulator
+# from cryo_sbi.inference.priors import get_uniform_prior_1d
+# from cryo_sbi import CryoEmSimulator
 
 
 def gen_training_set(

@@ -1,10 +1,8 @@
 from typing import Union
 import numpy as np
 import torch
-from cryo_sbi.wpa_simulator.implicit_water import add_noise_field
 
 
-# @torch.jit.script
 def circular_mask(n_pixels: int, radius: int, device: str = "cpu") -> torch.Tensor:
     """
     Creates a circular mask of radius RADIUS_MASK centered in the image
@@ -26,9 +24,24 @@ def circular_mask(n_pixels: int, radius: int, device: str = "cpu") -> torch.Tens
     return mask
 
 
-def add_noise(
-    image: torch.Tensor, image_params: dict, seed: Union[None, int] = None
-) -> torch.Tensor:
+def get_snr(images, snr):
+    """
+    Computes the SNR of the images
+    """
+
+    mask = circular_mask(
+        n_pixels=images.shape[-1],
+        radius=64,
+        device=images.device,
+    )
+    signal_power = images[:, mask].pow(2).mean().sqrt()  # torch.std(image[mask])
+
+    noise_power = signal_power / torch.sqrt(snr.to(images.device))
+
+    return noise_power
+
+
+def add_noise(image: torch.Tensor, snr, seed=None) -> torch.Tensor:
     """
     Adds noise to image
 
@@ -44,154 +57,11 @@ def add_noise(
     if seed is not None:
         torch.manual_seed(seed)
 
-    mask = circular_mask(
-        n_pixels=image.shape[-1],
-        radius=image_params["RADIUS_MASK"],
-        device=image.device,
-    )
-    signal_power = image[:, mask].pow(2).mean().sqrt()  # torch.std(image[mask])
+    snr = get_snr(image, snr)
 
-    if isinstance(image_params["SNR"], float):
-        snr = image_params["SNR"]
-
-    elif isinstance(image_params["SNR"], list) and len(image_params["SNR"]) == 2:
-        size = (1,) if image.ndim == 2 else (image.shape[0],)
-        snr = 10 ** np.random.uniform(
-            low=np.log10(image_params["SNR"][0]),
-            high=np.log10(image_params["SNR"][1]),
-            size=size,
-        )
-        snr = torch.from_numpy(snr)
-
-    else:
-        raise ValueError("SNR should be a single value or a list of [min_snr, max_snr]")
-
-    noise_power = signal_power / torch.sqrt(snr.to(image.device))
-    for i in range(image.shape[0]):
-        image[i] += torch.distributions.normal.Normal(0, noise_power[i]).sample(
-            image.shape[1:]
-        )
-
-    return image
-
-
-def add_colored_noise(
-    image: torch.Tensor,
-    image_params: dict,
-    seed: int,
-    noise_intensity: float = 1,
-    noise_scale: float = 1.5,
-):
-    """Adds colored noise to image.
-
-    Args:
-        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
-        image_params (dict): Dictionary with image parameters.
-        seed (int, optional): Seed for random number generator. Defaults to None.
-        noise_intensity (float, optional): Noise intensity. Defaults to 1.
-        noise_scale (float, optional): Noise scale. Defaults to 1.5.
-
-    Returns:
-        image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
-    """
-
-    # Similar to pink noise https://en.wikipedia.org/wiki/Pink_noise
-    if seed is not None:
-        torch.manual_seed(seed)
-
-    image_L = image.shape[0]
-
-    mask = circular_mask(n_pixels=image.shape[0], radius=image_params["RADIUS_MASK"])
-
-    signal_std = image[mask].pow(2).mean().sqrt()
-    noise_std = signal_std / np.sqrt(image_params["SNR"])
-
-    image_noise = torch.distributions.normal.Normal(0, noise_std).sample(image.shape)
-    fft_noise = torch.fft.fft2(image_noise)
-
-    along_x, along_y = np.linspace(-1, 1, image_L), np.linspace(-1, 1, image_L)
-    mesh_x, mesh_y = np.meshgrid(along_x, along_y)
-    f = torch.zeros((image_L, image_L))
-
-    for ix in range(image_L):
-        for iy in range(image_L):
-            f[ix, iy] = (
-                np.abs(mesh_x[ix, iy]) ** noise_scale
-                + np.abs(mesh_y[ix, iy]) ** noise_scale
-            )
-
-    t = torch.abs(torch.fft.ifft2(fft_noise / f))
-
-    # Scaling with respect to the lenght max to median
-    scale = noise_intensity / (t.max() - t.median())
-
-    # Adjusting noise so that 50% of the pixels have higer and the other 50% lower snr
-    t = ((t - t.median()) * scale) + 1
-
-    image_noise = torch.distributions.normal.Normal(0, noise_std * t).sample()
-    return image_noise + image
-
-
-def add_gradient_snr(
-    image: torch.Tensor,
-    image_params: dict,
-    seed: Union[None, int] = None,
-    delta_snr: float = 0.5,
-) -> torch.Tensor:
-    """Adds gaussian noise with gradient along x.
-
-    Args:
-        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
-        image_params (dict): Dictionary with image parameters.
-        seed (int, optional): Seed for random number generator. Defaults to None.
-        delta_snr (float, optional): Delta SNR. Defaults to 0.5.
-
-    Returns:
-        image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
-    """
-
-    if seed is not None:
-        torch.manual_seed(seed)
-
-    mask = circular_mask(n_pixels=image.shape[0], radius=image_params["RADIUS_MASK"])
-    signal_power = image[mask].pow(2).mean().sqrt()
-    gradient_snr = np.logspace(
-        np.log10(image_params["SNR"]) + delta_snr,
-        np.log10(image_params["SNR"]) - delta_snr,
-        image.shape[0],
-    )
-
-    noise = torch.stack(
-        [
-            torch.distributions.normal.Normal(0, signal_power / np.sqrt(snr)).sample(
-                [
-                    image.shape[0],
-                ]
-            )
-            for snr in gradient_snr
-        ],
-        dim=1,
-    )
+    noise = torch.randn_like(image, device=image.device)
+    noise = noise * snr.reshape(-1, 1, 1)
 
     image_noise = image + noise
+
     return image_noise
-
-
-def correlated_gaussian_noise(
-    image: torch.Tensor, image_params: dict, seed: Union[None, int] = None
-) -> torch.Tensor:
-    """
-    Adds correlated gaussian noise to image.
-
-    Args:
-        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
-        image_params (dict): Dictionary with image parameters.
-
-    Returns:
-        image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels).
-    """
-
-    image = add_noise(image, image_params, seed=seed)
-    image = add_noise_field(image, image_params)
-
-    return image
