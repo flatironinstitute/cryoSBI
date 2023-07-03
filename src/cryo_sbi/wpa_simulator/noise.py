@@ -36,7 +36,7 @@ def get_snr(images, snr):
     )
     signal_power = images[:, mask].pow(2).mean().sqrt()  # torch.std(image[mask])
 
-    noise_power = signal_power / torch.sqrt(snr.to(images.device))
+    noise_power = signal_power / torch.sqrt(torch.pow(10, snr))
 
     return noise_power
 
