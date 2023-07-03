@@ -68,10 +68,10 @@ def get_image_priors(
     if isinstance(image_config["SNR"], list) and len(image_config["SNR"]) == 2:
         lower = torch.tensor(
             [[image_config["SNR"][0]]], dtype=torch.float32, device=device
-        )
+        ).log10()
         upper = torch.tensor(
             [[image_config["SNR"][1]]], dtype=torch.float32, device=device
-        )
+        ).log10()
         snr = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
     amp = zuko.distributions.BoxUniform(
