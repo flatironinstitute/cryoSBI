@@ -18,9 +18,9 @@ def cryo_em_simulator(
     num_pixels,
     pixel_size,
 ):
-    models = models[index.round().long().flatten()]
+    models_selected = models[index.round().long().flatten()]
     image = project_density(
-        models,
+        models_selected,
         quaternion,
         sigma,
         num_pixels,

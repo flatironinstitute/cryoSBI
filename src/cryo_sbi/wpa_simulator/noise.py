@@ -31,11 +31,10 @@ def get_snr(images, snr):
 
     mask = circular_mask(
         n_pixels=images.shape[-1],
-        radius=64,
+        radius=64, # todo: make this a parameter
         device=images.device,
     )
     signal_power = images[:, mask].pow(2).mean().sqrt()  # torch.std(image[mask])
-
     noise_power = signal_power / torch.sqrt(torch.pow(10, snr))
 
     return noise_power
