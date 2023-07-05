@@ -16,7 +16,7 @@ def apply_ctf(image: torch.Tensor, defocus, b_factor, amp, pixel_size) -> torch.
     imag = torch.zeros_like(freq2_2d, device=image.device) * 1j
 
     env = torch.exp(-b_factor * freq2_2d * 0.5)
-    phase = defocus * torch.pi * 2.0 * 10000 * 0.019866
+    phase = defocus * torch.pi * 2.0 * 10000 * 0.019866 # hardcoded 0.019866 for 300kV
 
     ctf = (
         -amp * torch.cos(phase * freq2_2d * 0.5)

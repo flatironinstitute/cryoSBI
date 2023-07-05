@@ -44,6 +44,21 @@ def get_image_priors(
         )
         sigma = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
+    shift = zuko.distributions.BoxUniform(
+        lower=torch.tensor(
+            [-image_config["SHIFT"], -image_config["SHIFT"]],
+            dtype=torch.float32,
+            device=device
+        ),
+        upper=torch.tensor(
+            [image_config["SHIFT"], image_config["SHIFT"]],
+            dtype=torch.float32,
+            device=device
+        ),
+        ndims=1,
+    )
+
+
     if isinstance(image_config["DEFOCUS"], list) and len(image_config["DEFOCUS"]) == 2:
         lower = torch.tensor(
             [[image_config["DEFOCUS"][0]]], dtype=torch.float32, device=device
@@ -85,7 +100,7 @@ def get_image_priors(
         upper=torch.tensor([max_index], dtype=torch.float32, device=device),
     )
 
-    return ImagePrior(index_prior, sigma, defocus, b_factor, snr, amp, device=device)
+    return ImagePrior(index_prior, sigma, shift, defocus, b_factor, snr, amp, device=device)
 
 
 class QuaternionPrior:
@@ -93,7 +108,9 @@ class QuaternionPrior:
         self.device = device
 
     def sample(self, shape) -> torch.Tensor:
-        quats = torch.stack([gen_quat().to(self.device) for _ in range(shape[0])], dim=0)
+        quats = torch.stack(
+            [gen_quat().to(self.device) for _ in range(shape[0])], dim=0
+        )
         return quats
 
 
@@ -102,6 +119,7 @@ class ImagePrior:
         self,
         index_prior,
         sigma_prior,
+        shift_prior,
         defocus_prior,
         b_factor_prior,
         snr_prior,
@@ -112,6 +130,7 @@ class ImagePrior:
             index_prior,
             QuaternionPrior(device),
             sigma_prior,
+            shift_prior,
             defocus_prior,
             b_factor_prior,
             amp_prior,

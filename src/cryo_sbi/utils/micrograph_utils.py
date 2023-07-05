@@ -94,6 +94,7 @@ def compute_average_psd(
             fft_image = torch.fft.fft2(image[0].to(device, non_blocking=True))
             psd = torch.abs(fft_image) ** 2
             avg_psd += psd / len(images)
+            # add convergence check
     elif isinstance(images, torch.Tensor):
         fft_images = torch.fft.fft2(images.to(device=device), dim=(-2, -1))
         avg_psd = torch.mean(torch.abs(fft_images) ** 2, dim=0)

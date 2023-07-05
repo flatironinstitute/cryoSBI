@@ -2,7 +2,6 @@ import argparse
 from cryo_sbi.inference.train_npe_model import (
     npe_train_no_saving,
 )
-from cryo_sbi.inference.generate_training_set import gen_training_set
 
 
 def cl_npe_train_no_saving():
@@ -38,9 +37,6 @@ def cl_npe_train_no_saving():
     cl_parser.add_argument(
         "--saving_freq", action="store", type=int, required=False, default=20
     )
-    cl_parser.add_argument(
-        "--whitening_filter", action="store", type=str, required=False, default=None
-    )
 
     args = cl_parser.parse_args()
 
@@ -52,6 +48,7 @@ def cl_npe_train_no_saving():
         loss_file=args.loss_file,
         train_from_checkpoint=args.train_from_checkpoint,
         model_state_dict=args.state_dict_file,
+        n_workers=args.n_workers,
         device=args.train_device,
         saving_frequency=args.saving_freq,
     )

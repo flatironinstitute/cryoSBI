@@ -49,6 +49,7 @@ def npe_train_no_saving(
     loss_file: str,
     train_from_checkpoint: bool = False,
     model_state_dict: Union[str, None] = None,
+    n_workers: int = 1,
     device: str = "cpu",
     saving_frequency: int = 20,
 ) -> None:
@@ -85,21 +86,31 @@ def npe_train_no_saving(
                 np.load(image_config["MODEL_FILE"]),
             )
             .to(device)
-            .to(torch.float32)#[:, 0]
+            .to(torch.float32)
         )
     else:
         models = torch.load(
-            image_config["MODEL_FILE"], dtype=torch.float32, device=device
+            image_config["MODEL_FILE"], 
+            dtype=torch.float32,
+            device=device
         )
 
     image_prior = get_image_priors(len(models) - 1, image_config, device="cpu")
-    prior_loader = PriorLoader(image_prior, batch_size=train_config["BATCH_SIZE"], num_workers=3)
+    prior_loader = PriorLoader(
+        image_prior, 
+        batch_size=train_config["BATCH_SIZE"], 
+        num_workers=n_workers
+    )
 
     num_pixels = torch.tensor(
-        image_config["N_PIXELS"], dtype=torch.float32, device=device
+        image_config["N_PIXELS"], 
+        dtype=torch.float32, 
+        device=device
     )
     pixel_size = torch.tensor(
-        image_config["PIXEL_SIZE"], dtype=torch.float32, device=device
+        image_config["PIXEL_SIZE"], 
+        dtype=torch.float32, 
+        device=device
     )
 
     estimator = load_model(
@@ -107,7 +118,9 @@ def npe_train_no_saving(
     )
 
     loss = NPELoss(estimator)
-    optimizer = optim.AdamW(estimator.parameters(), lr=train_config["LEARNING_RATE"])
+    optimizer = optim.AdamW(
+        estimator.parameters(), lr=train_config["LEARNING_RATE"], weight_decay=0.0001
+    )
     step = GDStep(optimizer, clip=train_config["CLIP_GRADIENT"])
     mean_loss = []
 
@@ -117,12 +130,13 @@ def npe_train_no_saving(
         for epoch in tq:
             losses = []
             for parameters in islice(prior_loader, 100):
-                indices, quaternions, sigma, defocus, b_factor, amp, snr = parameters
+                indices, quaternions, sigma, shift, defocus, b_factor, amp, snr = parameters
                 images = cryo_em_simulator(
                     models,
                     indices.to(device, non_blocking=True),
                     quaternions.to(device, non_blocking=True),
                     sigma.to(device, non_blocking=True),
+                    shift.to(device, non_blocking=True),
                     defocus.to(device, non_blocking=True),
                     b_factor.to(device, non_blocking=True),
                     amp.to(device, non_blocking=True),

@@ -53,6 +53,7 @@ def project_density(
     coords: torch.Tensor,
     quats: torch.Tensor,
     sigma: torch.Tensor,
+    shift: torch.Tensor,
     num_pixels: int,
     pixel_size: float,
 ) -> torch.Tensor:
@@ -79,7 +80,9 @@ def project_density(
     grid = torch.arange(grid_min, grid_max, pixel_size, device=coords.device).repeat(
         num_batch, 1
     )
+
     coords_rot = torch.bmm(rot_matrix, coords)
+    coords_rot[:, :2, :] += shift.unsqueeze(-1)
 
     gauss_x = torch.exp_(
         -0.5 * (((grid.unsqueeze(-1) - coords_rot[:, 0, :].unsqueeze(1)) / sigma) ** 2)
