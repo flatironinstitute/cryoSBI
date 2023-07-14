@@ -3,15 +3,9 @@
     "PIXEL_SIZE": 2.06,
     "SIGMA": [0.5, 5.0],
     "MODEL_FILE": "../data/protein_models/6wxb_mixed_models.npy",
-    "ROTATIONS": true,
-    "SHIFT": true,
-    "CTF": true,
-    "NOISE": true,
+    "SHIFT": 40,
     "DEFOCUS": [0.5, 5.0],
-    "SNR": [0.01, 0.1],
-    "RADIUS_MASK": 100,
+    "SNR": [0.01,1.0],
     "AMP": 0.1,
-    "B_FACTOR": [1.0, 100.0],
-    "ELECWAVE": 0.019866,
-    "NOISE_INTENSITY": 0.5    
+    "B_FACTOR": [1.0, 100.0]
 }

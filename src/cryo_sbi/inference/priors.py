@@ -99,8 +99,12 @@ def get_image_priors(
         lower=torch.tensor([0], dtype=torch.float32, device=device),
         upper=torch.tensor([max_index], dtype=torch.float32, device=device),
     )
+    quaternion_prior = QuaternionPrior(device)
+    if image_config.get("ROTATIONS") and isinstance(image_config["ROTATIONS"], list) and len(image_config["ROTATIONS"]) == 4:
+        test_quat = image_config["ROTATIONS"]
+        quaternion_prior = QuaternionTestPrior(test_quat, device)
 
-    return ImagePrior(index_prior, sigma, shift, defocus, b_factor, snr, amp, device=device)
+    return ImagePrior(index_prior, quaternion_prior, sigma, shift, defocus, b_factor, snr, amp, device=device)
 
 
 class QuaternionPrior:
@@ -112,12 +116,25 @@ class QuaternionPrior:
             [gen_quat().to(self.device) for _ in range(shape[0])], dim=0
         )
         return quats
+    
+
+class QuaternionTestPrior:
+    def __init__(self, quat, device) -> None:
+        self.device = device
+        self.quat = torch.tensor(quat, device=device)
+
+    def sample(self, shape) -> torch.Tensor:
+        quats = torch.stack(
+            [self.quat for _ in range(shape[0])], dim=0
+        )
+        return quats
 
 
 class ImagePrior:
     def __init__(
         self,
         index_prior,
+        quaternion_prior,
         sigma_prior,
         shift_prior,
         defocus_prior,
@@ -128,7 +145,7 @@ class ImagePrior:
     ) -> None:
         self.priors = [
             index_prior,
-            QuaternionPrior(device),
+            quaternion_prior,
             sigma_prior,
             shift_prior,
             defocus_prior,

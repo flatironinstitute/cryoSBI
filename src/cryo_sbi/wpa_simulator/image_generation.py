@@ -22,6 +22,7 @@ def gen_quat() -> torch.Tensor:
 
 
 def gen_rot_matrix(quats: torch.Tensor) -> torch.Tensor:
+    # TODO add docstring explaining the quaternion convention qr, qx, qy, qz
     """
     Generate a rotation matrix from a quaternion.
 
@@ -73,14 +74,14 @@ def project_density(
     num_batch, _, num_atoms = coords.shape
     norm = 1 / (2 * torch.pi * sigma**2 * num_atoms)
 
-    grid_min = -pixel_size * (num_pixels - 1) * 0.5
-    grid_max = pixel_size * (num_pixels - 1) * 0.5 + pixel_size
+    grid_min = -pixel_size * num_pixels * 0.5
+    grid_max = pixel_size * num_pixels * 0.5
 
     rot_matrix = gen_rot_matrix(quats)
-    grid = torch.arange(grid_min, grid_max, pixel_size, device=coords.device).repeat(
+    grid = torch.arange(grid_min, grid_max, pixel_size, device=coords.device)[0:num_pixels.long()].repeat(
         num_batch, 1
-    )
-
+    ) # [0: num_pixels.long()] is needed due to single precision error in some cases
+ 
     coords_rot = torch.bmm(rot_matrix, coords)
     coords_rot[:, :2, :] += shift.unsqueeze(-1)
 

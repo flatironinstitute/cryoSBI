@@ -31,10 +31,10 @@ def get_snr(images, snr):
 
     mask = circular_mask(
         n_pixels=images.shape[-1],
-        radius=64,  # todo: make this a parameter
+        radius=images.shape[-1]//2,  # TODO: make this a parameter
         device=images.device,
     )
-    signal_power = images[:, mask].pow(2).mean().sqrt()  # torch.std(image[mask])
+    signal_power = torch.std(images[:, mask], dim=[-1, -2]) #images are not centered at 0, so std is not the same as power
     noise_power = signal_power / torch.sqrt(torch.pow(10, snr))
 
     return noise_power
@@ -42,7 +42,7 @@ def get_snr(images, snr):
 
 def add_noise(image: torch.Tensor, snr, seed=None) -> torch.Tensor:
     """
-    Adds noise to image
+    Adds noise to image.
 
     Args:
         image (torch.Tensor): Image of shape (n_pixels, n_pixels).
@@ -54,12 +54,12 @@ def add_noise(image: torch.Tensor, snr, seed=None) -> torch.Tensor:
     """
 
     if seed is not None:
-        torch.manual_seed(seed)
+        torch.manual_seed(seed) #
 
-    snr = get_snr(image, snr)
+    noise_power = get_snr(image, snr)
 
     noise = torch.randn_like(image, device=image.device)
-    noise = noise * snr.reshape(-1, 1, 1)
+    noise = noise * noise_power.reshape(-1, 1, 1)
 
     image_noise = image + noise
 

@@ -1,4 +1,4 @@
-def check_params(config: dict) -> None:
+def check_image_params(config: dict) -> None:
     """
     Checks if all necessary parameters are provided.
 
@@ -14,16 +14,11 @@ def check_params(config: dict) -> None:
         "PIXEL_SIZE",
         "SIGMA",
         "SHIFT",
-        "CTF",
-        "NOISE",
         "DEFOCUS",
         "SNR",
         "MODEL_FILE",
-        "ROTATIONS",
-        "RADIUS_MASK",
         "AMP",
-        "B_FACTOR",
-        "ELECWAVE",
+        "B_FACTOR"
     ]
 
     for key in needed_keys:

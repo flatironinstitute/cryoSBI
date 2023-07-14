@@ -8,6 +8,7 @@ from cryo_sbi.wpa_simulator.image_generation import project_density
 from cryo_sbi.wpa_simulator.noise import add_noise
 from cryo_sbi.wpa_simulator.normalization import gaussian_normalize_image
 from cryo_sbi.inference.priors import get_image_priors
+from cryo_sbi.wpa_simulator.validate_image_config import check_image_params
 
 
 def cryo_em_simulator(
@@ -40,12 +41,12 @@ def cryo_em_simulator(
 
 class CryoEmSimulator:
     def __init__(self, config_fname: str, device: str = "cpu"):
+        self._device = device
         self._load_params(config_fname)
         self._load_models()
-        self._priors = get_image_priors(config_fname, device=device)
+        self._priors = get_image_priors(self.max_index, self._config, device=device)
         self._num_pixels = torch.tensor(self._config["N_PIXELS"], dtype=torch.float32, device=device)
         self._pixel_size = torch.tensor(self._config["PIXEL_SIZE"], dtype=torch.float32, device=device)
-        self._device = device
 
     def _load_params(self, config_fname: str) -> None:
         """
@@ -59,6 +60,7 @@ class CryoEmSimulator:
         """
 
         config = json.load(open(config_fname))
+        check_image_params(config)
         self._config = config
 
     def _load_models(self) -> None:
@@ -69,23 +71,20 @@ class CryoEmSimulator:
             None
 
         """
-        print("Loading models without template... assuming shape (models, 3, atoms)")
         if self._config["MODEL_FILE"].endswith("npy"):
             models = (
                 torch.from_numpy(
                     np.load(self._config["MODEL_FILE"]),
-                )
-                .to(self._device)
-                .to(torch.float32)
+                ).to(self._device).to(torch.float32)
             )
         else:
             models = torch.load(
-                self._config["MODEL_FILE"], 
-                dtype=torch.float32,
-                device=self._device
-            )
+                self._config["MODEL_FILE"]
+            ).to(self._device).to(torch.float32)
+
         self._models = models
-        assert self._models.ndim != 3, "Models are not of shape (models, 3, atoms)."
+
+        assert self._models.ndim == 3, "Models are not of shape (models, 3, atoms)."
         assert self._models.shape[1] == 3, "Models are not of shape (models, 3, atoms)."
 
     @property
@@ -98,12 +97,8 @@ class CryoEmSimulator:
         """
         return len(self._models) - 1
 
-    def _sample_prior(self, shape: tuple) -> torch.Tensor:
-        prior_samples = self._priors.sample()
-        return prior_samples
-
-    def simulate(self, indices=None, return_parameters=False):
-        parameters = self._sample_prior()
+    def simulate(self, num_sim, indices=None, return_parameters=False):
+        parameters = self._priors.sample((num_sim,))
         indices = parameters[0] if indices is None else indices
         if indices is not None:
             assert isinstance(
@@ -126,11 +121,12 @@ class CryoEmSimulator:
             parameters[4],
             parameters[5],
             parameters[6],
+            parameters[7],
             self._num_pixels,
             self._pixel_size,
         )
 
         if return_parameters:
-            return images, parameters
+            return images.cpu(), parameters
         else:
-            return images
+            return images.cpu()

@@ -15,6 +15,8 @@ from cryo_sbi.inference.priors import get_image_priors, PriorLoader
 from cryo_sbi.inference.models.build_models import build_npe_flow_model
 from cryo_sbi.inference.validate_train_config import check_train_params
 from cryo_sbi.wpa_simulator.cryo_em_simulator import cryo_em_simulator
+from cryo_sbi.wpa_simulator.validate_image_config import check_image_params
+from cryo_sbi.inference.validate_train_config import check_train_params
 
 
 def load_model(
@@ -52,6 +54,7 @@ def npe_train_no_saving(
     n_workers: int = 1,
     device: str = "cpu",
     saving_frequency: int = 20,
+    simulation_batch_size: int = 1024
 ) -> None:
     """
     Train NPE model by simulating training data on the fly.
@@ -78,27 +81,31 @@ def npe_train_no_saving(
     """
 
     train_config = json.load(open(train_config))
+    check_train_params(train_config)
     image_config = json.load(open(image_config))
-
+    
+    assert simulation_batch_size > train_config["BATCH_SIZE"]
+    assert simulation_batch_size % train_config["BATCH_SIZE"] == 0
+    
     if image_config["MODEL_FILE"].endswith("npy"):
-        models = (
-            torch.from_numpy(
-                np.load(image_config["MODEL_FILE"]),
-            )
-            .to(device)
-            .to(torch.float32)
-        )
+         models = (
+             torch.from_numpy(
+                 np.load(image_config["MODEL_FILE"]),
+             )
+             .to(device)
+             .to(torch.float32)
+         )
     else:
         models = torch.load(
-            image_config["MODEL_FILE"], 
-            dtype=torch.float32,
-            device=device
+        image_config["MODEL_FILE"], 
+        dtype=torch.float32,
+        device=device
         )
 
     image_prior = get_image_priors(len(models) - 1, image_config, device="cpu")
     prior_loader = PriorLoader(
         image_prior, 
-        batch_size=train_config["BATCH_SIZE"], 
+        batch_size=simulation_batch_size, 
         num_workers=n_workers
     )
 
@@ -119,7 +126,7 @@ def npe_train_no_saving(
 
     loss = NPELoss(estimator)
     optimizer = optim.AdamW(
-        estimator.parameters(), lr=train_config["LEARNING_RATE"], weight_decay=0.0001
+        estimator.parameters(), lr=train_config["LEARNING_RATE"], weight_decay=0.001
     )
     step = GDStep(optimizer, clip=train_config["CLIP_GRADIENT"])
     mean_loss = []
@@ -144,7 +151,8 @@ def npe_train_no_saving(
                     num_pixels,
                     pixel_size,
                 )
-                losses.append(step(loss(indices.to(device), images.to(device))))
+                for _indices, _images in zip(indices.split(train_config["BATCH_SIZE"]), images.split(train_config["BATCH_SIZE"])):
+                    losses.append(step(loss(_indices.to(device, non_blocking=True), _images.to(device, non_blocking=True))))
             losses = torch.stack(losses)
 
             tq.set_postfix(loss=losses.mean().item())

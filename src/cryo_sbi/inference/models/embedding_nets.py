@@ -282,6 +282,5 @@ class ResNet18_FFT_Encoder_132(nn.Module):
         x = self.resnet(x)
         return x
 
-
 if __name__ == "__main__":
     pass
