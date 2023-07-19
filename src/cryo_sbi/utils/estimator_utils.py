@@ -2,7 +2,17 @@ import torch
 import json
 from cryo_sbi.inference.models import build_models
 
+@torch.no_grad()
+def evaluate_log_prob(
+    estimator: torch.nn.Module,
+    images: torch.Tensor,
+    theta: torch.Tensor,
+    device: str = "cpu",
+) -> torch.Tensor:
+    pass # TODO implement function to evaluate log prob
 
+
+@torch.no_grad()
 def sample_posterior(
     estimator: torch.nn.Module,
     images: torch.Tensor,
@@ -32,16 +42,16 @@ def sample_posterior(
         batch_size = images.shape[0]
         images = [images]
 
-    with torch.no_grad():
-        for image_batch in images:
-            samples = estimator.sample(
-                image_batch.to(device, non_blocking=True), shape=(num_samples,)
-            ).cpu()
-            theta_samples.append(samples.reshape(-1, image_batch.shape[0]))
+    for image_batch in images:
+        samples = estimator.sample(
+            image_batch.to(device, non_blocking=True), shape=(num_samples,)
+        ).cpu()
+        theta_samples.append(samples.reshape(-1, image_batch.shape[0]))
 
     return torch.cat(theta_samples, dim=1)
 
 
+@torch.no_grad()
 def compute_latent_repr(
     estimator: torch.nn.Module,
     images: torch.Tensor,
@@ -69,12 +79,11 @@ def compute_latent_repr(
         batch_size = images.shape[0]
         images = [images]
 
-    with torch.no_grad():
-        for image_batch in images:
-            samples = estimator.embedding(
-                image_batch.to(device, non_blocking=True)
-            ).cpu()
-            latent_space_samples.append(samples.reshape(image_batch.shape[0], -1))
+    for image_batch in images:
+        samples = estimator.embedding(
+            image_batch.to(device, non_blocking=True)
+        ).cpu()
+        latent_space_samples.append(samples.reshape(image_batch.shape[0], -1))
 
     return torch.cat(latent_space_samples, dim=0)
 

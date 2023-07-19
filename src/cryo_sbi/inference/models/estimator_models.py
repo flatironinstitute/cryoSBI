@@ -3,10 +3,6 @@ import torch.nn as nn
 import zuko
 from lampe.inference import NPE, NRE
 
-import sys
-
-sys.path.insert(0, "../inference/models")
-
 
 class Standardize(nn.Module):
     """

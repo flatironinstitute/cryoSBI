@@ -4,7 +4,17 @@ import torch
 
 def apply_ctf(image: torch.Tensor, defocus, b_factor, amp, pixel_size) -> torch.Tensor:
     """
-    Apply the CTF convolution to an image.
+    Applies the CTF to the image.
+    
+    Args:
+        image (torch.Tensor): The image to apply the CTF to.
+        defocus (torch.Tensor): The defocus value.
+        b_factor (torch.Tensor): The B-factor value.
+        amp (torch.Tensor): The amplitude value.
+        pixel_size (torch.Tensor): The pixel size value.
+    
+    Returns:
+        torch.Tensor: The image with the CTF applied.
     """
 
     num_batch, num_pixels, _ = image.shape
