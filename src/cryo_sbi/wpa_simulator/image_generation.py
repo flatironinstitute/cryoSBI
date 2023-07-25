@@ -92,6 +92,6 @@ def project_density(
         -0.5 * (((grid.unsqueeze(-1) - coords_rot[:, 1, :].unsqueeze(1)) / sigma) ** 2)
     ).transpose(1, 2)
 
-    image = torch.bmm(gauss_x, gauss_y) * norm.reshape(-1, 1, 1)
+    image = torch.bmm(gauss_x, gauss_y) * norm.reshape(-1, 1, 1) 
 
     return image

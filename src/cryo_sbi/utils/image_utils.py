@@ -335,9 +335,9 @@ class MRCdataset:
             self._index_map is not None
         ), "Index map not built. First call build_index_map()"
         if isinstance(idx, int):
-            return mrc_to_tensor(self.paths[self._path_index[idx]])[
-                self._file_index[idx]
-            ]
+            image = mrc_to_tensor(self.paths[self._path_index[idx]])
+            if image.ndim > 2:
+                return image[self._file_index[idx]]
         if isinstance(idx, (list, np.ndarray, torch.Tensor)):
             return [
                 mrc_to_tensor(self.paths[self._path_index[i]])[self._file_index[i]]
