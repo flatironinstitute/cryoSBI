@@ -5,14 +5,14 @@ import torch
 def apply_ctf(image: torch.Tensor, defocus, b_factor, amp, pixel_size) -> torch.Tensor:
     """
     Applies the CTF to the image.
-    
+
     Args:
         image (torch.Tensor): The image to apply the CTF to.
         defocus (torch.Tensor): The defocus value.
         b_factor (torch.Tensor): The B-factor value.
         amp (torch.Tensor): The amplitude value.
         pixel_size (torch.Tensor): The pixel size value.
-    
+
     Returns:
         torch.Tensor: The image with the CTF applied.
     """
@@ -26,7 +26,7 @@ def apply_ctf(image: torch.Tensor, defocus, b_factor, amp, pixel_size) -> torch.
     imag = torch.zeros_like(freq2_2d, device=image.device) * 1j
 
     env = torch.exp(-b_factor * freq2_2d * 0.5)
-    phase = defocus * torch.pi * 2.0 * 10000 * 0.019866 # hardcoded 0.019866 for 300kV
+    phase = defocus * torch.pi * 2.0 * 10000 * 0.019866  # hardcoded 0.019866 for 300kV
 
     ctf = (
         -amp * torch.cos(phase * freq2_2d * 0.5)

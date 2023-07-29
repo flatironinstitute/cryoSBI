@@ -48,16 +48,15 @@ def get_image_priors(
         lower=torch.tensor(
             [-image_config["SHIFT"], -image_config["SHIFT"]],
             dtype=torch.float32,
-            device=device
+            device=device,
         ),
         upper=torch.tensor(
             [image_config["SHIFT"], image_config["SHIFT"]],
             dtype=torch.float32,
-            device=device
+            device=device,
         ),
         ndims=1,
     )
-
 
     if isinstance(image_config["DEFOCUS"], list) and len(image_config["DEFOCUS"]) == 2:
         lower = torch.tensor(
@@ -100,11 +99,25 @@ def get_image_priors(
         upper=torch.tensor([max_index], dtype=torch.float32, device=device),
     )
     quaternion_prior = QuaternionPrior(device)
-    if image_config.get("ROTATIONS") and isinstance(image_config["ROTATIONS"], list) and len(image_config["ROTATIONS"]) == 4:
+    if (
+        image_config.get("ROTATIONS")
+        and isinstance(image_config["ROTATIONS"], list)
+        and len(image_config["ROTATIONS"]) == 4
+    ):
         test_quat = image_config["ROTATIONS"]
         quaternion_prior = QuaternionTestPrior(test_quat, device)
 
-    return ImagePrior(index_prior, quaternion_prior, sigma, shift, defocus, b_factor, snr, amp, device=device)
+    return ImagePrior(
+        index_prior,
+        quaternion_prior,
+        sigma,
+        shift,
+        defocus,
+        b_factor,
+        snr,
+        amp,
+        device=device,
+    )
 
 
 class QuaternionPrior:
@@ -116,7 +129,7 @@ class QuaternionPrior:
             [gen_quat().to(self.device) for _ in range(shape[0])], dim=0
         )
         return quats
-    
+
 
 class QuaternionTestPrior:
     def __init__(self, quat, device) -> None:
@@ -124,9 +137,7 @@ class QuaternionTestPrior:
         self.quat = torch.tensor(quat, device=device)
 
     def sample(self, shape) -> torch.Tensor:
-        quats = torch.stack(
-            [self.quat for _ in range(shape[0])], dim=0
-        )
+        quats = torch.stack([self.quat for _ in range(shape[0])], dim=0)
         return quats
 
 

@@ -45,8 +45,12 @@ class CryoEmSimulator:
         self._load_params(config_fname)
         self._load_models()
         self._priors = get_image_priors(self.max_index, self._config, device=device)
-        self._num_pixels = torch.tensor(self._config["N_PIXELS"], dtype=torch.float32, device=device)
-        self._pixel_size = torch.tensor(self._config["PIXEL_SIZE"], dtype=torch.float32, device=device)
+        self._num_pixels = torch.tensor(
+            self._config["N_PIXELS"], dtype=torch.float32, device=device
+        )
+        self._pixel_size = torch.tensor(
+            self._config["PIXEL_SIZE"], dtype=torch.float32, device=device
+        )
 
     def _load_params(self, config_fname: str) -> None:
         """
@@ -75,17 +79,26 @@ class CryoEmSimulator:
             models = (
                 torch.from_numpy(
                     np.load(self._config["MODEL_FILE"]),
-                ).to(self._device).to(torch.float32)
+                )
+                .to(self._device)
+                .to(torch.float32)
             )
+        elif self._config["MODEL_FILE"].endswith("pt"):
+            models = (
+                torch.load(self._config["MODEL_FILE"])
+                .to(self._device)
+                .to(torch.float32)
+            )
+
         else:
-            models = torch.load(
-                self._config["MODEL_FILE"]
-            ).to(self._device).to(torch.float32)
+            raise NotImplementedError(
+                "Model file format not supported. Please use .npy or .pt."
+            )
 
         self._models = models
 
         assert self._models.ndim == 3, "Models are not of shape (models, 3, atoms)."
-        assert self._models.shape[1] == 3, "Models are not of shape (models, 3, atoms)."
+        assert self._models.shape[1] == 5, "Models are not of shape (models, 3, atoms)."
 
     @property
     def max_index(self) -> int:

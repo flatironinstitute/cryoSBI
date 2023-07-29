@@ -18,7 +18,7 @@ def check_image_params(config: dict) -> None:
         "SNR",
         "MODEL_FILE",
         "AMP",
-        "B_FACTOR"
+        "B_FACTOR",
     ]
 
     for key in needed_keys:

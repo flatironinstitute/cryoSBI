@@ -2,6 +2,7 @@ import torch
 import json
 from cryo_sbi.inference.models import build_models
 
+
 @torch.no_grad()
 def evaluate_log_prob(
     estimator: torch.nn.Module,
@@ -9,7 +10,7 @@ def evaluate_log_prob(
     theta: torch.Tensor,
     device: str = "cpu",
 ) -> torch.Tensor:
-    pass # TODO implement function to evaluate log prob
+    pass  # TODO implement function to evaluate log prob
 
 
 @torch.no_grad()
@@ -80,9 +81,7 @@ def compute_latent_repr(
         images = [images]
 
     for image_batch in images:
-        samples = estimator.embedding(
-            image_batch.to(device, non_blocking=True)
-        ).cpu()
+        samples = estimator.embedding(image_batch.to(device, non_blocking=True)).cpu()
         latent_space_samples.append(samples.reshape(image_batch.shape[0], -1))
 
     return torch.cat(latent_space_samples, dim=0)

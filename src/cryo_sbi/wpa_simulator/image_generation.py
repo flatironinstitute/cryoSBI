@@ -51,7 +51,7 @@ def gen_rot_matrix(quats: torch.Tensor) -> torch.Tensor:
 
 
 def project_density(
-    coords: torch.Tensor,
+    atomic_model: torch.Tensor,
     quats: torch.Tensor,
     sigma: torch.Tensor,
     shift: torch.Tensor,
@@ -62,7 +62,7 @@ def project_density(
     Generate a 2D projections from a set of coordinates.
 
     Args:
-        coords (torch.Tensor): Coordinates of the atoms in the images
+        atomic_model (torch.Tensor): Coordinates of the atoms in the images
         sigma (float): Standard deviation of the Gaussian function used to model electron density.
         num_pixels (int): Number of pixels along one image size.
         pixel_size (float): Pixel size in Angstrom
@@ -71,27 +71,34 @@ def project_density(
         image (torch.Tensor): Images generated from the coordinates
     """
 
-    num_batch, _, num_atoms = coords.shape
-    norm = 1 / (2 * torch.pi * sigma**2 * num_atoms)
+    num_batch, _, _ = atomic_model.shape
+
+    variances = atomic_model[:, 4, :] * sigma[:, 0] ** 2
+    amplitudes = atomic_model[:, 3, :] / torch.sqrt((2 * torch.pi * variances))
 
     grid_min = -pixel_size * num_pixels * 0.5
     grid_max = pixel_size * num_pixels * 0.5
 
     rot_matrix = gen_rot_matrix(quats)
-    grid = torch.arange(grid_min, grid_max, pixel_size, device=coords.device)[0:num_pixels.long()].repeat(
+    grid = torch.arange(grid_min, grid_max, pixel_size, device=atomic_model.device)[
+        0 : num_pixels.long()
+    ].repeat(
         num_batch, 1
-    ) # [0: num_pixels.long()] is needed due to single precision error in some cases
- 
-    coords_rot = torch.bmm(rot_matrix, coords)
+    )  # [0: num_pixels.long()] is needed due to single precision error in some cases
+
+    coords_rot = torch.bmm(rot_matrix, atomic_model[:, :3, :])
     coords_rot[:, :2, :] += shift.unsqueeze(-1)
 
     gauss_x = torch.exp_(
-        -0.5 * (((grid.unsqueeze(-1) - coords_rot[:, 0, :].unsqueeze(1)) / sigma) ** 2)
-    )
-    gauss_y = torch.exp_(
-        -0.5 * (((grid.unsqueeze(-1) - coords_rot[:, 1, :].unsqueeze(1)) / sigma) ** 2)
-    ).transpose(1, 2)
+        -((grid.unsqueeze(-1) - coords_rot[:, 0, :].unsqueeze(1)) ** 2)
+        / variances.unsqueeze(1)
+    ) * amplitudes.unsqueeze(1)
 
-    image = torch.bmm(gauss_x, gauss_y) * norm.reshape(-1, 1, 1) 
+    gauss_y = torch.exp(
+        -((grid.unsqueeze(-1) - coords_rot[:, 1, :].unsqueeze(1)) ** 2)
+        / variances.unsqueeze(1)
+    ) * amplitudes.unsqueeze(1)
+
+    image = torch.bmm(gauss_x, gauss_y.transpose(1, 2))
 
     return image

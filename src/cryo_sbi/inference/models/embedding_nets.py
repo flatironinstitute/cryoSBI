@@ -296,8 +296,8 @@ class ResNet34_Encoder(nn.Module):
         x = x.unsqueeze(1)
         x = self.resnet(x)
         return x
-    
-    
+
+
 @add_embedding("RESNET34_256_LP")
 class ResNet34_Encoder(nn.Module):
     def __init__(self, output_dimension: int):
@@ -324,26 +324,28 @@ class ResNet34_Encoder(nn.Module):
 class VGG19_Encoder(nn.Module):
     def __init__(self, output_dimension: int):
         super(VGG19_Encoder, self).__init__()
-        
+
         self.vgg19 = models.vgg19_bn().features
-        self.vgg19[0] = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        
+        self.vgg19[0] = nn.Conv2d(
+            1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)
+        )
+
         self.avgpool = nn.AdaptiveAvgPool2d(output_size=(7, 7))
-        
+
         self.feedforward = nn.Sequential(
             *[
                 nn.Linear(in_features=25088, out_features=4096),
                 nn.ReLU(inplace=True),
                 nn.Linear(in_features=4096, out_features=output_dimension, bias=True),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
             ]
         )
-        
-        #self._fft_filter = LowPassFilter(256, 50)
+
+        # self._fft_filter = LowPassFilter(256, 50)
 
     def forward(self, x):
         # Low pass filter images
-        #x = self._fft_filter(x)
+        # x = self._fft_filter(x)
         # Proceed as normal
         x = x.unsqueeze(1)
         x = self.vgg19(x)

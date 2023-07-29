@@ -314,7 +314,7 @@ class MRCdataset:
         if self._index_map is not None:
             print("Index map already built.")
             return
-        
+
         self._path_index = []
         self._file_index = []
         print("Initalizing indexing...")
