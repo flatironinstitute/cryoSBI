@@ -12,7 +12,7 @@ def check_image_params(config: dict) -> None:
     needed_keys = [
         "N_PIXELS",
         "PIXEL_SIZE",
-        "SIGMA",
+        "RES",
         "SHIFT",
         "DEFOCUS",
         "SNR",

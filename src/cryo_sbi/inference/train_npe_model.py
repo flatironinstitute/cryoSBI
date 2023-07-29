@@ -132,7 +132,7 @@ def npe_train_no_saving(
                 (
                     indices,
                     quaternions,
-                    sigma,
+                    res,
                     shift,
                     defocus,
                     b_factor,
@@ -143,7 +143,7 @@ def npe_train_no_saving(
                     models,
                     indices.to(device, non_blocking=True),
                     quaternions.to(device, non_blocking=True),
-                    sigma.to(device, non_blocking=True),
+                    res.to(device, non_blocking=True),
                     shift.to(device, non_blocking=True),
                     defocus.to(device, non_blocking=True),
                     b_factor.to(device, non_blocking=True),

@@ -15,7 +15,7 @@ def cryo_em_simulator(
     models,
     index,
     quaternion,
-    sigma,
+    res,
     shift,
     defocus,
     b_factor,
@@ -28,7 +28,7 @@ def cryo_em_simulator(
     image = project_density(
         models_selected,
         quaternion,
-        sigma,
+        res,
         shift,
         num_pixels,
         pixel_size,

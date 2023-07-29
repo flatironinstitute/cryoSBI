@@ -53,7 +53,7 @@ def gen_rot_matrix(quats: torch.Tensor) -> torch.Tensor:
 def project_density(
     atomic_model: torch.Tensor,
     quats: torch.Tensor,
-    sigma: torch.Tensor,
+    res: torch.Tensor,
     shift: torch.Tensor,
     num_pixels: int,
     pixel_size: float,
@@ -63,7 +63,7 @@ def project_density(
 
     Args:
         atomic_model (torch.Tensor): Coordinates of the atoms in the images
-        sigma (float): Standard deviation of the Gaussian function used to model electron density.
+        res (float): resolution of the images in Angstrom
         num_pixels (int): Number of pixels along one image size.
         pixel_size (float): Pixel size in Angstrom
 
@@ -73,7 +73,7 @@ def project_density(
 
     num_batch, _, _ = atomic_model.shape
 
-    variances = atomic_model[:, 4, :] * sigma[:, 0] ** 2
+    variances = atomic_model[:, 4, :] * res[:, 0] ** 2
     amplitudes = atomic_model[:, 3, :] / torch.sqrt((2 * torch.pi * variances))
 
     grid_min = -pixel_size * num_pixels * 0.5
