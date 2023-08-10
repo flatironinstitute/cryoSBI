@@ -151,8 +151,9 @@ def npe_train_no_saving(
                     num_pixels,
                     pixel_size,
                 )
-                for _indices, _images in zip(indices.split(train_config["BATCH_SIZE"]), images.split(train_config["BATCH_SIZE"])):
-                    losses.append(step(loss(_indices.to(device, non_blocking=True), _images.to(device, non_blocking=True))))
+                flow_parameters = torch.stack([indices, quaternions, snr], dim=1)
+                for _flow_parameters, _images in zip(flow_parameters.split(train_config["BATCH_SIZE"]), images.split(train_config["BATCH_SIZE"])):
+                    losses.append(step(loss(_flow_parameters.to(device, non_blocking=True), _images.to(device, non_blocking=True))))
             losses = torch.stack(losses)
 
             tq.set_postfix(loss=losses.mean().item())
