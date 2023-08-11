@@ -139,7 +139,7 @@ def npe_train_no_saving(
             for parameters in islice(prior_loader, 100):
                 indices, quaternions, sigma, shift, defocus, b_factor, amp, snr = parameters
                 images = cryo_em_simulator(
-                    models,
+                    models.clone(),
                     indices.to(device, non_blocking=True),
                     quaternions.to(device, non_blocking=True),
                     sigma.to(device, non_blocking=True),
@@ -151,7 +151,7 @@ def npe_train_no_saving(
                     num_pixels,
                     pixel_size,
                 )
-                flow_parameters = torch.stack([indices, quaternions, snr], dim=1)
+                flow_parameters = torch.cat([indices, quaternions, snr.reshape(-1, 1)], dim=1)
                 for _flow_parameters, _images in zip(flow_parameters.split(train_config["BATCH_SIZE"]), images.split(train_config["BATCH_SIZE"])):
                     losses.append(step(loss(_flow_parameters.to(device, non_blocking=True), _images.to(device, non_blocking=True))))
             losses = torch.stack(losses)

@@ -98,12 +98,14 @@ class NPEWithEmbedding(nn.Module):
             output_embedding_dim,
             transforms=num_transforms,
             build=flow,
-            hidden_features=[*[hidden_flow_dim] * num_hidden_flow, 128, 64],
+            hidden_features=[*[hidden_flow_dim] * num_hidden_flow],
             **kwargs,
         )
 
         self.embedding = embedding_net()
-        self.standardize = Standardize(theta_shift, theta_scale)
+        theta_shifts = (theta_shift, 0.0, 0.0, 0.0, 0.0, 0.0)
+        theta_scales = (theta_scale, 1.0, 1.0, 1.0, 1.0, 1.0)
+        self.standardize = Standardize(theta_shifts, theta_scales)
 
     def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         """
@@ -119,7 +121,7 @@ class NPEWithEmbedding(nn.Module):
 
         return self.npe(self.standardize(theta), self.embedding(x))
 
-    def flow(self, x: torch.Tensor) -> zuko.flows.FlowModule:
+    def flow(self, x: torch.Tensor) -> zuko.flows.Flow:
         """
         Conditions the posterior on an image.
 
