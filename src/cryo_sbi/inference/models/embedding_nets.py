@@ -27,6 +27,24 @@ def add_embedding(name):
     return add
 
 
+@add_embedding("RESNET18_TEST2")
+class ResNet18_Encoder_Test2(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(ResNet18_Encoder_Test2, self).__init__()
+        self.resnet = models.resnet18()
+        self.resnet.conv1 = nn.Conv2d(
+            1, 64, kernel_size=(15, 15), stride=(2, 2), padding=(3, 3), bias=False
+        )
+        self.resnet.fc = nn.Linear(
+            in_features=512, out_features=output_dimension, bias=True
+        )
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.resnet(x)
+        return x
+
+
 @add_embedding("RESNET18")
 class ResNet18_Encoder(nn.Module):
     def __init__(self, output_dimension: int):
@@ -38,6 +56,24 @@ class ResNet18_Encoder(nn.Module):
         self.resnet.fc = nn.Linear(
             in_features=512, out_features=output_dimension, bias=True
         )
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.resnet(x)
+        return x
+    
+    
+@add_embedding("RESNET18_TEST")
+class ResNet18_Encoder_Test(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(ResNet18_Encoder_Test, self).__init__()
+        print("Training with avg pooling")
+        self.resnet = models.resnet18()
+        self.resnet.conv1 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        self.resnet.fc = nn.Linear(
+            in_features=512, out_features=output_dimension, bias=True
+        )
+        self.resnet.maxpool = nn.MaxPool2d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=False)
 
     def forward(self, x):
         x = x.unsqueeze(1)
@@ -124,19 +160,16 @@ class EfficientNet_Encoder(nn.Module):
     def __init__(self, output_dimension: int):
         super(EfficientNet_Encoder, self).__init__()
 
-        self.efficient_net = models.efficientnet_b3().features
+        self.efficient_net = models.efficientnet_b0().features
         self.efficient_net[0][0] = nn.Conv2d(
-            1, 40, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False
+            1, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False
         )
         self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1)
-        self.leakyrelu = nn.LeakyReLU()
-        self.linear = nn.Linear(1536, output_dimension)
 
     def forward(self, x):
         x = x.unsqueeze(1)
         x = self.efficient_net(x)
         x = self.avg_pool(x).flatten(start_dim=1)
-        x = self.leakyrelu(self.linear(x))
         return x
 
 
@@ -246,6 +279,54 @@ class ResNet18_FFT_Encoder(nn.Module):
         )
 
         self._fft_filter = LowPassFilter(128, 25)
+
+    def forward(self, x):
+        # Low pass filter images
+        x = self._fft_filter(x)
+        # Proceed as normal
+        x = x.unsqueeze(1)
+        x = self.resnet(x)
+        return x
+    
+    
+@add_embedding("RESNET18_FFT_FILTER_224")
+class ResNet18_FFT_Encoder_224(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(ResNet18_FFT_Encoder_224, self).__init__()
+        self.resnet = models.resnet18()
+        self.resnet.conv1 = nn.Conv2d(
+            1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
+        )
+        self.resnet.fc = nn.Linear(
+            in_features=512, out_features=output_dimension, bias=True
+        )
+
+        self._fft_filter = LowPassFilter(224, 30)
+        print("embedding with 224 lp 30")
+
+    def forward(self, x):
+        # Low pass filter images
+        x = self._fft_filter(x)
+        # Proceed as normal
+        x = x.unsqueeze(1)
+        x = self.resnet(x)
+        return x
+    
+
+@add_embedding("RESNET18_FFT_FILTER_224_LP25")
+class ResNet18_FFT_Encoder_224_LP25(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(ResNet18_FFT_Encoder_224_LP25, self).__init__()
+        self.resnet = models.resnet18()
+        self.resnet.conv1 = nn.Conv2d(
+            1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
+        )
+        self.resnet.fc = nn.Linear(
+            in_features=512, out_features=output_dimension, bias=True
+        )
+
+        self._fft_filter = LowPassFilter(224, 25)
+        print("embedding with 224 lp 25")
 
     def forward(self, x):
         # Low pass filter images

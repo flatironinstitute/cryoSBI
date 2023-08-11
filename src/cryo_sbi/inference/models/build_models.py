@@ -49,8 +49,9 @@ The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys(
         flow=model,
         theta_shift=config["THETA_SHIFT"],
         theta_scale=config["THETA_SCALE"],
-        **{"activation": partial(nn.LeakyReLU, 0.1)},
+        **{"activation": nn.GELU},#partial(nn.LeakyReLU, 0.1), nn.GELU
     )
+    print("Training with GELU")
 
     return estimator
 

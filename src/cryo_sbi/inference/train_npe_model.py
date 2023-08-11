@@ -123,6 +123,7 @@ def npe_train_no_saving(
     estimator = load_model(
         train_config, model_state_dict, device, train_from_checkpoint
     )
+    
 
     loss = NPELoss(estimator)
     optimizer = optim.AdamW(
@@ -130,7 +131,7 @@ def npe_train_no_saving(
     )
     step = GDStep(optimizer, clip=train_config["CLIP_GRADIENT"])
     mean_loss = []
-
+    
     print("Training neural netowrk:")
     estimator.train()
     with tqdm(range(epochs), unit="epoch") as tq:
