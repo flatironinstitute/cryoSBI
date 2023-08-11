@@ -71,11 +71,11 @@ def project_density(
         image (torch.Tensor): Images generated from the coordinates
     """
 
-    num_batch, _, _ = atomic_model.shape
+    num_batch, _, num_atoms = atomic_model.shape
 
     variances = atomic_model[:, 4, :] * res[:, 0] ** 2
     amplitudes = atomic_model[:, 3, :] / torch.sqrt((2 * torch.pi * variances))
-
+    
     grid_min = -pixel_size * num_pixels * 0.5
     grid_max = pixel_size * num_pixels * 0.5
 
@@ -99,6 +99,7 @@ def project_density(
         / variances.unsqueeze(1)
     ) * amplitudes.unsqueeze(1)
 
-    image = torch.bmm(gauss_x, gauss_y.transpose(1, 2))
+    image = torch.bmm(gauss_x, gauss_y.transpose(1, 2)) #* norms
+    image /= torch.norm(image, dim=[-2, -1]).reshape(-1, 1, 1)
 
     return image

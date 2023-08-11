@@ -165,11 +165,11 @@ def pdb_parser(input_file_prefix, n_pdbs, output_file, mode):
         The mode of the atomic model. Either "resid" or "all atom". Resid mode returns a coarse grained atomic model of the protein. All atom mode returns an all atom atomic model of the protein.
     """
 
-    atomic_model = pdb_parser_(f"{input_file_prefix}{0}.pdb", mode)
+    atomic_model = pdb_parser_(f"{input_file_prefix}{1}.pdb", mode)
     atomic_models = torch.zeros((n_pdbs, *atomic_model.shape))
 
-    for i in range(n_pdbs):
-        atomic_models[i] = pdb_parser_(f"{input_file_prefix}{i}.pdb", mode)
+    for i in range(0, n_pdbs):
+        atomic_models[i] = pdb_parser_(f"{input_file_prefix}{i+1}.pdb", mode)
 
     if output_file.endswith("pt"):
         torch.save(atomic_models, output_file)
