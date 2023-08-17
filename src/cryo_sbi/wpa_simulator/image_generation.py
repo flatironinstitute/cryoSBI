@@ -13,7 +13,7 @@ def gen_quat() -> torch.Tensor:
     count = 0
     while count < 1:
         quat = 2 * torch.rand(size=(4,)) - 1
-        norm = torch.sqrt(torch.sum(quat**2))
+        norm = torch.sqrt(torch.sum(quat ** 2))
         if 0.2 <= norm <= 1.0:
             quat /= norm
             count += 1
@@ -75,7 +75,7 @@ def project_density(
 
     variances = atomic_model[:, 4, :] * res[:, 0] ** 2
     amplitudes = atomic_model[:, 3, :] / torch.sqrt((2 * torch.pi * variances))
-    
+
     grid_min = -pixel_size * num_pixels * 0.5
     grid_max = pixel_size * num_pixels * 0.5
 
@@ -99,7 +99,7 @@ def project_density(
         / variances.unsqueeze(1)
     ) * amplitudes.unsqueeze(1)
 
-    image = torch.bmm(gauss_x, gauss_y.transpose(1, 2)) #* norms
+    image = torch.bmm(gauss_x, gauss_y.transpose(1, 2))  # * norms
     image /= torch.norm(image, dim=[-2, -1]).reshape(-1, 1, 1)
 
     return image

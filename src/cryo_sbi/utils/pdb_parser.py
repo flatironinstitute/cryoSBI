@@ -4,7 +4,12 @@ import torch
 
 def pdb_parser_all_atom_(fname: str) -> torch.tensor:
     """
-    Parses a pdb file and returns an atomic model of the protein. The atomic model is a 5xN array, where N is the number of atoms in the protein. The first three rows are the x, y, z coordinates of the atoms. The fourth row is the atomic number of the atoms. The fifth row is the variance of the atoms before the resolution is applied.
+    Parses a pdb file and returns an atomic model of the protein.
+    The atomic model is a 5xN array, where N is the number of atoms in the protein.
+    The first three rows are the x, y, z coordinates of the atoms.
+    The fourth row is the atomic number of the atoms.
+    The fifth row is the variance of the atoms before the resolution is applied.
+    
     Parameters
     ----------
     fname : str
@@ -47,7 +52,11 @@ def pdb_parser_all_atom_(fname: str) -> torch.tensor:
 
 def pdb_parser_resid_(fname: str) -> torch.tensor:
     """
-    Parses a pdb file and returns a coarsed grained atomic model of the protein. The atomic model is a 5xN array, where N is the number of residues in the protein. The first three rows are the x, y, z coordinates of the alpha carbons. The fourth row is the density of the residues, i.e., the total number of electrons. The fifth row is the radius of the residues squared, which we use as the variance of the residues for the forward model.
+    Parses a pdb file and returns a coarsed grained atomic model of the protein.
+    The atomic model is a 5xN array, where N is the number of residues in the protein.
+    The first three rows are the x, y, z coordinates of the alpha carbons.
+    The fourth row is the density of the residues, i.e., the total number of electrons.
+    The fifth row is the radius of the residues squared, which we use as the variance of the residues for the forward model.
 
     Parameters
     ----------
@@ -122,14 +131,19 @@ def pdb_parser_resid_(fname: str) -> torch.tensor:
 
 def pdb_parser_(input_file: str, mode: str) -> torch.tensor:
     """
-    Parses a pdb file and returns an atomic model of the protein. The atomic model is a 5xN array, where N is the number of atoms or residues in the protein. The first three rows are the x, y, z coordinates of the atoms or residues. The fourth row is the atomic number of the atoms or the density of the residues. The fifth row is the variance of the atoms or residues, which is the resolution of the cryo-EM map divided by pi squared.
+    Parses a pdb file and returns an atomic model of the protein.
+    The atomic model is a 5xN array, where N is the number of atoms or residues in the protein.
+    The first three rows are the x, y, z coordinates of the atoms or residues. 
+    The fourth row is the atomic number of the atoms or the density of the residues.
+    The fifth row is the variance of the atoms or residues, which is the resolution of the cryo-EM map divided by pi squared.
 
     Parameters
     ----------
     input_file : str
         The path to the pdb file.
     mode : str
-        The mode of the atomic model. Either "resid" or "all-atom". Resid mode returns a coarse grained atomic model of the protein. All atom mode returns an all atom atomic model of the protein.
+        The mode of the atomic model. Either "resid" or "all-atom".
+        Resid mode returns a coarse grained atomic model of the protein. All atom mode returns an all atom atomic model of the protein.
 
     Returns
     -------

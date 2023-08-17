@@ -25,9 +25,9 @@ def circular_mask(n_pixels: int, radius: int, inside: bool = True) -> torch.Tens
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
 
     if inside is True:
-        mask = r_2d < radius**2
+        mask = r_2d < radius ** 2
     else:
-        mask = r_2d > radius**2
+        mask = r_2d > radius ** 2
 
     return mask
 

@@ -19,7 +19,7 @@ def circular_mask(n_pixels: int, radius: int, device: str = "cpu") -> torch.Tens
         -0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels, device=device
     )
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
-    mask = r_2d < radius**2
+    mask = r_2d < radius ** 2
 
     return mask
 
