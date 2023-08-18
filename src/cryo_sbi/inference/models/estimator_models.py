@@ -119,7 +119,7 @@ class NPEWithEmbedding(nn.Module):
 
         return self.npe(self.standardize(theta), self.embedding(x))
 
-    def flow(self, x: torch.Tensor) -> zuko.flows.FlowModule:
+    def flow(self, x: torch.Tensor):
         """
         Conditions the posterior on an image.
 

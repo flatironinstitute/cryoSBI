@@ -124,7 +124,7 @@ def traj_parser_resid_(top_file: str, traj_file: str) -> torch.tensor:
     align.AlignTraj(mobile, ref, select="name CA", in_memory=True).run()
 
     atomic_models = torch.zeros(
-        (mobile.trajectory.n_frames, 5, mobile.select_atoms("not name H*").n_atoms)
+        (mobile.trajectory.n_frames, 5, mobile.select_atoms("name CA").n_atoms)
     )
 
     for i in range(mobile.trajectory.n_frames):
