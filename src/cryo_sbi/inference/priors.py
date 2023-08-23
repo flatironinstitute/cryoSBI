@@ -44,10 +44,10 @@ def get_image_priors(
         )
 
         assert (
-            lower > 2.0 * image_config["PIXEL_SIZE"]
+            lower >= 2.0 * image_config["PIXEL_SIZE"]
         ), "The lower bound for RES must be at least 2 times the pixel size."
 
-        assert lower < upper, "Lower bound must be smaller than upper bound."
+        assert lower < upper, "Lower bound for RES must be smaller than upper bound."
 
         res = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
@@ -74,7 +74,7 @@ def get_image_priors(
         )
 
         assert lower > 0.0, "The lower bound for DEFOCUS must be positive."
-        assert lower < upper, "Lower bound must be smaller than upper bound."
+        assert lower < upper, "Lower bound for DEFOCUS must be smaller than upper bound."
 
         defocus = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
@@ -89,8 +89,8 @@ def get_image_priors(
             [[image_config["B_FACTOR"][1]]], dtype=torch.float32, device=device
         )
 
-        assert lower > 0.0, "The lower bound for DEFOCUS must be positive."
-        assert lower < upper, "Lower bound must be smaller than upper bound."
+        assert lower > 0.0, "The lower bound for B_FACTOR must be positive."
+        assert lower < upper, "Lower bound for B_FACTOR must be smaller than upper bound."
 
         b_factor = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
@@ -102,8 +102,8 @@ def get_image_priors(
             [[image_config["SNR"][1]]], dtype=torch.float32, device=device
         ).log10()
 
-        assert lower > 0.0, "The lower bound for DEFOCUS must be positive."
-        assert lower < upper, "Lower bound must be smaller than upper bound."
+        #assert lower > 0.0, "The lower bound for DEFOCUS must be positive."
+        #assert lower < upper, "Lower bound must be smaller than upper bound."
 
         snr = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 

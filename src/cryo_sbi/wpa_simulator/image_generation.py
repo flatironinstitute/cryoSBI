@@ -89,6 +89,7 @@ def project_density(
     coords_rot = torch.bmm(rot_matrix, atomic_model[:, :3, :])
     coords_rot[:, :2, :] += shift.unsqueeze(-1)
 
+    # Protein Projection
     gauss_x = torch.exp_(
         -((grid.unsqueeze(-1) - coords_rot[:, 0, :].unsqueeze(1)) ** 2)
         / variances.unsqueeze(1)
@@ -100,5 +101,31 @@ def project_density(
     ) * amplitudes.unsqueeze(1)
 
     image = torch.bmm(gauss_x, gauss_y.transpose(1, 2))
+
+    # Implicit Solvent Projection
+    freq_cutoff = 1.0 / 6.0 # 6 angstrom
+    solv_coeff = 4.0 # standard deviation is twice the one for atoms
+
+    variances = solv_coeff * atomic_model[:, 4, :] * res[:, 0] ** 2
+    amplitudes = atomic_model[:, 3, :] / torch.sqrt((2 * torch.pi * variances))
+
+    gauss_x = torch.exp_(
+        -((grid.unsqueeze(-1) - coords_rot[:, 0, :].unsqueeze(1)) ** 2)
+        / variances.unsqueeze(1)
+    ) * amplitudes.unsqueeze(1)
+
+    gauss_y = torch.exp(
+        -((grid.unsqueeze(-1) - coords_rot[:, 1, :].unsqueeze(1)) ** 2)
+        / variances.unsqueeze(1)
+    ) * amplitudes.unsqueeze(1)
+
+    image_solv = torch.bmm(gauss_x, gauss_y.transpose(1, 2))
+
+    freq_pix_1d = torch.fft.fftfreq(int(num_pixels), d=pixel_size, device=image_solv.device)
+    freq2_2d = freq_pix_1d[:, None] ** 2 + freq_pix_1d[None, :] ** 2
+
+    image_solv = 0.5 * torch.fft.ifft2(torch.fft.fft2(image_solv) * (freq2_2d < freq_cutoff)).real
+
+    image = image - image_solv
 
     return image
