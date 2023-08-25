@@ -122,9 +122,7 @@ def pdb_parser_resid_(fname: str) -> torch.tensor:
     atomic_model = torch.zeros((5, residues.n_residues))
     atomic_model[0:3, :] = torch.from_numpy(univ.select_atoms("name CA").positions.T)
     atomic_model[3, :] = torch.tensor([resid_density[x] for x in residues.resnames])
-    atomic_model[4, :] = (
-        torch.tensor([resid_radius[x] for x in residues.resnames]) / torch.pi
-    ) ** 2
+    atomic_model[4, :] =  2 * (torch.tensor([resid_radius[x] / 2 for x in residues.resnames]) ** 2) # Residue radius is will be the 2 sigma interval of the gaussian
 
     return atomic_model
 
