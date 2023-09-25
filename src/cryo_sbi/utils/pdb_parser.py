@@ -161,14 +161,14 @@ def pdb_parser_(input_file: str, mode: str) -> torch.tensor:
     return atomic_model
 
 
-def pdb_parser(input_file_prefix, n_pdbs, output_file, mode):
+def pdb_parser(file_formatter, n_pdbs, output_file, mode, start_index=1):
     """
     Parses a pdb file and returns an atomic model of the protein. The atomic model is a 5xN array, where N is the number of atoms or residues in the protein. The first three rows are the x, y, z coordinates of the atoms or residues. The fourth row is the atomic number of the atoms or the density of the residues. The fifth row is the variance of the atoms or residues, which is the resolution of the cryo-EM map divided by pi squared.
 
     Parameters
     ----------
-    input_file_prefix : str
-        The path to the pdb file. The pdb files should be named as input_file_prefix0.pdb, input_file_prefix1.pdb, etc.
+    file_formatter : str
+        The path to the pdb file. The path must contain the placeholder {} for the pdb index. For example, if the path is "data/pdb/{}.pdb", then the placeholder is {}.
     n_pdbs : int
         The number of pdb files to parse.
     output_file : str
@@ -177,11 +177,12 @@ def pdb_parser(input_file_prefix, n_pdbs, output_file, mode):
         The mode of the atomic model. Either "resid" or "all atom". Resid mode returns a coarse grained atomic model of the protein. All atom mode returns an all atom atomic model of the protein.
     """
 
-    atomic_model = pdb_parser_(f"{input_file_prefix}{1}.pdb", mode)
+    atomic_model = pdb_parser_(file_formatter.format(start_index), mode)
     atomic_models = torch.zeros((n_pdbs, *atomic_model.shape))
 
     for i in range(0, n_pdbs):
-        atomic_models[i] = pdb_parser_(f"{input_file_prefix}{i+1}.pdb", mode)
+        atomic_models[i] = pdb_parser_(file_formatter.format(start_index+1), mode)
+
 
     if output_file.endswith("pt"):
         torch.save(atomic_models, output_file)

@@ -303,8 +303,8 @@ class MRCdataset:
         future_mrc = mrcfile.open_async(path)
         mrc = future_mrc.result()
         data_shape = mrc.data.shape
-        img_stack = mrc.is_image_stack()
-        num_images = data_shape[0] if img_stack else 1
+        #img_stack = mrc.is_image_stack()
+        num_images = data_shape[0] if len(data_shape) > 2 else 1
         return num_images
 
     def build_index_map(self):
