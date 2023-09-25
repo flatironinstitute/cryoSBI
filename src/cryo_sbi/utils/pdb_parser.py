@@ -181,7 +181,7 @@ def pdb_parser(file_formatter, n_pdbs, output_file, mode, start_index=1):
     atomic_models = torch.zeros((n_pdbs, *atomic_model.shape))
 
     for i in range(0, n_pdbs):
-        atomic_models[i] = pdb_parser_(file_formatter.format(start_index+1), mode)
+        atomic_models[i] = pdb_parser_(file_formatter.format(start_index+i), mode)
 
 
     if output_file.endswith("pt"):
