@@ -81,6 +81,7 @@ def pdb_parser_resid_(fname: str) -> torch.tensor:
         "ASP": 2.8,
         "LYS": 3.2,
         "GLU": 2.95,
+        "CGB": 4.5,
     }
 
     resid_density = {
@@ -104,6 +105,7 @@ def pdb_parser_resid_(fname: str) -> torch.tensor:
         "ASP": 59.0,
         "LYS": 79.0,
         "GLU": 53.0,
+        "CGB": 36.0,
     }
 
     univ = mda.Universe(fname)
