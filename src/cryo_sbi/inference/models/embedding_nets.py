@@ -277,6 +277,52 @@ class ResNet18_FFT_Encoder_132(nn.Module):
         x = x.unsqueeze(1)
         x = self.resnet(x)
         return x
+    
+
+@add_embedding("RESNET18_FFT_FILTER_224")
+class ResNet18_FFT_Encoder_224(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(ResNet18_FFT_Encoder_224, self).__init__()
+        self.resnet = models.resnet18()
+        self.resnet.conv1 = nn.Conv2d(
+            1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
+        )
+        self.resnet.fc = nn.Linear(
+            in_features=512, out_features=output_dimension, bias=True
+        )
+
+        self._fft_filter = LowPassFilter(224, 25)
+
+    def forward(self, x):
+        # Low pass filter images
+        x = self._fft_filter(x)
+        # Proceed as normal
+        x = x.unsqueeze(1)
+        x = self.resnet(x)
+        return x
+
+
+@add_embedding("RESNET18_FFT_FILTER_256")
+class ResNet18_FFT_Encoder_256(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(ResNet18_FFT_Encoder_256, self).__init__()
+        self.resnet = models.resnet18()
+        self.resnet.conv1 = nn.Conv2d(
+            1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
+        )
+        self.resnet.fc = nn.Linear(
+            in_features=512, out_features=output_dimension, bias=True
+        )
+
+        self._fft_filter = LowPassFilter(256, 10)
+
+    def forward(self, x):
+        # Low pass filter images
+        x = self._fft_filter(x)
+        # Proceed as normal
+        x = x.unsqueeze(1)
+        x = self.resnet(x)
+        return x
 
 
 @add_embedding("RESNET34")

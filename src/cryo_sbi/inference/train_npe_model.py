@@ -84,7 +84,7 @@ def npe_train_no_saving(
     check_train_params(train_config)
     image_config = json.load(open(image_config))
 
-    assert simulation_batch_size > train_config["BATCH_SIZE"]
+    assert simulation_batch_size >= train_config["BATCH_SIZE"]
     assert simulation_batch_size % train_config["BATCH_SIZE"] == 0
 
     if image_config["MODEL_FILE"].endswith("npy"):
@@ -97,8 +97,7 @@ def npe_train_no_saving(
         )
     else:
         models = torch.load(
-            image_config["MODEL_FILE"], dtype=torch.float32, device=device
-        )
+            image_config["MODEL_FILE"]).to(device).to(torch.float32)
 
     image_prior = get_image_priors(len(models) - 1, image_config, device="cpu")
     prior_loader = PriorLoader(

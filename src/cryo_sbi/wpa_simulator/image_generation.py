@@ -13,7 +13,7 @@ def gen_quat() -> torch.Tensor:
     count = 0
     while count < 1:
         quat = 2 * torch.rand(size=(4,)) - 1
-        norm = torch.sqrt(torch.sum(quat**2))
+        norm = torch.sqrt(torch.sum(quat ** 2))
         if 0.2 <= norm <= 1.0:
             quat /= norm
             count += 1
@@ -53,7 +53,7 @@ def gen_rot_matrix(quats: torch.Tensor) -> torch.Tensor:
 def project_density(
     atomic_model: torch.Tensor,
     quats: torch.Tensor,
-    res: torch.Tensor,
+    delta_sigma: torch.Tensor,
     shift: torch.Tensor,
     num_pixels: int,
     pixel_size: float,
@@ -71,9 +71,9 @@ def project_density(
         image (torch.Tensor): Images generated from the coordinates
     """
 
-    num_batch, _, _ = atomic_model.shape
+    num_batch, _, num_atoms = atomic_model.shape
 
-    variances = atomic_model[:, 4, :] * res[:, 0] ** 2
+    variances = atomic_model[:, 4, :] * delta_sigma[:, 0]
     amplitudes = atomic_model[:, 3, :] / torch.sqrt((2 * torch.pi * variances))
 
     grid_min = -pixel_size * num_pixels * 0.5
@@ -99,6 +99,7 @@ def project_density(
         / variances.unsqueeze(1)
     ) * amplitudes.unsqueeze(1)
 
-    image = torch.bmm(gauss_x, gauss_y.transpose(1, 2))
+    image = torch.bmm(gauss_x, gauss_y.transpose(1, 2))  # * norms
+    image /= torch.norm(image, dim=[-2, -1]).reshape(-1, 1, 1) # do we need this normalization?
 
     return image

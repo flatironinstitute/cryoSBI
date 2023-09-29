@@ -15,7 +15,7 @@ def gen_quat() -> torch.Tensor:
     count = 0
     while count < 1:
         quat = 2 * torch.rand(size=(4,)) - 1
-        norm = torch.sqrt(torch.sum(quat**2))
+        norm = torch.sqrt(torch.sum(quat ** 2))
         if 0.2 <= norm <= 1.0:
             quat /= norm
             count += 1
@@ -35,21 +35,17 @@ def get_image_priors(
     Returns:
         zuko.distributions.BoxUniform: prior
     """
-    if isinstance(image_config["RES"], list) and len(image_config["RES"]) == 2:
+    if isinstance(image_config["DELTA_SIGMA"], list) and len(image_config["DELTA_SIGMA"]) == 2:
         lower = torch.tensor(
-            [[image_config["RES"][0]]], dtype=torch.float32, device=device
+            [[image_config["DELTA_SIGMA"][0]]], dtype=torch.float32, device=device
         )
         upper = torch.tensor(
-            [[image_config["RES"][1]]], dtype=torch.float32, device=device
+            [[image_config["DELTA_SIGMA"][1]]], dtype=torch.float32, device=device
         )
 
-        assert (
-            lower > 2.0 * image_config["PIXEL_SIZE"]
-        ), "The lower bound for RES must be at least 2 times the pixel size."
+        assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
-        assert lower < upper, "Lower bound must be smaller than upper bound."
-
-        res = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
+        delta_sigma = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
     shift = zuko.distributions.BoxUniform(
         lower=torch.tensor(
@@ -74,7 +70,7 @@ def get_image_priors(
         )
 
         assert lower > 0.0, "The lower bound for DEFOCUS must be positive."
-        assert lower < upper, "Lower bound must be smaller than upper bound."
+        assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
         defocus = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
@@ -89,8 +85,8 @@ def get_image_priors(
             [[image_config["B_FACTOR"][1]]], dtype=torch.float32, device=device
         )
 
-        assert lower > 0.0, "The lower bound for DEFOCUS must be positive."
-        assert lower < upper, "Lower bound must be smaller than upper bound."
+        assert lower > 0.0, "The lower bound for B_FACTOR must be positive."
+        assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
         b_factor = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
@@ -102,8 +98,7 @@ def get_image_priors(
             [[image_config["SNR"][1]]], dtype=torch.float32, device=device
         ).log10()
 
-        assert lower > 0.0, "The lower bound for DEFOCUS must be positive."
-        assert lower < upper, "Lower bound must be smaller than upper bound."
+        assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
         snr = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
@@ -129,7 +124,7 @@ def get_image_priors(
     return ImagePrior(
         index_prior,
         quaternion_prior,
-        res,
+        delta_sigma,
         shift,
         defocus,
         b_factor,
@@ -165,7 +160,7 @@ class ImagePrior:
         self,
         index_prior,
         quaternion_prior,
-        res_prior,
+        delta_sigma_prior,
         shift_prior,
         defocus_prior,
         b_factor_prior,
@@ -176,7 +171,7 @@ class ImagePrior:
         self.priors = [
             index_prior,
             quaternion_prior,
-            res_prior,
+            delta_sigma_prior,
             shift_prior,
             defocus_prior,
             b_factor_prior,
@@ -210,7 +205,7 @@ class PriorLoader(DataLoader):
     def __init__(
         self,
         prior: Distribution,
-        batch_size: int = 2**8,  # 256
+        batch_size: int = 2 ** 8,  # 256
         **kwargs,
     ):
         super().__init__(
