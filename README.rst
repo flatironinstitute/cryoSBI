@@ -1,5 +1,5 @@
 ===========
-cryoSBI - Simulation Based Inference for Cryo-EM
+cryoSBI - Simulation-based Inference for Cryo-EM
 ===========
 
 .. start-badges
