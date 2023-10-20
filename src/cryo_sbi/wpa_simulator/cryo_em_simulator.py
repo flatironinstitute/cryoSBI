@@ -24,6 +24,25 @@ def cryo_em_simulator(
     num_pixels,
     pixel_size,
 ):
+    """
+    Simulates a bacth of cryo-electron microscopy (cryo-EM) images of a set of given coars-grained models.
+
+    Args:
+        models (torch.Tensor): A tensor of coars grained models (num_models, 3, num_beads).
+        index (torch.Tensor): A tensor of indices to select the models to simulate.
+        quaternion (torch.Tensor): A tensor of quaternions to rotate the models.
+        sigma (float): The standard deviation of the Gaussian kernel used to project the density.
+        shift (torch.Tensor): A tensor of shifts to apply to the models.
+        defocus (float): The defocus value of the contrast transfer function (CTF).
+        b_factor (float): The B-factor of the CTF.
+        amp (float): The amplitude contrast of the CTF.
+        snr (float): The signal-to-noise ratio of the simulated image.
+        num_pixels (int): The number of pixels in the simulated image.
+        pixel_size (float): The size of each pixel in the simulated image.
+
+    Returns:
+        torch.Tensor: A tensor of the simulated cryo-EM image.
+    """
     models_selected = models[index.round().long().flatten()]
     image = project_density(
         models_selected,
@@ -121,7 +140,8 @@ class CryoEmSimulator:
             batch_size (int, optional): The batch size to use for simulation. If None, all images are simulated in a single batch.
 
         Returns:
-            torch.Tensor or tuple: The simulated images as a tensor of shape (num_sim, num_pixels, num_pixels), and optionally the sampled parameters as a tuple of tensors.
+            torch.Tensor or tuple: The simulated images as a tensor of shape (num_sim, num_pixels, num_pixels),
+            and optionally the sampled parameters as a tuple of tensors.
         """
 
         parameters = self._priors.sample((num_sim,))
