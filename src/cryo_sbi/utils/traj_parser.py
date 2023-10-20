@@ -137,7 +137,7 @@ def traj_parser_resid_(top_file: str, traj_file: str) -> torch.tensor:
         atomic_models[i, 3, :] = torch.tensor(
             [resid_density[x] for x in residues.resnames]
         )
-        atomic_models[i, 4, :] = 2 * (torch.tensor([resid_radius[x] / 2 for x in residues.resnames]) ** 2) # Residue radius is will be the 2 sigma interval of the gaussian
+        atomic_models[i, 4, :] = 2 * (torch.tensor([resid_radius[x] for x in residues.resnames]) ** 2) # Residue radius is will be the 2 sigma interval of the gaussian
 
     return atomic_models
 

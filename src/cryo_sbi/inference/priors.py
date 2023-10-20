@@ -35,19 +35,19 @@ def get_image_priors(
     Returns:
         zuko.distributions.BoxUniform: prior
     """
-    if isinstance(image_config["DELTA_SIGMA"], list) and len(image_config["DELTA_SIGMA"]) == 2:
+    if isinstance(image_config["SIGMA"], list) and len(image_config["SIGMA"]) == 2:
         lower = torch.tensor(
-            [[image_config["DELTA_SIGMA"][0]]], dtype=torch.float32, device=device
+            [[image_config["SIGMA"][0]]], dtype=torch.float32, device=device
         )
         upper = torch.tensor(
-            [[image_config["DELTA_SIGMA"][1]]], dtype=torch.float32, device=device
+            [[image_config["SIGMA"][1]]], dtype=torch.float32, device=device
         )
 
         assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
-        delta_sigma = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
+        sigma_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
-    shift = zuko.distributions.BoxUniform(
+    shift_prior = zuko.distributions.BoxUniform(
         lower=torch.tensor(
             [-image_config["SHIFT"], -image_config["SHIFT"]],
             dtype=torch.float32,
@@ -72,7 +72,7 @@ def get_image_priors(
         assert lower > 0.0, "The lower bound for DEFOCUS must be positive."
         assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
-        defocus = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
+        defocus_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
     if (
         isinstance(image_config["B_FACTOR"], list)
@@ -88,7 +88,7 @@ def get_image_priors(
         assert lower > 0.0, "The lower bound for B_FACTOR must be positive."
         assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
-        b_factor = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
+        b_factor_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
     if isinstance(image_config["SNR"], list) and len(image_config["SNR"]) == 2:
         lower = torch.tensor(
@@ -100,9 +100,9 @@ def get_image_priors(
 
         assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
-        snr = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
+        snr_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
-    amp = zuko.distributions.BoxUniform(
+    amp_prior = zuko.distributions.BoxUniform(
         lower=torch.tensor([[image_config["AMP"]]], dtype=torch.float32, device=device),
         upper=torch.tensor([[image_config["AMP"]]], dtype=torch.float32, device=device),
         ndims=1,
@@ -124,12 +124,12 @@ def get_image_priors(
     return ImagePrior(
         index_prior,
         quaternion_prior,
-        delta_sigma,
-        shift,
-        defocus,
-        b_factor,
-        snr,
-        amp,
+        sigma_prior,
+        shift_prior,
+        defocus_prior,
+        b_factor_prior,
+        amp_prior,
+        snr_prior,
         device=device,
     )
 
@@ -160,18 +160,18 @@ class ImagePrior:
         self,
         index_prior,
         quaternion_prior,
-        delta_sigma_prior,
+        sigma_prior,
         shift_prior,
         defocus_prior,
         b_factor_prior,
-        snr_prior,
         amp_prior,
+        snr_prior,
         device,
     ) -> None:
         self.priors = [
             index_prior,
             quaternion_prior,
-            delta_sigma_prior,
+            sigma_prior,
             shift_prior,
             defocus_prior,
             b_factor_prior,
