@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "cryosbi"
+authors = [
+   { name = "David Silva-Sanchez", email = "david.silva@yale.edu"},
+   { name = "Lars Dingeldein"},
+   { name = "Pilar Cossio"},
+   { name = "Roberto Covino"}
+]
+
+
+version = "0.2"
+dependencies = [
+    "lampe",
+    "zuko",
+    "torch",
+    "numpy", 
+    "matplotlib",
+    "scipy",
+    "torchvision",
+    "mrcfile"
+]
+
+
+[project.scripts]
+train_npe_model = "cryo_sbi.inference.command_line_tools:cl_npe_train_no_saving"
+train_npe_model_vram = "cryo_sbi.inference.command_line_tools:cl_npe_train_from_vram"
+train_npe_model_disk = "cryo_sbi.inference.command_line_tools:cl_npe_train_from_disk"
+generate_training_data = "cryo_sbi.inference.command_line_tools:cl_generate_training_data"

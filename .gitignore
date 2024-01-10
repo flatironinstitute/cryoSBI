@@ -1,17 +1,22 @@
-# Project-specific files and folders
-unp_notebooks/
-config.txt
-*.out
-*.pt
-*.zip
-*.pkl
-*.out.*
-*.err.*
-*.tar.gz
-*.zip
-*.tar
+# Project specific files
+messing_around/
+tests/test_simulator.ipynb
+*.estimator
+*.h5
+.vscode/
+.DS_Store
+#SBI related folders
 sbi-logs/
-*~
+*.png
+*.pdf
+*.png
+
+# Training data, models and other datafiles
+results/
+production/
+*.estimator
+*epoch=*
+*.loss
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
