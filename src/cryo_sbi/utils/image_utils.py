@@ -324,6 +324,30 @@ class MRCdataset:
             self._file_index += list(range(num_images))
         self._index_map = True
 
+    def save_index_map(self, path: str):
+        """
+        Saves the index map to a file.
+
+        Args:
+            path (str): Path to save the index map.
+        """
+        assert (
+            self._index_map is not None
+        ), "Index map not built. First call build_index_map()"
+        np.savez(path, path_index=self._path_index, file_index=self._file_index)
+
+    def load_index_map(self, path: str):
+        """
+        Loads the index map from a file.
+        
+        Args:
+            path (str): Path to load the index map.
+        """
+        index_map = np.load(path)
+        self._path_index = index_map["path_index"]
+        self._file_index = index_map["file_index"]
+        self._index_map = True
+
     def get_image(self, idx: Union[int, list]):
         """
         Returns the image at the given global index.
