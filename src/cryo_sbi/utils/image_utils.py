@@ -357,7 +357,7 @@ class MRCdataset:
         """
         assert (
             self._index_map is not None
-        ), "Index map not built. First call build_index_map()"
+        ), "Index map not built. First call build_index_map() or load_index_map()"
         if isinstance(idx, int):
             image = mrc_to_tensor(self.paths[self._path_index[idx]])
             if image.ndim > 2:
