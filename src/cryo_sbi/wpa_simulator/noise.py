@@ -34,9 +34,10 @@ def get_snr(images, snr):
         device=images.device,
     )
     signal_power = torch.std(
-        images[:, mask], dim=[-2, -1]
+        images[:, mask], dim=[-1]
     )  # images are not centered at 0, so std is not the same as power
-    noise_power = signal_power / torch.sqrt(torch.pow(10, snr))
+    assert signal_power.shape[0] == images.shape[0]
+    noise_power = signal_power / torch.sqrt(torch.pow(snr, torch.tensor(10)))
 
     return noise_power
 

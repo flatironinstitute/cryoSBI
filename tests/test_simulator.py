@@ -55,3 +55,19 @@ def test_gen_rot_matrix_batched():
     assert rot_matrix.shape == torch.Size([3, 3, 3])
     assert isinstance(rot_matrix, torch.Tensor)
     assert torch.allclose(rot_matrix, torch.eye(3).repeat(3, 1, 1))
+
+
+@pytest.mark.parametrize(
+    ("noise_std", "num_images"),
+    [(torch.tensor([1.5]), 1), (torch.tensor([1.0, 2.0, 3.0]), 3), (torch.tensor([0.1]), 10)],
+)
+def test_get_snr(noise_std, num_images):
+    # Create a test image
+    images = noise_std.reshape(-1, 1, 1) * torch.randn(num_images, 128, 128)
+
+    # Compute the SNR of the test image
+    snr = get_snr(images, 1.0)
+
+    assert snr.shape == torch.Size([images.shape[0]])
+    assert isinstance(snr, torch.Tensor)
+    assert torch.allclose(snr, noise_std * torch.ones(images.shape[0]), atol=1e-01)
