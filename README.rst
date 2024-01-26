@@ -11,7 +11,7 @@ cryoSBI - Simulation-based Inference for Cryo-EM
       - | |githubactions|
         
 
-.. |githubactions| image:: https://github.com/DSilva27/cryo_em_SBI/actions/workflows/python-package.yml/badge.svg?branch=cryoSBI
+.. |githubactions| image:: https://github.com/DSilva27/cryo_em_SBI/actions/workflows/python-package.yml/badge.svg?branch=main
     :alt: Testing Status
     :target: https://github.com/DSilva27/cryo_em_SBI/actions
 
