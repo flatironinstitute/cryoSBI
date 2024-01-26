@@ -128,7 +128,7 @@ class CryoEmSimulator:
             int: Maximum index of the model file.
         """
         return len(self._models) - 1
-    
+
     def simulate(self, num_sim, indices=None, return_parameters=False, batch_size=None):
         """
         Simulate cryo-EM images using the specified models and prior distributions.
@@ -162,8 +162,8 @@ class CryoEmSimulator:
         if batch_size is None:
             batch_size = num_sim
         for i in range(0, num_sim, batch_size):
-            batch_indices = indices[i:i+batch_size]
-            batch_parameters = [param[i:i+batch_size] for param in parameters[1:]]
+            batch_indices = indices[i : i + batch_size]
+            batch_parameters = [param[i : i + batch_size] for param in parameters[1:]]
             batch_images = cryo_em_simulator(
                 self._models,
                 batch_indices,

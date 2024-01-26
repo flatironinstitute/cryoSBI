@@ -97,8 +97,7 @@ def npe_train_no_saving(
             .to(torch.float32)
         )
     else:
-        models = torch.load(
-            image_config["MODEL_FILE"]).to(device).to(torch.float32)
+        models = torch.load(image_config["MODEL_FILE"]).to(device).to(torch.float32)
 
     image_prior = get_image_priors(len(models) - 1, image_config, device="cpu")
     prior_loader = PriorLoader(
@@ -122,7 +121,7 @@ def npe_train_no_saving(
     )
     step = GDStep(optimizer, clip=train_config["CLIP_GRADIENT"])
     mean_loss = []
-    
+
     print("Training neural netowrk:")
     estimator.train()
     with tqdm(range(epochs), unit="epoch") as tq:

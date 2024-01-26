@@ -11,7 +11,7 @@ from cryo_sbi.utils.estimator_utils import (
     sample_posterior,
     compute_latent_repr,
     evaluate_log_prob,
-    load_estimator
+    load_estimator,
 )
 
 
@@ -67,9 +67,7 @@ def test_logprob_eval(train_params, num_images, num_eval, batch_size):
     estimator.eval()
     images = torch.randn((num_images, 128, 128))
     theta = torch.linspace(0, 25, num_eval)
-    samples = evaluate_log_prob(
-        estimator, images, theta, batch_size=batch_size
-    )
+    samples = evaluate_log_prob(estimator, images, theta, batch_size=batch_size)
     assert samples.shape == torch.Size(
         [num_eval, num_images]
     ), f"Failed with: num_images: {num_images}, num_eval:{num_eval}, batch_size:{batch_size}"

@@ -11,36 +11,32 @@ def evaluate_log_prob(
     batch_size: int = 0,
     device: str = "cpu",
 ) -> torch.Tensor:
-    
+
     # batching images if necessary
     if images.shape[0] > batch_size and batch_size > 0:
         images = torch.split(images, split_size_or_sections=batch_size, dim=0)
     else:
         batch_size = images.shape[0]
         images = [images]
-    
+
     # theta dimensions [num_eval, num_images, 1]
     if theta.ndim == 3:
         num_eval = theta.shape[0]
         num_images = images.shape[0]
         assert theta.shape == torch.Size([num_eval, num_images, 1])
-    
+
     elif theta.ndim == 2:
         raise IndexError("theta must have 3 dimensions [num_eval, num_images, 1]")
-    
+
     elif theta.ndim == 1:
         theta = theta.reshape(-1, 1, 1).repeat(1, batch_size, 1)
 
     log_probs = []
     for image_batch in images:
         posterior = estimator.flow(image_batch.to(device))
-        log_probs.append(
-            posterior.log_prob(
-                estimator.standardize(theta.to(device))
-            )
-        )
+        log_probs.append(posterior.log_prob(estimator.standardize(theta.to(device))))
 
-    log_probs = torch.cat(log_probs, dim=1)   
+    log_probs = torch.cat(log_probs, dim=1)
     return log_probs
 
 

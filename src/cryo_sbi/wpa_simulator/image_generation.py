@@ -72,16 +72,18 @@ def project_density(
     """
 
     num_batch, _, num_atoms = coords.shape
-    norm = 1 / (2 * torch.pi * sigma**2 * num_atoms)
+    norm = 1 / (2 * torch.pi * sigma ** 2 * num_atoms)
 
     grid_min = -pixel_size * num_pixels * 0.5
     grid_max = pixel_size * num_pixels * 0.5
 
     rot_matrix = gen_rot_matrix(quats)
-    grid = torch.arange(grid_min, grid_max, pixel_size, device=coords.device)[0:num_pixels.long()].repeat(
+    grid = torch.arange(grid_min, grid_max, pixel_size, device=coords.device)[
+        0 : num_pixels.long()
+    ].repeat(
         num_batch, 1
-    ) # [0: num_pixels.long()] is needed due to single precision error in some cases
- 
+    )  # [0: num_pixels.long()] is needed due to single precision error in some cases
+
     coords_rot = torch.bmm(rot_matrix, coords)
     coords_rot[:, :2, :] += shift.unsqueeze(-1)
 
@@ -92,7 +94,7 @@ def project_density(
         -0.5 * (((grid.unsqueeze(-1) - coords_rot[:, 1, :].unsqueeze(1)) / sigma) ** 2)
     ).transpose(1, 2)
 
-    image = torch.bmm(gauss_x, gauss_y) * norm.reshape(-1, 1, 1) 
+    image = torch.bmm(gauss_x, gauss_y) * norm.reshape(-1, 1, 1)
 
     return image
 

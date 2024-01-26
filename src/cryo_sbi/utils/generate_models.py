@@ -20,12 +20,11 @@ def pdb_parser_(fname: str) -> torch.tensor:
         The coarse grained atomic model of the protein.
     """
 
-
     univ = mda.Universe(fname)
     univ.atoms.translate(-univ.atoms.center_of_mass())
 
     model = torch.from_numpy(univ.select_atoms("name CA").positions.T)
-   
+
     return model
 
 
@@ -49,8 +48,7 @@ def pdb_parser(file_formatter, n_pdbs, output_file, start_index=1):
     models = torch.zeros((n_pdbs, *models.shape))
 
     for i in range(0, n_pdbs):
-        models[i] = pdb_parser_(file_formatter.format(start_index+i))
-
+        models[i] = pdb_parser_(file_formatter.format(start_index + i))
 
     if output_file.endswith("pt"):
         torch.save(models, output_file)

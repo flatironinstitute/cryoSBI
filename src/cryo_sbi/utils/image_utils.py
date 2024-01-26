@@ -179,7 +179,9 @@ class GaussianLowPassFilter:
     def __init__(self, image_size: int, sigma: int):
         self._image_size = image_size
         self._sigma = sigma
-        self._grid = torch.linspace(-0.5 * (image_size - 1), 0.5 * (image_size - 1), image_size)
+        self._grid = torch.linspace(
+            -0.5 * (image_size - 1), 0.5 * (image_size - 1), image_size
+        )
         self._r_2d = self._grid[None, :] ** 2 + self._grid[:, None] ** 2
         self._mask = torch.exp(-self._r_2d / (2 * sigma ** 2))
 
@@ -193,7 +195,7 @@ class GaussianLowPassFilter:
         Returns:
             reconstructed (torch.Tensor): Low pass filtered image.
         """
-        
+
         fft_image = torch.fft.fft2(image)
         fft_image = torch.fft.fftshift(fft_image)
 
@@ -341,7 +343,7 @@ class MRCdataset:
         future_mrc = mrcfile.open_async(path)
         mrc = future_mrc.result()
         data_shape = mrc.data.shape
-        #img_stack = mrc.is_image_stack()
+        # img_stack = mrc.is_image_stack()
         num_images = data_shape[0] if len(data_shape) > 2 else 1
         return num_images
 
@@ -377,7 +379,7 @@ class MRCdataset:
     def load_index_map(self, path: str):
         """
         Loads the index map from a file.
-        
+
         Args:
             path (str): Path to load the index map.
         """

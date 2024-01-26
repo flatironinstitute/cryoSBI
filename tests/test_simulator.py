@@ -5,7 +5,11 @@ import json
 
 from cryo_sbi.wpa_simulator.cryo_em_simulator import cryo_em_simulator
 from cryo_sbi.wpa_simulator.ctf import apply_ctf
-from cryo_sbi.wpa_simulator.image_generation import project_density, gen_quat, gen_rot_matrix
+from cryo_sbi.wpa_simulator.image_generation import (
+    project_density,
+    gen_quat,
+    gen_rot_matrix,
+)
 from cryo_sbi.wpa_simulator.noise import add_noise, circular_mask, get_snr
 from cryo_sbi.wpa_simulator.normalization import gaussian_normalize_image
 from cryo_sbi.inference.priors import get_image_priors
@@ -43,11 +47,9 @@ def test_gen_rot_matrix():
 
 def test_gen_rot_matrix_batched():
     # Create a test quaternions with batche size 3
-    quat = torch.tensor([
-        [1.0, 0.0, 0.0, 0.0],
-        [1.0, 0.0, 0.0, 0.0],
-        [1.0, 0.0, 0.0, 0.0]
-                        ])
+    quat = torch.tensor(
+        [[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]]
+    )
 
     # Generate a rotation matrix from the quaternion
     rot_matrix = gen_rot_matrix(quat)
@@ -59,7 +61,11 @@ def test_gen_rot_matrix_batched():
 
 @pytest.mark.parametrize(
     ("noise_std", "num_images"),
-    [(torch.tensor([1.5]), 1), (torch.tensor([1.0, 2.0, 3.0]), 3), (torch.tensor([0.1]), 10)],
+    [
+        (torch.tensor([1.5]), 1),
+        (torch.tensor([1.0, 2.0, 3.0]), 3),
+        (torch.tensor([0.1]), 10),
+    ],
 )
 def test_get_snr(noise_std, num_images):
     # Create a test image
