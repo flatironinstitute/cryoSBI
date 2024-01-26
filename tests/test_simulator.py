@@ -62,7 +62,7 @@ def test_gen_rot_matrix_batched():
 @pytest.mark.parametrize(
     ("noise_std", "num_images"),
     [
-        (torch.tensor([1.5]), 1),
+        (torch.tensor([1.5, 1]), 2),
         (torch.tensor([1.0, 2.0, 3.0]), 3),
         (torch.tensor([0.1]), 10),
     ],
@@ -72,8 +72,8 @@ def test_get_snr(noise_std, num_images):
     images = noise_std.reshape(-1, 1, 1) * torch.randn(num_images, 128, 128)
 
     # Compute the SNR of the test image
-    snr = get_snr(images, 1.0)
+    snr = get_snr(images, torch.tensor([0.0]))
 
-    assert snr.shape == torch.Size([images.shape[0]])
+    assert snr.shape == torch.Size([images.shape[0], 1, 1]), "SNR has wrong shape"
     assert isinstance(snr, torch.Tensor)
-    assert torch.allclose(snr, noise_std * torch.ones(images.shape[0]), atol=1e-01)
+    assert torch.allclose(snr.flatten(), noise_std * torch.ones(images.shape[0]), atol=1e-01), "SNR is not correct"
