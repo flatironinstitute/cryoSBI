@@ -66,6 +66,16 @@ def test_low_pass_filter():
     assert filtered_image.shape == (image_size, image_size)
 
 
+def test_gaussian_low_pass_filter():
+    image_size = 100
+    frequency_cutoff = 30
+    low_pass_filter = iu.GaussianLowPassFilter(image_size, frequency_cutoff)
+    image = torch.ones((image_size, image_size))
+
+    filtered_image = low_pass_filter(image)
+    assert filtered_image.shape == (image_size, image_size)
+
+
 def test_normalize_individual():
     normalize_individual = iu.NormalizeIndividual()
     image = torch.randn((3, 100, 100))

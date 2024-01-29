@@ -395,6 +395,39 @@ class VGG19_Encoder(nn.Module):
         x = self.avgpool(x).flatten(start_dim=1)
         x = self.feedforward(x)
         return x
+    
+
+@add_embedding("ConvEncoder_Tutorial")
+class ConvEncoder(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(ConvEncoder, self).__init__()
+        ndf = 16 # fixed for the tutorial
+        self.main = nn.Sequential(
+            # input is 1 x 64 x 64
+            nn.Conv2d(1, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf) x 32 x 32
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            # nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*2) x 16 x 16
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            # nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*4) x 8 x 8
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            # nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 4 x 4
+            nn.Conv2d(ndf * 8, output_dimension, 4, 1, 0, bias=False),
+            # state size. out_dims x 1 x 1
+        )
+
+    def forward(self, x):
+        x = x.view(-1, 1, 64, 64)
+        x = self.main(x)
+        return x.view(x.size(0), -1)  # flatten
+
 
 
 if __name__ == "__main__":

@@ -16,6 +16,8 @@ def test_embedding(embedding_name, num_images, out_dim):
     if "FFT_FILTER_" in embedding_name:
         size = embedding_name.split("FFT_FILTER_")[1]
         test_images = torch.randn(num_images, int(size), int(size))
+    elif "Tutorial" in embedding_name:
+        test_images = torch.randn(num_images, 64, 64)
     else:
         test_images = torch.randn(num_images, 128, 128)
 
