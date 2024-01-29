@@ -23,35 +23,23 @@ Dependencies
 3. NumPy
 4. PyTorch
 5. json
+6. mrcfile
 
 Installing
 ----------
 
 Download this repository
 ~~~~~~~~~~~~~~~~~~~~~~~~
+.. code:: bash
 
-`https://github.com/DSilva27/cryo_em_SBI.git`
+    git clone `https://github.com/DSilva27/cryo_em_SBI.git`
 
-Install the module
+Navigate to the cloned repository and install the module
 ~~~~~~~~~~~~~~~~~~
 .. code:: bash
+    
+    cd cryo_em_SBI
 
-    python3 -m pip install .
-
-Using the code
---------------
-
-Train posterior from command line
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. code:: bash
 
-    train_npe_model \
-        --image_config_file image_config.json \
-        --train_config_file train_config.json\
-        --epochs 450 \
-        --estimator_file ../posterior/test.estimator \
-        --loss_file ../posterior/test.loss \
-        --n_workers 4 \
-        --train_device cuda \
-        --saving_freq 20 \
-        --simulation_batch_size 2048
+    pip install .
