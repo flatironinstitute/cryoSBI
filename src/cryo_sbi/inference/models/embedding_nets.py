@@ -395,13 +395,13 @@ class VGG19_Encoder(nn.Module):
         x = self.avgpool(x).flatten(start_dim=1)
         x = self.feedforward(x)
         return x
-    
+
 
 @add_embedding("ConvEncoder_Tutorial")
 class ConvEncoder(nn.Module):
     def __init__(self, output_dimension: int):
         super(ConvEncoder, self).__init__()
-        ndf = 16 # fixed for the tutorial
+        ndf = 16  # fixed for the tutorial
         self.main = nn.Sequential(
             # input is 1 x 64 x 64
             nn.Conv2d(1, ndf, 4, 2, 1, bias=False),
@@ -427,7 +427,6 @@ class ConvEncoder(nn.Module):
         x = x.view(-1, 1, 64, 64)
         x = self.main(x)
         return x.view(x.size(0), -1)  # flatten
-
 
 
 if __name__ == "__main__":

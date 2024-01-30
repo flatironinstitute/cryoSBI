@@ -25,9 +25,9 @@ def circular_mask(n_pixels: int, radius: int, inside: bool = True) -> torch.Tens
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
 
     if inside is True:
-        mask = r_2d < radius ** 2
+        mask = r_2d < radius**2
     else:
-        mask = r_2d > radius ** 2
+        mask = r_2d > radius**2
 
     return mask
 
@@ -183,7 +183,7 @@ class GaussianLowPassFilter:
             -0.5 * (image_size - 1), 0.5 * (image_size - 1), image_size
         )
         self._r_2d = self._grid[None, :] ** 2 + self._grid[:, None] ** 2
-        self._mask = torch.exp(-self._r_2d / (2 * sigma ** 2))
+        self._mask = torch.exp(-self._r_2d / (2 * sigma**2))
 
     def __call__(self, image: torch.Tensor) -> torch.Tensor:
         """

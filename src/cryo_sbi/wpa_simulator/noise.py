@@ -19,7 +19,7 @@ def circular_mask(n_pixels: int, radius: int, device: str = "cpu") -> torch.Tens
         -0.5 * (n_pixels - 1), 0.5 * (n_pixels - 1), n_pixels, device=device
     )
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
-    mask = r_2d < radius ** 2
+    mask = r_2d < radius**2
 
     return mask
 
@@ -37,7 +37,9 @@ def get_snr(images, snr):
         images[:, mask], dim=[-1]
     )  # images are not centered at 0, so std is not the same as power
     assert signal_power.shape[0] == images.shape[0]
-    noise_power = signal_power.reshape(-1, 1, 1) / torch.sqrt(torch.pow(torch.tensor(10), snr))
+    noise_power = signal_power.reshape(-1, 1, 1) / torch.sqrt(
+        torch.pow(torch.tensor(10), snr)
+    )
 
     return noise_power
 

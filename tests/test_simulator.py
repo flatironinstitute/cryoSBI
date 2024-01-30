@@ -76,4 +76,6 @@ def test_get_snr(noise_std, num_images):
 
     assert snr.shape == torch.Size([images.shape[0], 1, 1]), "SNR has wrong shape"
     assert isinstance(snr, torch.Tensor)
-    assert torch.allclose(snr.flatten(), noise_std * torch.ones(images.shape[0]), atol=1e-01), "SNR is not correct"
+    assert torch.allclose(
+        snr.flatten(), noise_std * torch.ones(images.shape[0]), atol=1e-01
+    ), "SNR is not correct"

@@ -21,7 +21,7 @@ def apply_ctf(image: torch.Tensor, defocus, b_factor, amp, pixel_size) -> torch.
     freq_pix_1d = torch.fft.fftfreq(num_pixels, d=pixel_size, device=image.device)
     x, y = torch.meshgrid(freq_pix_1d, freq_pix_1d, indexing="ij")
 
-    freq2_2d = x ** 2 + y ** 2
+    freq2_2d = x**2 + y**2
     freq2_2d = freq2_2d.expand(num_batch, -1, -1)
     imag = torch.zeros_like(freq2_2d, device=image.device) * 1j
 
@@ -30,7 +30,7 @@ def apply_ctf(image: torch.Tensor, defocus, b_factor, amp, pixel_size) -> torch.
 
     ctf = (
         -amp * torch.cos(phase * freq2_2d * 0.5)
-        - torch.sqrt(1 - amp ** 2) * torch.sin(phase * freq2_2d * 0.5)
+        - torch.sqrt(1 - amp**2) * torch.sin(phase * freq2_2d * 0.5)
         + imag
     )
     ctf = ctf * env / amp

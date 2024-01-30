@@ -15,7 +15,7 @@ def gen_quat() -> torch.Tensor:
     count = 0
     while count < 1:
         quat = 2 * torch.rand(size=(4,)) - 1
-        norm = torch.sqrt(torch.sum(quat ** 2))
+        norm = torch.sqrt(torch.sum(quat**2))
         if 0.2 <= norm <= 1.0:
             quat /= norm
             count += 1
@@ -207,7 +207,7 @@ class PriorLoader(DataLoader):
     def __init__(
         self,
         prior: Distribution,
-        batch_size: int = 2 ** 8,  # 256
+        batch_size: int = 2**8,  # 256
         **kwargs,
     ):
         super().__init__(

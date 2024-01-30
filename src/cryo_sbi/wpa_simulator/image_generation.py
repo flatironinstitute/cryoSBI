@@ -13,7 +13,7 @@ def gen_quat() -> torch.Tensor:
     count = 0
     while count < 1:
         quat = 2 * torch.rand(size=(4,)) - 1
-        norm = torch.sqrt(torch.sum(quat ** 2))
+        norm = torch.sqrt(torch.sum(quat**2))
         if 0.2 <= norm <= 1.0:
             quat /= norm
             count += 1
@@ -72,7 +72,7 @@ def project_density(
     """
 
     num_batch, _, num_atoms = coords.shape
-    norm = 1 / (2 * torch.pi * sigma ** 2 * num_atoms)
+    norm = 1 / (2 * torch.pi * sigma**2 * num_atoms)
 
     grid_min = -pixel_size * num_pixels * 0.5
     grid_max = pixel_size * num_pixels * 0.5
