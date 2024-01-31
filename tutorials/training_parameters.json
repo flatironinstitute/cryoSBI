@@ -1,8 +1,8 @@
 {
     "EMBEDDING": "ConvEncoder_Tutorial",
     "OUT_DIM": 128,
-    "NUM_TRANSFORM": 5,
-    "NUM_HIDDEN_FLOW": 5,
+    "NUM_TRANSFORM": 3,
+    "NUM_HIDDEN_FLOW": 3,
     "HIDDEN_DIM_FLOW": 128,
     "MODEL": "NSF",
     "LEARNING_RATE": 0.0003,

@@ -1,6 +1,6 @@
 {
     "N_PIXELS": 64,
-    "PIXEL_SIZE": 2.0,
+    "PIXEL_SIZE": 2.5,
     "SIGMA": [2.0, 2.0],
     "MODEL_FILE": "models.pt",
     "SHIFT": 0.0,
