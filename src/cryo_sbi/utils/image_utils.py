@@ -374,7 +374,12 @@ class MRCdataset:
         assert (
             self._index_map is not None
         ), "Index map not built. First call build_index_map()"
-        np.savez(path, path_index=self._path_index, file_index=self._file_index)
+        np.savez(
+            path,
+            path_index=self._path_index,
+            file_index=self._file_index,
+            paths=self.paths,
+        )
 
     def load_index_map(self, path: str):
         """
@@ -384,6 +389,7 @@ class MRCdataset:
             path (str): Path to load the index map.
         """
         index_map = np.load(path)
+        assert self.paths == index_map["paths"], "Paths do not match the index map."
         self._path_index = index_map["path_index"]
         self._file_index = index_map["file_index"]
         self._index_map = True
