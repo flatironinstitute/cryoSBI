@@ -156,7 +156,7 @@ class CryoEmSimulator:
             assert (
                 indices.ndim == 2
             ), "Indices are not a 2D tensor, converting to 2D tensor. With shape (batch_size, 1)."
-            indices = torch.tensor(indices, dtype=torch.float32)
+            parameters[0] = indices
 
         images = []
         if batch_size is None:

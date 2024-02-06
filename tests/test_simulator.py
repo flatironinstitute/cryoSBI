@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import json
 
-from cryo_sbi.wpa_simulator.cryo_em_simulator import cryo_em_simulator
+from cryo_sbi.wpa_simulator.cryo_em_simulator import cryo_em_simulator, CryoEmSimulator
 from cryo_sbi.wpa_simulator.ctf import apply_ctf
 from cryo_sbi.wpa_simulator.image_generation import (
     project_density,
@@ -79,3 +79,20 @@ def test_get_snr(noise_std, num_images):
     assert torch.allclose(
         snr.flatten(), noise_std * torch.ones(images.shape[0]), atol=1e-01
     ), "SNR is not correct"
+
+@pytest.mark.parametrize(("num_images"), [2, 3, 10])
+def test_simulator_default_settings(num_images):
+    sim = CryoEmSimulator("tests/config_files/image_params_testing.json")
+    images = sim.simulate(num_images)
+    assert images.shape == torch.Size([num_images, 64, 64])
+
+
+def test_simulator_custom_indices():
+    sim = CryoEmSimulator("tests/config_files/image_params_testing.json")
+    test_indices = torch.tensor([0, 1, 2, 3, 4, 5], dtype=torch.float32).reshape(-1, 1)
+    images, parameters = sim.simulate(6, indices=test_indices, return_parameters=True)
+
+    assert (parameters[0] == test_indices).all().item()
+    assert images.shape == torch.Size([6, 64, 64])
+
+
