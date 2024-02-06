@@ -81,17 +81,20 @@ def test_get_snr(noise_std, num_images):
     ), "SNR is not correct"
 
 
-@pytest.mark.parametrize(("num_images"), [2, 3, 10])
+@pytest.mark.parametrize(("num_images"), [1, 5])
 def test_simulator_default_settings(num_images):
     sim = CryoEmSimulator("tests/config_files/image_params_testing.json")
     images = sim.simulate(num_images)
     assert images.shape == torch.Size([num_images, 64, 64])
 
 
-def test_simulator_custom_indices():
+@pytest.mark.parametrize(("num_images"), [1, 5])
+def test_simulator_custom_indices(num_images):
     sim = CryoEmSimulator("tests/config_files/image_params_testing.json")
-    test_indices = torch.tensor([0, 1, 2, 3, 4, 5], dtype=torch.float32).reshape(-1, 1)
-    images, parameters = sim.simulate(6, indices=test_indices, return_parameters=True)
+    test_indices = torch.arange(num_images, dtype=torch.float32).reshape(-1, 1)
+    images, parameters = sim.simulate(
+        num_images, indices=test_indices, return_parameters=True
+    )
 
     assert (parameters[0] == test_indices).all().item()
-    assert images.shape == torch.Size([6, 64, 64])
+    assert images.shape == torch.Size([num_images, 64, 64])
