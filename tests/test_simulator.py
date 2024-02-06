@@ -80,6 +80,7 @@ def test_get_snr(noise_std, num_images):
         snr.flatten(), noise_std * torch.ones(images.shape[0]), atol=1e-01
     ), "SNR is not correct"
 
+
 @pytest.mark.parametrize(("num_images"), [2, 3, 10])
 def test_simulator_default_settings(num_images):
     sim = CryoEmSimulator("tests/config_files/image_params_testing.json")
@@ -94,5 +95,3 @@ def test_simulator_custom_indices():
 
     assert (parameters[0] == test_indices).all().item()
     assert images.shape == torch.Size([6, 64, 64])
-
-
