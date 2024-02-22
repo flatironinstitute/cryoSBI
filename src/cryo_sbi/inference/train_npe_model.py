@@ -14,6 +14,7 @@ from itertools import islice
 from cryo_sbi.inference.priors import get_image_priors, PriorLoader
 from cryo_sbi.inference.models.build_models import build_npe_flow_model
 from cryo_sbi.inference.validate_train_config import check_train_params
+from cryo_sbi.inference.losses import NPELoss_LatentPrior
 from cryo_sbi.wpa_simulator.cryo_em_simulator import cryo_em_simulator
 from cryo_sbi.wpa_simulator.validate_image_config import check_image_params
 from cryo_sbi.inference.validate_train_config import check_train_params
@@ -115,7 +116,7 @@ def npe_train_no_saving(
         train_config, model_state_dict, device, train_from_checkpoint
     )
 
-    loss = NPELoss(estimator)
+    loss = NPELoss_LatentPrior(estimator)
     optimizer = optim.AdamW(
         estimator.parameters(), lr=train_config["LEARNING_RATE"], weight_decay=0.001
     )
