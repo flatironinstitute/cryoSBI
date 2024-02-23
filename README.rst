@@ -18,12 +18,12 @@ cryoSBI - Simulation-based Inference for Cryo-EM
 Dependencies
 ------------
 
-1. Lampe
-2. SciPy
-3. NumPy
-4. PyTorch
+1. `Lampe <https://lampe.readthedocs.io/en/stable/>`_.
+2. `SciPy <https://scipy.org/>`_.
+3. `Numpy <https://numpy.org/>`_.
+4. `PyTorch <https://pytorch.org/get-started/locally/>`_.
 5. json
-6. mrcfile
+6. `mrcfile <https://pypi.org/project/mrcfile/>`_.
 
 Installing
 ----------
