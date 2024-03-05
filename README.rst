@@ -15,8 +15,19 @@ cryoSBI - Simulation-based Inference for Cryo-EM
     :alt: Testing Status
     :target: https://github.com/DSilva27/cryo_em_SBI/actions
 
+Installing
+----------
+To install the module you will have to dowload the repository and create a virtual environment with the required dependencies.
+You can create an environment for example with conda using the following command:
+
+.. code:: bash
+
+    conda create -n cryoSBI python=3.10
+
+After creating the virtual environment, you should install the required dependencies and the module.
+
 Dependencies
-------------
+~~~~~~~~~~~~
 
 1. `Lampe <https://lampe.readthedocs.io/en/stable/>`_.
 2. `SciPy <https://scipy.org/>`_.
@@ -24,9 +35,6 @@ Dependencies
 4. `PyTorch <https://pytorch.org/get-started/locally/>`_.
 5. json
 6. `mrcfile <https://pypi.org/project/mrcfile/>`_.
-
-Installing
-----------
 
 Download this repository
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -118,3 +126,8 @@ Sampling from the posterior distribution can be done using the sample_posterior 
         batch_size=100,
         device="cuda",
     )
+
+
+Tutorial
+--------
+For a more detailed tutorial on how to use the module, please refer to the tutorial notebook in the `tutorials` folder.
