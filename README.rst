@@ -141,8 +141,9 @@ The Pytorch tensor containing the samples will have the shape (number of samples
 We can quickly generate a histogram with 50 bins with the following piece of code.
 
 .. code:: python
+
     import matplotlib.pyplot as plt
-    idx_image = 0
+    idx_image = 0 # posterior for image with index 0
     plt.hist(samples[:, idx_image].flatten(), np.linspace(0, simulator.max_index, 50))
 
 In this case the x-axis is just the index of the structures in increasing order.
