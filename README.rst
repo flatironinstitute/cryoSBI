@@ -57,6 +57,11 @@ Navigate to the cloned repository and install the module
 
     pip install .
 
+Tutorial
+--------
+An introduction tutorial can be found at `tutorials/tutorial.ipynb`. In this tutorial, we go through the whole process of making models for cryoSBI, training an amortized posterior, and analyzing the results.
+In the following section, I highlighted cryoSBI key features.
+
 Simulating cryo-EM particles
 -----------------------------
 To simulate cryo-EM particles, you can use the CryoEmSimulator class. The class takes in a simulation config file and simulates cryo-EM particles based on the parameters specified in the config file.
@@ -132,7 +137,12 @@ Sampling from the posterior distribution can be done using the sample_posterior 
         device="cuda",
     )
 
+The Pytorch tensor containing the samples will have the shape (number of samples, number of images). In order to visualize the posterior for each image you can use `matplotlib`.
+We can quickly generate a histogram with 50 bins with the following piece of code.
 
-Tutorial
---------
-For a more detailed tutorial on how to use the module, please refer to the tutorial notebook in the `tutorials` folder.
+.. code:: python
+    import matplotlib.pyplot as plt
+    idx_image = 0
+    plt.hist(samples[:, idx_image].flatten(), np.linspace(0, simulator.max_index, 50))
+
+In this case the x-axis is just the index of the structures in increasing order.
