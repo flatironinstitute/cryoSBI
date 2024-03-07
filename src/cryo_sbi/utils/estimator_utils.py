@@ -11,7 +11,20 @@ def evaluate_log_prob(
     batch_size: int = 0,
     device: str = "cpu",
 ) -> torch.Tensor:
+    """
+    Evaluates the log probability of a given set of images under a given estimator.
 
+    Args:
+        estimator (torch.nn.Module): The posterior model to use for evaluation.
+        images (torch.Tensor): The input images used to condition the posterior.
+        theta (torch.Tensor): The parameter values at which to evaluate the log probability.
+        batch_size (int, optional): The batch size for batching the images. Defaults to 0.
+        device (str, optional): The device to use for computation. Defaults to "cpu".
+
+    Returns:
+        torch.Tensor: The log probabilities of the images under the estimator.
+    """
+    
     # batching images if necessary
     if images.shape[0] > batch_size and batch_size > 0:
         images = torch.split(images, split_size_or_sections=batch_size, dim=0)
@@ -53,7 +66,7 @@ def sample_posterior(
 
     Args:
         estimator (torch.nn.Module): The posterior to use for sampling.
-        images (torch.Tensor): The images used to condition the posterio.
+        images (torch.Tensor): The images used to condition the posterior.
         num_samples (int): The number of samples to draw
         batch_size (int, optional): The batch size for sampling. Defaults to 100.
         device (str, optional): The device to use. Defaults to "cpu".
