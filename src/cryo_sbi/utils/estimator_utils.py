@@ -24,7 +24,7 @@ def evaluate_log_prob(
     Returns:
         torch.Tensor: The log probabilities of the images under the estimator.
     """
-    
+
     # batching images if necessary
     if images.shape[0] > batch_size and batch_size > 0:
         images = torch.split(images, split_size_or_sections=batch_size, dim=0)

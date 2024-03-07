@@ -11,9 +11,9 @@ def test_circular_mask():
 
     assert inside_mask.shape == (n_pixels, n_pixels)
     assert outside_mask.shape == (n_pixels, n_pixels)
-    assert inside_mask.sum().item() == pytest.approx(radius ** 2 * 3.14159, abs=10)
+    assert inside_mask.sum().item() == pytest.approx(radius**2 * 3.14159, abs=10)
     assert outside_mask.sum().item() == pytest.approx(
-        n_pixels ** 2 - radius ** 2 * 3.14159, abs=10
+        n_pixels**2 - radius**2 * 3.14159, abs=10
     )
 
 
@@ -27,7 +27,7 @@ def test_mask_class():
     masked_image = mask(image)
     assert masked_image.shape == (image_size, image_size)
     assert masked_image[inside].sum().item() == pytest.approx(
-        image_size ** 2 - radius ** 2 * 3.14159, abs=10
+        image_size**2 - radius**2 * 3.14159, abs=10
     )
 
 

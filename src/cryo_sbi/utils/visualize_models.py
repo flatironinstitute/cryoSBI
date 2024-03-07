@@ -3,21 +3,28 @@ import numpy as np
 import torch
 
 
-def _scatter_plot_models(model: torch.Tensor, view_angles : tuple = (30, 45), **plot_kwargs: dict) -> None:
+def _scatter_plot_models(
+    model: torch.Tensor, view_angles: tuple = (30, 45), **plot_kwargs: dict
+) -> None:
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
     ax.view_init(*view_angles)
 
     ax.scatter(*model, **plot_kwargs)
 
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
 
 
-def _sphere_plot_models(model: torch.Tensor, radius: float = 4, view_angles : tuple = (30, 45), **plot_kwargs: dict,) -> None:
+def _sphere_plot_models(
+    model: torch.Tensor,
+    radius: float = 4,
+    view_angles: tuple = (30, 45),
+    **plot_kwargs: dict,
+) -> None:
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
     ax.view_init(30, 45)
 
     spheres = []
@@ -35,9 +42,9 @@ def _sphere_plot_models(model: torch.Tensor, radius: float = 4, view_angles : tu
 
         ax.plot_surface(x, y, z, **plot_kwargs)
 
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
 
 
 def plot_model(model: torch.Tensor, method: str = "scatter", **kwargs) -> None:
@@ -70,4 +77,3 @@ def plot_model(model: torch.Tensor, method: str = "scatter", **kwargs) -> None:
 
     else:
         raise ValueError(f"Unknown method {method}. Use 'scatter' or 'sphere'.")
-    
