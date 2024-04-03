@@ -32,7 +32,7 @@ You can create an environment for example with conda using the following command
 After creating the virtual environment, you should install the required dependencies and the module.
 
 Dependencies
-~~~~~~~~~~~~
+------------
 
 1. `Lampe <https://lampe.readthedocs.io/en/stable/>`_.
 2. `SciPy <https://scipy.org/>`_.
@@ -42,13 +42,13 @@ Dependencies
 6. `mrcfile <https://pypi.org/project/mrcfile/>`_.
 
 Download this repository
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 .. code:: bash
 
     git clone `https://github.com/DSilva27/cryo_em_SBI.git`
 
 Navigate to the cloned repository and install the module
-~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------
 .. code:: bash
     
     cd cryo_em_SBI
