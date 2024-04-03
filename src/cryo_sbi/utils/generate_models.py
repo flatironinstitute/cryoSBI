@@ -1,3 +1,4 @@
+from typing import Union
 import MDAnalysis as mda
 from MDAnalysis.analysis import align
 import torch
@@ -125,3 +126,43 @@ def traj_parser(top_file: str, traj_file: str, output_file: str) -> None:
         raise ValueError("Model file format not supported. Please use .pt.")
 
     return
+
+
+def models_to_tensor(
+        model_files, 
+        output_file, 
+        n_pdbs: Union[int, None] = None,
+        top_file: Union[str, None] = None,
+    ):
+    """
+    Converts different model files to a torch tensor.
+    
+    Parameters
+    ----------
+    model_files : list
+        A list of model files to convert to a torch tensor.
+        
+    output_file : str
+        The path to the output file. Must be a .pt file.
+        
+    n_models : int
+        The number of models to convert to a torch tensor. Just needed for models in pdb files.
+
+    top_file : str
+        The path to the topology file. Just needed for models in trr files.
+    
+    Returns
+    -------
+        None
+    """
+    assert output_file.endswith("pt"), "The output file must be a .pt file."
+    if model_files.endswith("trr"):
+        assert top_file is not None, "Please provide a topology file."
+        assert n_pdbs is None, "The number of pdb files is not needed for trr files."
+        traj_parser(top_file, model_files, output_file)
+    elif model_files.endswith("pdb"):
+        assert n_pdbs is not None, "Please provide the number of pdb files."
+        assert top_file is None, "The topology file is not needed for pdb files."
+        pdb_parser(model_files, n_pdbs, output_file)
+        
+

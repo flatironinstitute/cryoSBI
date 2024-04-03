@@ -32,7 +32,7 @@ You can create an environment for example with conda using the following command
 After creating the virtual environment, you should install the required dependencies and the module.
 
 Dependencies
-~~~~~~~~~~~~
+------------
 
 1. `Lampe <https://lampe.readthedocs.io/en/stable/>`_.
 2. `SciPy <https://scipy.org/>`_.
@@ -42,13 +42,13 @@ Dependencies
 6. `mrcfile <https://pypi.org/project/mrcfile/>`_.
 
 Download this repository
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 .. code:: bash
 
     git clone `https://github.com/DSilva27/cryo_em_SBI.git`
 
 Navigate to the cloned repository and install the module
-~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------
 .. code:: bash
     
     cd cryo_em_SBI
@@ -61,6 +61,20 @@ Tutorial
 --------
 An introduction tutorial can be found at `tutorials/tutorial.ipynb`. In this tutorial, we go through the whole process of making models for cryoSBI, training an amortized posterior, and analyzing the results.
 In the following section, I highlighted cryoSBI key features.
+
+Generate model file to simulate cryo-EM particles
+-------------------------------------------------
+To generate a model file for simulating cryo-EM particles with the simulator provided in this module, you can use the command line tool `models_to_tensor`.
+You will need either a set of pdbs which are indexd or a trr trejectory file which contians all models. The tool will generate a model file that can be used to simulate cryo-EM particles.
+
+.. code:: bash
+
+    models_to_tensor \
+        --model_file path_to_models/pdb_{}.pdb \
+        --output_file path_to_output_file/output.pt \
+        --n_pdbs 100
+
+The output file will be a Pytorch tensor with the shape (number of models, 3, number of pseudo atoms).
 
 Simulating cryo-EM particles
 -----------------------------
