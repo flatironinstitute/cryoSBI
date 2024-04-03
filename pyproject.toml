@@ -28,4 +28,4 @@ dependencies = [
 
 [project.scripts]
 train_npe_model = "cryo_sbi.inference.command_line_tools:cl_npe_train_no_saving"
-model_to_tensor = "cryo_sbi.untils.command_line_tools:cl_model_to_tensor"
+model_to_tensor = "cryo_sbi.utils.command_line_tools:cl_models_to_tensor"

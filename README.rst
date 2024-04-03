@@ -62,6 +62,20 @@ Tutorial
 An introduction tutorial can be found at `tutorials/tutorial.ipynb`. In this tutorial, we go through the whole process of making models for cryoSBI, training an amortized posterior, and analyzing the results.
 In the following section, I highlighted cryoSBI key features.
 
+Generate model file to simulate cryo-EM particles
+-------------------------------------------------
+To generate a model file for simulating cryo-EM particles with the simulator provided in this module, you can use the command line tool `models_to_tensor`.
+You will need either a set of pdbs which are indexd or a trr trejectory file which contians all models. The tool will generate a model file that can be used to simulate cryo-EM particles.
+
+.. code:: bash
+
+    models_to_tensor \
+        --model_file path_to_models/pdb_{}.pdb \
+        --output_file path_to_output_file/output.pt \
+        --n_pdbs 100
+
+The output file will be a Pytorch tensor with the shape (number of models, 3, number of pseudo atoms).
+
 Simulating cryo-EM particles
 -----------------------------
 To simulate cryo-EM particles, you can use the CryoEmSimulator class. The class takes in a simulation config file and simulates cryo-EM particles based on the parameters specified in the config file.

@@ -4,9 +4,10 @@ from cryo_sbi.utils.generate_models import models_to_tensor
 
 def cl_models_to_tensor():
     cl_parser = argparse.ArgumentParser(
-        description="Convert models to tensor for cryoSBI"
+        description="Convert models to tensor for cryoSBI",
         epilog="pdb-files: The name for the pdbs must contain a {} to be replaced by the index of the pdb file. The index starts at 0. \
-        For example protein_{}.pdb. trr-files: For .trr files you must provide a topology file.")
+        For example protein_{}.pdb. trr-files: For .trr files you must provide a topology file."
+    )
     cl_parser.add_argument(
         "--model_files", action="store", type=str, required=True
     )
