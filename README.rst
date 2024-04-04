@@ -136,6 +136,9 @@ The training config file should be a json file with the following structure:
         "BATCH_SIZE": 256
     }
 
+When training posterior for your own system, it's important to change THETA_SCALE and THETA_SHIFT. These two parameters normalize the conformational variable in cryoSBI.
+THETA_SHIFT and THETA_SCALE need to be adjusted according to the number of structures used in the prior. A good option is to set THETA_SHIFT and THETA_SCALE to the number of structures in the prior divided by two.
+
 Loading the posterior after training
 ------------------------------------
 After training the estimator, loading it in Python can be done with the load_estimator in the estimator_utils module.
