@@ -5,10 +5,12 @@ import torch
 
 from cryo_sbi.wpa_simulator.ctf import apply_ctf
 from cryo_sbi.wpa_simulator.image_generation import project_density
-from cryo_sbi.wpa_simulator.noise import add_noise
+from cryo_sbi.wpa_simulator.noise import add_noise, get_snr
 from cryo_sbi.wpa_simulator.normalization import gaussian_normalize_image
 from cryo_sbi.inference.priors import get_image_priors
 from cryo_sbi.wpa_simulator.validate_image_config import check_image_params
+from cryo_sbi.utils.micrograph_utils import RandomMicrographPatches
+from cryo_sbi.utils.image_utils import NormalizeIndividual
 
 
 def cryo_em_simulator(
@@ -23,7 +25,9 @@ def cryo_em_simulator(
     snr,
     num_pixels,
     pixel_size,
-):
+    noise=True,
+    ctf=True,
+    ):
     """
     Simulates a bacth of cryo-electron microscopy (cryo-EM) images of a set of given coars-grained models.
 
@@ -52,8 +56,10 @@ def cryo_em_simulator(
         num_pixels,
         pixel_size,
     )
-    image = apply_ctf(image, defocus, b_factor, amp, pixel_size)
-    image = add_noise(image, snr)
+    if ctf:
+        image = apply_ctf(image, defocus, b_factor, amp, pixel_size)
+    if noise:
+        image = add_noise(image, snr)
     image = gaussian_normalize_image(image)
     return image
 
@@ -70,6 +76,20 @@ class CryoEmSimulator:
         self._pixel_size = torch.tensor(
             self._config["PIXEL_SIZE"], dtype=torch.float32, device=device
         )
+        self._micrograph_loader = None
+    
+        
+    def _init_micrograph_loader(self, micrographs, patch_size, num_noise_samples):
+        if self._micrograph_loader is None:
+            self._micrograph_loader = RandomMicrographPatches(
+                micro_graphs=micrographs,
+                patch_size=patch_size,
+                transform=NormalizeIndividual(),
+                max_iter=num_noise_samples,
+            )
+        else:
+            self._micrograph_loader._max_iter = num_noise_samples
+        
 
     def _load_params(self, config_fname: str) -> None:
         """
@@ -129,7 +149,7 @@ class CryoEmSimulator:
         """
         return len(self._models) - 1
 
-    def simulate(self, num_sim, indices=None, return_parameters=False, batch_size=None):
+    def simulate(self, num_sim, indices=None, return_parameters=False, batch_size=None, noise=True, ctf=True):
         """
         Simulate cryo-EM images using the specified models and prior distributions.
 
@@ -170,6 +190,8 @@ class CryoEmSimulator:
                 *batch_parameters,
                 self._num_pixels,
                 self._pixel_size,
+                noise=noise,
+                ctf=ctf,
             )
             images.append(batch_images.cpu())
 
@@ -179,3 +201,34 @@ class CryoEmSimulator:
             return images.cpu(), parameters
         else:
             return images.cpu()
+
+    def simulate_with_micrograph_noise(self, num_sim, micrographs, indices=None, return_parameters=False, batch_size=None, ctf=True, snr=0.0001):
+            self._init_micrograph_loader(micrographs, self._config["N_PIXELS"], num_noise_samples=num_sim)
+            images_and_maybe_params = self.simulate(
+                num_sim=num_sim,
+                indices=indices,
+                return_parameters=return_parameters,
+                batch_size=batch_size,
+                noise=False,
+                ctf=ctf
+            )
+            if return_parameters:
+                images, parameters = images_and_maybe_params
+            else:
+                images = images_and_maybe_params
+            print("finished simulating images, drawing noise samples...")
+            noise_samples = []
+            for noise_sample in self._micrograph_loader:
+                noise_samples.append(noise_sample)
+            noise_samples = torch.cat(noise_samples, dim=0)
+
+            print("finished drawing noise samples, adding noise to images...")
+            noise_samples = noise_samples / snr
+
+            images = images + noise_samples
+            images = gaussian_normalize_image(images)
+
+
+            return images
+        
+

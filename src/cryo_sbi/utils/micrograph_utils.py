@@ -36,22 +36,33 @@ class RandomMicrographPatches:
 
     def __iter__(self) -> "RandomMicrographPatches":
         return self
-
-    def __next__(self) -> torch.Tensor:
-        if self._current_iter == self._max_iter:
-            self._current_iter = 0
-            raise StopIteration
-        random_micrograph = random.choice(self._micro_graphs)
-        assert random_micrograph.ndim == 2, "Micrograph should be 2D"
-        x = random.randint(0, random_micrograph.shape[0] - self._patch_size)
-        y = random.randint(0, random_micrograph.shape[1] - self._patch_size)
+    
+    def _crop_random_patch(self, micrograp: torch.Tensor) -> torch.Tensor:
+        assert micrograp.ndim == 2, "Micrograph should be 2D"
+        x = random.randint(0, micrograp.shape[0] - self._patch_size)
+        y = random.randint(0, micrograp.shape[1] - self._patch_size)
         patch = TF.crop(
-            random_micrograph,
+            micrograp,
             top=y,
             left=x,
             height=self._patch_size,
             width=self._patch_size,
         )
+        return patch
+
+    def __getitem__(self, index: int) -> torch.Tensor:
+        rand_idx = random.randint(0, len(self._micro_graphs) - 1)
+        patch = self._crop_random_patch(self._micro_graphs[rand_idx])
+        if self._transform is not None:
+            patch = self._transform(patch)
+        return patch
+
+    def __next__(self) -> torch.Tensor:
+        if self._current_iter == self._max_iter:
+            self._current_iter = 0
+            raise StopIteration
+        rand_idx = random.randint(0, len(self._micro_graphs) - 1)
+        patch = self._crop_random_patch(self._micro_graphs[rand_idx])
         if self._transform is not None:
             patch = self._transform(patch)
         else:
@@ -71,6 +82,25 @@ class RandomMicrographPatches:
             torch.Size: Shape of the transformed patches.
         """
         return self.__next__().shape
+
+
+class RandomMicrographPatcheLoader(torch.utils.data.DataLoader):
+    """
+    Creates a dataloader of MRC files.
+
+    Args:
+        image_paths (list[str]): List of paths to MRC files.
+        **kwargs: Keyword arguments passed to torch.utils.data.DataLoader.
+    """
+
+    def __init__(self, micrographs, patch_size, transform=None, **kwargs):
+        super().__init__(RandomMicrographPatches(
+            micro_graphs=micrographs, 
+            patch_size=patch_size,
+            transform=transform,
+            ), 
+        **kwargs
+        )
 
 
 def compute_average_psd(
