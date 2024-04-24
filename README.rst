@@ -102,6 +102,8 @@ The simulation config file should be a json file with the following structure:
         "B_FACTOR": [1.0, 100.0] 
     }
 
+The pixel size is defined in Angström (Å). The atom sigma defines the size of the Gaussians used to approximate the protein's electron density. Here, each Gaussian represents one amino acid, and while all Gaussians have the same sigma, the value is made to vary in the simulations. The shift is the offset of the protein from the image centre and is given in Angström (Å). The defocus of the microscope is given in units of micrometres (μm). The SNR (Signal-to-noise ratio) is unitless and defines the amount of noise in the simulated images. The Amplitude is a unitless parameter which ranges between 0 and 1. The B-factor is given in units of Angström squared (Å^2) and defines the decay rate of the CTF envelope function.
+
 Training an amortized posterior model
 --------------------------------------
 Training of an amortized posterior can be done using the train_npe_model command line utility. The utility takes in an image config file, a train config file, and other training parameters. The utility trains a neural network to approximate the posterior distribution of the parameters given the images.
