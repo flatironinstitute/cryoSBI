@@ -12,7 +12,7 @@ from cryo_sbi.wpa_simulator.validate_image_config import check_image_params
 from cryo_sbi.utils.micrograph_utils import RandomMicrographPatches
 from cryo_sbi.utils.image_utils import NormalizeIndividual
 
-
+#@torch.no_grad()
 def cryo_em_simulator(
     models,
     index,
