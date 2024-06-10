@@ -1,6 +1,7 @@
 from typing import Union
 import json
 import torch
+import torch.nn as nn
 import numpy as np
 import torch.optim as optim
 from torch.utils.data import TensorDataset
@@ -42,6 +43,28 @@ def load_model(
         estimator.load_state_dict(torch.load(model_state_dict))
     estimator.to(device=device)
     return estimator
+
+
+class NPELoss_pose(nn.Module):
+
+    def __init__(self, estimator: nn.Module):
+        super().__init__()
+
+        self.estimator = estimator
+
+    def forward(self, theta: torch.Tensor, x: torch.Tensor, pose: torch.Tensor) -> torch.Tensor:
+        r"""
+        Arguments:
+            theta: The parameters :math:`\theta`, with shape :math:`(N, D)`.
+            x: The observation :math:`x`, with shape :math:`(N, L)`.
+
+        Returns:
+            The scalar loss :math:`l`.
+        """
+
+        log_p = self.estimator(theta, x, pose)
+
+        return -log_p.mean()
 
 
 def npe_train_no_saving(
@@ -115,7 +138,7 @@ def npe_train_no_saving(
         train_config, model_state_dict, device, train_from_checkpoint
     )
 
-    loss = NPELoss(estimator)
+    loss = NPELoss_pose(estimator)
     optimizer = optim.AdamW(
         estimator.parameters(), lr=train_config["LEARNING_RATE"], weight_decay=0.001
     )
@@ -151,15 +174,17 @@ def npe_train_no_saving(
                     num_pixels,
                     pixel_size,
                 )
-                for _indices, _images in zip(
+                for _indices, _images, _quaternions in zip(
                     indices.split(train_config["BATCH_SIZE"]),
                     images.split(train_config["BATCH_SIZE"]),
+                    quaternions.split(train_config["BATCH_SIZE"])
                 ):
                     losses.append(
                         step(
                             loss(
                                 _indices.to(device, non_blocking=True),
                                 _images.to(device, non_blocking=True),
+                                _quaternions.to(device, non_blocking=True)
                             )
                         )
                     )

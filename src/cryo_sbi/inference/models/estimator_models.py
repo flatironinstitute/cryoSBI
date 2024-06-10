@@ -95,7 +95,7 @@ class NPEWithEmbedding(nn.Module):
 
         self.npe = NPE(
             1,
-            output_embedding_dim,
+            output_embedding_dim+4, # 4 for the pose in quaternion
             transforms=num_transforms,
             build=flow,
             hidden_features=[*[hidden_flow_dim] * num_hidden_flow, 128, 64],
@@ -105,7 +105,7 @@ class NPEWithEmbedding(nn.Module):
         self.embedding = embedding_net()
         self.standardize = Standardize(theta_shift, theta_scale)
 
-    def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, theta: torch.Tensor, x: torch.Tensor, pose: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of the NPE model
 
@@ -116,10 +116,10 @@ class NPEWithEmbedding(nn.Module):
         Returns:
             torch.Tensor: Log probability of the posterior.
         """
+        
+        return self.npe(self.standardize(theta), torch.cat([self.embedding(x), pose], dim=1))
 
-        return self.npe(self.standardize(theta), self.embedding(x))
-
-    def flow(self, x: torch.Tensor):
+    def flow(self, x: torch.Tensor, pose: torch.Tensor):
         """
         Conditions the posterior on an image.
 
@@ -129,9 +129,10 @@ class NPEWithEmbedding(nn.Module):
         Returns:
             zuko.flows.Flow: The posterior distribution.
         """
-        return self.npe.flow(self.embedding(x))
 
-    def sample(self, x: torch.Tensor, shape=(1,)) -> torch.Tensor:
+        return self.npe.flow(torch.cat([self.embedding(x), pose], dim=1))
+
+    def sample(self, x: torch.Tensor, pose: torch.Tensor, shape=(1,)) -> torch.Tensor:
         """
         Generate samples from the posterior distribution.
 
@@ -143,5 +144,5 @@ class NPEWithEmbedding(nn.Module):
             torch.Tensor: Samples from the posterior distribution.
         """
 
-        samples_standardized = self.flow(x).sample(shape)
+        samples_standardized = self.flow(x, pose).sample(shape)
         return self.standardize.transform(samples_standardized)
