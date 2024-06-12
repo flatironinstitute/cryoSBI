@@ -122,7 +122,7 @@ def npe_train_no_saving(
     step = GDStep(optimizer, clip=train_config["CLIP_GRADIENT"])
     mean_loss = []
 
-    print("Training neural netowrk:")
+    print("Training neural netowrk with all params:")
     estimator.train()
     with tqdm(range(epochs), unit="epoch") as tq:
         for epoch in tq:
@@ -151,14 +151,24 @@ def npe_train_no_saving(
                     num_pixels,
                     pixel_size,
                 )
-                for _indices, _images in zip(
-                    indices.split(train_config["BATCH_SIZE"]),
-                    images.split(train_config["BATCH_SIZE"]),
+                flow_params = torch.cat(
+                    (
+                        indices,
+                        quaternions,
+                        defocus.reshape(-1, 1),
+                        b_factor.reshape(-1, 1),
+                        snr.reshape(-1, 1),
+                    ),
+                    dim=1,
+                )
+                for _flow_params, _images in zip(
+                    flow_params.split(train_config["BATCH_SIZE"]),
+                    images.split(train_config["BATCH_SIZE"])
                 ):
                     losses.append(
                         step(
                             loss(
-                                _indices.to(device, non_blocking=True),
+                                _flow_params.to(device, non_blocking=True),
                                 _images.to(device, non_blocking=True),
                             )
                         )
