@@ -18,6 +18,7 @@ from cryo_sbi.wpa_simulator.cryo_em_simulator import cryo_em_simulator
 from cryo_sbi.wpa_simulator.validate_image_config import check_image_params
 from cryo_sbi.inference.validate_train_config import check_train_params
 import cryo_sbi.utils.image_utils as img_utils
+from cryo_sbi.inference.losses import NPERobustStatsLoss
 
 
 def load_model(
@@ -51,11 +52,13 @@ def npe_train_no_saving(
     estimator_file: str,
     loss_file: str,
     train_from_checkpoint: bool = False,
-    model_state_dict: Union[str, None] = None,
+    model_state_dict: Union[str, None] = False,
     n_workers: int = 1,
     device: str = "cpu",
     saving_frequency: int = 20,
     simulation_batch_size: int = 1024,
+    gamma: float = 1.0,
+    experimental_particles: Union[str, None] = None,
 ) -> None:
     """
     Train NPE model by simulating training data on the fly.
@@ -115,7 +118,9 @@ def npe_train_no_saving(
         train_config, model_state_dict, device, train_from_checkpoint
     )
 
-    loss = NPELoss(estimator)
+    loss = NPERobustStatsLoss(estimator, gamma)
+    experimental_particles = torch.load(experimental_particles, map_location=device)
+
     optimizer = optim.AdamW(
         estimator.parameters(), lr=train_config["LEARNING_RATE"], weight_decay=0.001
     )
@@ -160,6 +165,7 @@ def npe_train_no_saving(
                             loss(
                                 _indices.to(device, non_blocking=True),
                                 _images.to(device, non_blocking=True),
+                                experimental_particles.to(device, non_blocking=True),
                             )
                         )
                     )
