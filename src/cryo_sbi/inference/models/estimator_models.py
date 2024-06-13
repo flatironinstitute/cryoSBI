@@ -104,8 +104,8 @@ class NPEWithEmbedding(nn.Module):
         )
 
         self.embedding = embedding_net()
-        theta_shifts = (theta_shift, 0.0, 0.0, 0.0, 0.0, 2.75, 50.0, 0.05)
-        theta_scales = (theta_scale, 1.0, 1.0, 1.0, 1.0, 2.75, 50.0, 0.05)
+        theta_shifts = (theta_shift, 0.0, 0.0, 0.0, 0.0, 2.75, 50.0, -2.0)
+        theta_scales = (theta_scale, 1.0, 1.0, 1.0, 1.0, 2.75, 50.0, 1.0)
         self.standardize = Standardize(theta_shifts, theta_scales)
 
     def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
