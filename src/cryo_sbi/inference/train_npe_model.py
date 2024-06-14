@@ -119,7 +119,7 @@ def npe_train_no_saving(
     )
 
     loss = NPERobustStatsLoss(estimator, gamma)
-    experimental_particles = torch.load(experimental_particles, map_location=device)
+    experimental_particles = torch.load(experimental_particles)
 
     optimizer = optim.AdamW(
         estimator.parameters(), lr=train_config["LEARNING_RATE"], weight_decay=0.001
@@ -160,12 +160,13 @@ def npe_train_no_saving(
                     indices.split(train_config["BATCH_SIZE"]),
                     images.split(train_config["BATCH_SIZE"]),
                 ):
+                    random_indices = torch.randperm(experimental_particles.size(0))[:train_config["BATCH_SIZE"]]
                     losses.append(
                         step(
                             loss(
                                 _indices.to(device, non_blocking=True),
                                 _images.to(device, non_blocking=True),
-                                experimental_particles.to(device, non_blocking=True),
+                                experimental_particles[random_indices].to(device, non_blocking=True),
                             )
                         )
                     )

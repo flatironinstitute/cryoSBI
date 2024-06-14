@@ -55,5 +55,4 @@ class NPERobustStatsLoss(nn.Module):
         )
         log_p = self.estimator(theta, x)
         
-        print(log_p.mean(), summary_stats_regularization)
         return -log_p.mean() + summary_stats_regularization
