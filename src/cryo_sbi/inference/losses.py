@@ -43,16 +43,14 @@ class NPERobustStatsLoss(nn.Module):
 
     def forward(self, theta: torch.Tensor, x: torch.Tensor, x_obs: torch.Tensor) -> torch.Tensor:
 
-        self.estimator.embedding.eval()
         latent_vecs_x = self.estimator.embedding(x)
         latent_vecs_x_obs = self.estimator.embedding(x_obs)
-        self.estimator.embedding.train()
 
         summary_stats_regularization = self.gamma * mmd_unweighted(
             latent_vecs_x,
             latent_vecs_x_obs,
             median_heuristic(x)
         )
-        log_p = self.estimator(theta, x)
+        log_p = self.estimator.npe(self.estimator.standardize(theta), latent_vecs_x)
         
         return -log_p.mean() + summary_stats_regularization

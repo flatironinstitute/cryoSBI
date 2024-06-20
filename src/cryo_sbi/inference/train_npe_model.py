@@ -119,7 +119,7 @@ def npe_train_no_saving(
     )
 
     loss = NPERobustStatsLoss(estimator, gamma)
-    experimental_particles = torch.load(experimental_particles)
+    experimental_particles = torch.load(experimental_particles, map_location=device)
 
     optimizer = optim.AdamW(
         estimator.parameters(), lr=train_config["LEARNING_RATE"], weight_decay=0.001
