@@ -52,10 +52,11 @@ def cryo_em_simulator(
         num_pixels,
         pixel_size,
     )
-    image = apply_ctf(image, defocus, b_factor, amp, pixel_size)
-    image = add_noise(image, snr)
+    clear_image = apply_ctf(image, defocus, b_factor, amp, pixel_size)
+    image = add_noise(clear_image, snr)
     image = gaussian_normalize_image(image)
-    return image
+    clear_image = gaussian_normalize_image(clear_image)
+    return image, clear_image
 
 
 class CryoEmSimulator:
@@ -159,12 +160,13 @@ class CryoEmSimulator:
             parameters[0] = indices
 
         images = []
+        clear_images = []
         if batch_size is None:
             batch_size = num_sim
         for i in range(0, num_sim, batch_size):
             batch_indices = indices[i : i + batch_size]
             batch_parameters = [param[i : i + batch_size] for param in parameters[1:]]
-            batch_images = cryo_em_simulator(
+            batch_images, batch_clear_images = cryo_em_simulator(
                 self._models,
                 batch_indices,
                 *batch_parameters,
@@ -172,10 +174,12 @@ class CryoEmSimulator:
                 self._pixel_size,
             )
             images.append(batch_images.cpu())
+            clear_images.append(batch_clear_images.cpu())
 
         images = torch.cat(images, dim=0)
+        clear_images = torch.cat(clear_images, dim=0)
 
         if return_parameters:
-            return images.cpu(), parameters
+            return images.cpu(), clear_images.cpu(), parameters
         else:
-            return images.cpu()
+            return images.cpu(), clear_images.cpu()
