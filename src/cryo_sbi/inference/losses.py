@@ -50,6 +50,5 @@ class NPERobustStatsLoss(nn.Module):
         self.estimator.train()
 
         log_p = self.estimator.npe(self.estimator.standardize(theta), latent_vecs_x)
-        print(-log_p.mean().item(), summary_stats_regularization.mean().item())
         
         return -log_p.mean() + 0.0 * summary_stats_regularization
