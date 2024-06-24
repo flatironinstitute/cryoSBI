@@ -4,6 +4,7 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 
 from cryo_sbi.utils.image_utils import LowPassFilter, Mask
+import cryo_sbi.inference.models.topaz_embeddings as topaz_embeddings
 
 
 EMBEDDING_NETS = {}
@@ -25,6 +26,36 @@ def add_embedding(name):
         return class_
 
     return add
+
+
+@add_embedding("TOPAZ_RESNET8")
+class TopazResNet8_Encoder(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(TopazResNet8_Encoder, self).__init__()
+        self.topaz_resnet8 = topaz_embeddings.ResNet8(
+            units=[32, 64, output_dimension],
+            activation=nn.SiLU,
+        )
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.topaz_resnet8(x)
+        return x
+
+
+@add_embedding("TOPAZ_RESNET16")
+class TopazResNet16_Encoder(nn.Module):
+    def __init__(self, output_dimension: int):
+        super(TopazResNet16_Encoder, self).__init__()
+        self.topaz_resnet16 = topaz_embeddings.ResNet16(
+            units=[32, 64, output_dimension],
+            activation=nn.SiLU,
+        )
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.topaz_resnet16(x)
+        return x
 
 
 @add_embedding("RESNET18")
