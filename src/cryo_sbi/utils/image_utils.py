@@ -328,7 +328,7 @@ class WhitenImage:
         noise_psd = estimate_noise_psd(images, self.image_size, self.mask_radius)
         return noise_psd
     
-    def __call__(self, image: torch.Tensor) -> torch.Tensor:
+    def __call__(self, images: torch.Tensor) -> torch.Tensor:
         """
         Whiten an image by dividing by the square root of the noise PSD.
         
@@ -338,11 +338,13 @@ class WhitenImage:
         Returns:
             image (torch.Tensor): Whitened image.
         """
-        noise_psd = self._estimate_noise_psd(image) ** -0.5
-        image_fft = torch.fft.fft2(image)
-        image_fft = image_fft * noise_psd
-        image = torch.fft.ifft2(image_fft).real
-        return image
+
+        assert images.ndim == 3, "Image should have shape (num_images , n_pixels, n_pixels)"
+        noise_psd = self._estimate_noise_psd(images) ** -0.5
+        images_fft = torch.fft.fft2(images)
+        images_fft = images_fft * noise_psd
+        images = torch.fft.ifft2(images_fft).real
+        return images
 
 
 class MRCdataset:
