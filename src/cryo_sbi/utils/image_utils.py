@@ -389,7 +389,7 @@ class MRCdataset:
             path (str): Path to load the index map.
         """
         index_map = np.load(path)
-        assert self.paths == index_map["paths"], "Paths do not match the index map."
+        assert all(self.paths == index_map["paths"]), "Paths do not match the index map."
         self._path_index = index_map["path_index"]
         self._file_index = index_map["file_index"]
         self._index_map = True
