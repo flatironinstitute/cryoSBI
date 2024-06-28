@@ -7,7 +7,7 @@ from cryo_sbi.wpa_simulator.ctf import apply_ctf
 from cryo_sbi.wpa_simulator.image_generation import project_density
 from cryo_sbi.wpa_simulator.noise import add_noise
 from cryo_sbi.wpa_simulator.normalization import gaussian_normalize_image
-from cryo_sbi.inference.priors import get_image_priors
+from cryo_sbi.inference.priors import get_image_priors, get_bin_layout
 from cryo_sbi.wpa_simulator.validate_image_config import check_image_params
 
 
@@ -103,11 +103,11 @@ class CryoEmSimulator:
                 .to(torch.float32)
             )
         elif self._config["MODEL_FILE"].endswith("pt"):
-            models = (
-                torch.load(self._config["MODEL_FILE"])
-                .to(self._device)
-                .to(torch.float32)
-            )
+            models = torch.load(self._config["MODEL_FILE"])
+            if isinstance(models, list):
+                self.num_models_per_bin, self.layout, self.index_to_cv = get_bin_layout(models)
+                models = torch.cat(models, dim=0)
+            models = models.to(self._device).to(torch.float32)
 
         else:
             raise NotImplementedError(
@@ -150,9 +150,9 @@ class CryoEmSimulator:
             assert isinstance(
                 indices, torch.Tensor
             ), "Indices are not a torch.tensor, converting to torch.tensor."
-            assert (
-                indices.dtype == torch.float32
-            ), "Indices are not a torch.float32, converting to torch.float32."
+            #assert (
+            #    indices.dtype == torch.float32
+            #), "Indices are not a torch.float32, converting to torch.float32."
             assert (
                 indices.ndim == 2
             ), "Indices are not a 2D tensor, converting to 2D tensor. With shape (batch_size, 1)."

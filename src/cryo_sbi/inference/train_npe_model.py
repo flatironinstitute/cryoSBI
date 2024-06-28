@@ -97,9 +97,13 @@ def npe_train_no_saving(
             .to(torch.float32)
         )
     else:
-        models = torch.load(image_config["MODEL_FILE"]).to(device).to(torch.float32)
+        models = torch.load(image_config["MODEL_FILE"])
+        if isinstance(models, list):
+            models = torch.cat(models, dim=0).to(device).to(torch.float32)
+            print("model shape", models.shape)
 
     image_prior = get_image_priors(len(models) - 1, image_config, device="cpu")
+    index_to_cv = image_prior.priors[0].index_to_cv.to(device)
     prior_loader = PriorLoader(
         image_prior, batch_size=simulation_batch_size, num_workers=n_workers
     )
@@ -158,7 +162,7 @@ def npe_train_no_saving(
                     losses.append(
                         step(
                             loss(
-                                _indices.to(device, non_blocking=True),
+                                index_to_cv[_indices].to(device, non_blocking=True),
                                 _images.to(device, non_blocking=True),
                             )
                         )

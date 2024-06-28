@@ -110,10 +110,17 @@ def get_image_priors(
         ndims=1,
     )
 
-    index_prior = zuko.distributions.BoxUniform(
-        lower=torch.tensor([0], dtype=torch.float32, device=device),
-        upper=torch.tensor([max_index], dtype=torch.float32, device=device),
-    )
+    # preload models to layout
+    models = torch.load(image_config["MODEL_FILE"])
+    if isinstance(models, list):
+        print("using multiple models per bin")
+        index_prior = MultiBinIndexPrior(*get_bin_layout(models), device)
+    else:
+        index_prior = zuko.distributions.BoxUniform(
+            lower=torch.tensor([0], dtype=torch.float32, device=device),
+            upper=torch.tensor([max_index], dtype=torch.float32, device=device),
+        )
+
     quaternion_prior = QuaternionPrior(device)
     if (
         image_config.get("ROTATIONS")
@@ -134,6 +141,37 @@ def get_image_priors(
         snr_prior,
         device=device,
     )
+
+
+def get_bin_layout(models):
+    models_per_bin = []
+    layout = []
+    index_to_cv = []
+    start = 0
+    for i, m in enumerate(models):
+        models_per_bin.append(m.shape[0]) 
+        layout.append([j for j in range(start, start+m.shape[0])])
+        index_to_cv += [i for _ in range(m.shape[0])]
+        start  = start + m.shape[0]
+    return torch.tensor(models_per_bin), layout, torch.tensor(index_to_cv, dtype=torch.float32)
+
+
+class MultiBinIndexPrior:
+    def __init__(self, models_per_bin, layout, index_to_cv, device) -> None:
+        self.num_bins = len(models_per_bin)
+        self.models_per_bin = models_per_bin
+        self.index_to_cv = index_to_cv
+        self.layout = layout
+        self.device = device
+
+    def sample(self, shape) -> torch.Tensor:
+        samples = []
+        idx_cv = torch.randint(0, self.num_bins, shape, device="cpu").flatten()
+        for i in range(len(idx_cv)):
+            idx = torch.randint(0, self.models_per_bin[idx_cv[i]], (1,), device="cpu")
+            samples.append(self.layout[idx_cv[i]][idx])
+        
+        return torch.tensor(samples).reshape(-1, 1).to(torch.long).to(self.device)
 
 
 class QuaternionPrior:
