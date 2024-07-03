@@ -1,5 +1,5 @@
 from typing import Union, Callable
-import json
+from omegaconf import OmegaConf
 import numpy as np
 import torch
 
@@ -9,6 +9,7 @@ from cryo_sbi.wpa_simulator.noise import add_noise
 from cryo_sbi.wpa_simulator.normalization import gaussian_normalize_image
 from cryo_sbi.inference.priors import get_image_priors
 from cryo_sbi.wpa_simulator.validate_image_config import check_image_params
+from cryo_sbi.utils.configurations import SimulatorConfig, Config
 
 
 def cryo_em_simulator(
@@ -59,9 +60,9 @@ def cryo_em_simulator(
 
 
 class CryoEmSimulator:
-    def __init__(self, config_fname: str, device: str = "cpu"):
-        self._device = device
-        self._load_params(config_fname)
+    def __init__(self, config_file: str, device: str = "cpu"):
+        self.device = device
+        self._load_params(config_file)
         self._load_models()
         self._priors = get_image_priors(self.max_index, self._config, device=device)
         self._num_pixels = torch.tensor(
@@ -71,7 +72,7 @@ class CryoEmSimulator:
             self._config["PIXEL_SIZE"], dtype=torch.float32, device=device
         )
 
-    def _load_params(self, config_fname: str) -> None:
+    def _load_params(self, config_file: str) -> None:
         """
         Loads the parameters from the config file into a dictionary.
 
@@ -81,10 +82,9 @@ class CryoEmSimulator:
         Returns:
             None
         """
-
-        config = json.load(open(config_fname))
-        check_image_params(config)
-        self._config = config
+        conf_from_yaml = OmegaConf.load()
+        validated_config = OmegaConf.merge(SimulatorConfig, conf_from_yaml)
+        self.config = validated_config
 
     def _load_models(self) -> None:
         """
@@ -94,17 +94,17 @@ class CryoEmSimulator:
             None
 
         """
-        if self._config["MODEL_FILE"].endswith("npy"):
+        if self.config.model_file.endswith("npy"):
             models = (
                 torch.from_numpy(
-                    np.load(self._config["MODEL_FILE"]),
+                    np.load(self.config.model_file),
                 )
                 .to(self._device)
                 .to(torch.float32)
             )
-        elif self._config["MODEL_FILE"].endswith("pt"):
+        elif self.config.model_file.endswith("pt"):
             models = (
-                torch.load(self._config["MODEL_FILE"])
+                torch.load(self.config.model_file)
                 .to(self._device)
                 .to(torch.float32)
             )
@@ -114,10 +114,10 @@ class CryoEmSimulator:
                 "Model file format not supported. Please use .npy or .pt."
             )
 
-        self._models = models
+        self.models = models
 
-        assert self._models.ndim == 3, "Models are not of shape (models, 3, atoms)."
-        assert self._models.shape[1] == 3, "Models are not of shape (models, 3, atoms)."
+        assert self.models.ndim == 3, "Models are not of shape (models, 3, atoms)."
+        assert self.models.shape[1] == 3, "Models are not of shape (models, 3, atoms)."
 
     @property
     def max_index(self) -> int:
@@ -127,7 +127,7 @@ class CryoEmSimulator:
         Returns:
             int: Maximum index of the model file.
         """
-        return len(self._models) - 1
+        return len(self.models) - 1
 
     def simulate(self, num_sim, indices=None, return_parameters=False, batch_size=None):
         """
