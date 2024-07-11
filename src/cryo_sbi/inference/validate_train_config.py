@@ -21,6 +21,7 @@ def check_train_params(config: dict) -> None:
         "BATCH_SIZE",
         "THETA_SHIFT",
         "THETA_SCALE",
+        "WEIGHT_DECAY"
     ]
 
     for key in needed_keys:

@@ -38,6 +38,12 @@ def cl_npe_train_no_saving():
         "--saving_freq", action="store", type=int, required=False, default=20
     )
     cl_parser.add_argument(
+        "--val_set", action="store", type=str, required=False, default=None
+    )
+    cl_parser.add_argument(
+        "--val_freq", action="store", type=int, required=False, default=10
+    )
+    cl_parser.add_argument(
         "--simulation_batch_size",
         action="store",
         type=int,
@@ -59,4 +65,6 @@ def cl_npe_train_no_saving():
         device=args.train_device,
         saving_frequency=args.saving_freq,
         simulation_batch_size=args.simulation_batch_size,
+        validation_set=args.val_set,
+        validation_frequency=args.val_freq,
     )
