@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import zuko
-from lampe.inference import NPE, NRE
-
+from lampe.inference import NPE, NRE, FMPE
+from lampe.nn import ResMLP
 
 class Standardize(nn.Module):
     """
@@ -71,6 +71,7 @@ class NPEWithEmbedding(nn.Module):
         flow: nn.Module = zuko.flows.MAF,
         theta_shift: float = 0.0,
         theta_scale: float = 1.0,
+        bins: int = 8,
         **kwargs,
     ) -> None:
         """
@@ -99,9 +100,10 @@ class NPEWithEmbedding(nn.Module):
             transforms=num_transforms,
             build=flow,
             hidden_features=[*[hidden_flow_dim] * num_hidden_flow, 128, 64],
+            bins=bins,
             **kwargs,
         )
-
+        self.type = "NPE"
         self.embedding = embedding_net()
         self.standardize = Standardize(theta_shift, theta_scale)
 
@@ -143,5 +145,41 @@ class NPEWithEmbedding(nn.Module):
             torch.Tensor: Samples from the posterior distribution.
         """
 
+        samples_standardized = self.flow(x).sample(shape)
+        return self.standardize.transform(samples_standardized)
+    
+class FMPEWithEmbedding(nn.Module):
+    def __init__(
+        self,
+        embedding_net: nn.Module,
+        output_embedding_dim: int,
+        num_hidden_flow: int = 2,
+        hidden_flow_dim: int = 128,
+        theta_shift: float = 0.0,
+        theta_scale: float = 1.0,
+        **kwargs,
+    ) -> None:
+    
+        super().__init__()
+
+        self.fmpe = FMPE(
+            theta_dim=1,
+            x_dim=output_embedding_dim,
+            freqs=5,
+            build=ResMLP,
+            hidden_features=[*[hidden_flow_dim] * num_hidden_flow],
+            activation=nn.ELU
+        )
+        self.type = "FMPE"
+        self.embedding = embedding_net()
+        self.standardize = Standardize(theta_shift, theta_scale)
+
+    def forward(self, theta: torch.Tensor, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        return self.fmpe(self.standardize(theta), self.embedding(x), t)
+    
+    def flow(self, x: torch.Tensor):
+        return self.fmpe.flow(self.embedding(x))
+    
+    def sample(self, x: torch.Tensor, shape=(1,)) -> torch.Tensor:
         samples_standardized = self.flow(x).sample(shape)
         return self.standardize.transform(samples_standardized)

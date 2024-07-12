@@ -39,6 +39,12 @@ def build_npe_flow_model(config: dict, **embedding_kwargs) -> nn.Module:
             f"Model : {config['EMBEDDING']} has not been implemented yet! \
 The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys()]}"
         )
+    
+    if "BINS" in config:
+        bins = config["BINS"]
+        print(f"Using {bins} bins for NPE")
+    else:
+        bins = 8
 
     estimator = estimator_models.NPEWithEmbedding(
         embedding_net=embedding,
@@ -49,7 +55,32 @@ The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys(
         flow=model,
         theta_shift=config["THETA_SHIFT"],
         theta_scale=config["THETA_SCALE"],
+        bins=bins,
         **{"activation": partial(nn.LeakyReLU, 0.1)},
+    )
+
+    return estimator
+
+
+def build_fmpe_flow_model(config: dict, **embedding_kwargs) -> nn.Module:
+    
+    try:
+        embedding = partial(
+            EMBEDDING_NETS[config["EMBEDDING"]], config["OUT_DIM"], **embedding_kwargs
+        )
+    except KeyError:
+        raise NotImplementedError(
+            f"Model : {config['EMBEDDING']} has not been implemented yet! \
+The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys()]}"
+        )
+    
+    estimator = estimator_models.FMPEWithEmbedding(
+        embedding_net=embedding,
+        output_embedding_dim=config["OUT_DIM"],
+        num_hidden_flow=config["NUM_HIDDEN_FLOW"],
+        hidden_flow_dim=config["HIDDEN_DIM_FLOW"],
+        theta_shift=config["THETA_SHIFT"],
+        theta_scale=config["THETA_SCALE"],
     )
 
     return estimator
