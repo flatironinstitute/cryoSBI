@@ -18,7 +18,7 @@ cryoSBI - Simulation-based Inference for Cryo-EM
 Summary
 -------
 cryoSBI is a Python module for simulation-based inference in cryo-electron microscopy. The module provides tools for simulating cryo-EM particles, training an amortized posterior model, and sampling from the posterior distribution.
-The code is based on the SBI libary `Lampe <https://lampe.readthedocs.io/en/stable/>`_, which is a using Pytorch. 
+The code is based on the SBI libary `Lampe <https://lampe.readthedocs.io/en/stable/>`_, which is using Pytorch. 
 
 Installing
 ----------
@@ -45,7 +45,7 @@ Download this repository
 ------------------------
 .. code:: bash
 
-    git clone `https://github.com/DSilva27/cryo_em_SBI.git`
+    git clone `https://github.com/flatironinstitute/cryoSBI.git`
 
 Navigate to the cloned repository and install the module
 --------------------------------------------------------
