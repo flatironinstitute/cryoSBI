@@ -24,7 +24,7 @@ def build_npe_flow_model(config: dict, **embedding_kwargs) -> nn.Module:
     elif config["MODEL"] == "NSF":
         model = zuko.flows.NSF
     elif config["MODEL"] == "SOSPF":
-        model = zuko.flows.SOSPF
+        model = partial(zuko.flows.SOSPF, polynomials=16, degree=5)
     else:
         raise NotImplementedError(
             f"Model : {config['MODEL']} has not been implemented yet!"
@@ -39,12 +39,6 @@ def build_npe_flow_model(config: dict, **embedding_kwargs) -> nn.Module:
             f"Model : {config['EMBEDDING']} has not been implemented yet! \
 The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys()]}"
         )
-    
-    if "BINS" in config:
-        bins = config["BINS"]
-        print(f"Using {bins} bins for NPE")
-    else:
-        bins = 8
 
     estimator = estimator_models.NPEWithEmbedding(
         embedding_net=embedding,
@@ -55,8 +49,7 @@ The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys(
         flow=model,
         theta_shift=config["THETA_SHIFT"],
         theta_scale=config["THETA_SCALE"],
-        bins=bins,
-        **{"activation": partial(nn.LeakyReLU, 0.1)},
+        **{"activation": nn.GELU},
     )
 
     return estimator

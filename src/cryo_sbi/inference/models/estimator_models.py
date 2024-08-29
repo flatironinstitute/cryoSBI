@@ -71,7 +71,6 @@ class NPEWithEmbedding(nn.Module):
         flow: nn.Module = zuko.flows.MAF,
         theta_shift: float = 0.0,
         theta_scale: float = 1.0,
-        bins: int = 8,
         **kwargs,
     ) -> None:
         """
@@ -99,8 +98,7 @@ class NPEWithEmbedding(nn.Module):
             output_embedding_dim,
             transforms=num_transforms,
             build=flow,
-            hidden_features=[*[hidden_flow_dim] * num_hidden_flow, 128, 64],
-            bins=bins,
+            hidden_features=[*[hidden_flow_dim] * num_hidden_flow],
             **kwargs,
         )
         self.type = "NPE"
