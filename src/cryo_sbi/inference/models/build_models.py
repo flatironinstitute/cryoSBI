@@ -21,10 +21,16 @@ def build_npe_flow_model(config: dict, **embedding_kwargs) -> nn.Module:
 
     if config["MODEL"] == "MAF":
         model = zuko.flows.MAF
+    elif config["MODEL"] == "GF":
+        model = zuko.flows.GF
+    elif config["MODEL"] == "CNF":
+        model = zuko.flows.CNF
+    elif config["MODEL"] == "UMNN":
+        model = zuko.flows. UMNN
     elif config["MODEL"] == "NSF":
         model = zuko.flows.NSF
     elif config["MODEL"] == "SOSPF":
-        model = partial(zuko.flows.SOSPF, polynomials=16, degree=5)
+        model = partial(zuko.flows.SOSPF, polynomials=8, degree=5)
     else:
         raise NotImplementedError(
             f"Model : {config['MODEL']} has not been implemented yet!"
