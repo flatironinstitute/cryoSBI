@@ -17,7 +17,7 @@ class Standardize(nn.Module):
     """
 
     # Code adapted from :https://github.com/mackelab/sbi/blob/main/sbi/utils/sbiutils.py
-    def __init__(self, mean: float, std: float) -> None:
+    def __init__(self, mean: list[float], std: list[float]) -> None:
         super(Standardize, self).__init__()
         mean, std = map(torch.as_tensor, (mean, std))
         self.mean = mean
@@ -94,7 +94,7 @@ class NPEWithEmbedding(nn.Module):
         super().__init__()
 
         self.npe = NPE(
-            1,
+            2,
             output_embedding_dim,
             transforms=num_transforms,
             build=flow,

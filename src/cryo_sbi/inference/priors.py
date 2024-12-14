@@ -111,8 +111,8 @@ def get_image_priors(
     )
 
     index_prior = zuko.distributions.BoxUniform(
-        lower=torch.tensor([0], dtype=torch.float32, device=device),
-        upper=torch.tensor([max_index], dtype=torch.float32, device=device),
+        lower=torch.tensor([0, 0], dtype=torch.float32, device=device),
+        upper=torch.tensor([max_index, max_index], dtype=torch.float32, device=device),
     )
     quaternion_prior = QuaternionPrior(device)
     if (

@@ -62,7 +62,7 @@ def sample_posterior(
     device: str = "cpu",
 ) -> torch.Tensor:
     """
-    Samples from the posterior distribution
+    Samples from the 2D posterior distribution
 
     Args:
         estimator (torch.nn.Module): The posterior to use for sampling.

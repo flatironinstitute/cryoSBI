@@ -43,7 +43,7 @@ def cryo_em_simulator(
     Returns:
         torch.Tensor: A tensor of the simulated cryo-EM image.
     """
-    models_selected = models[index.round().long().flatten()]
+    models_selected = models[index[:, 0].round().long(), index[:, 1].round().long()]
     image = project_density(
         models_selected,
         quaternion,
@@ -116,8 +116,8 @@ class CryoEmSimulator:
 
         self._models = models
 
-        assert self._models.ndim == 3, "Models are not of shape (models, 3, atoms)."
-        assert self._models.shape[1] == 3, "Models are not of shape (models, 3, atoms)."
+        assert self._models.ndim == 4, "Models are not of shape (models_dim1, models_dim2, 3, atoms)."
+        assert self._models.shape[2] == 3, "Models are not of shape (models, 3, atoms)."
 
     @property
     def max_index(self) -> int:
