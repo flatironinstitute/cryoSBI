@@ -87,7 +87,7 @@ def sample_posterior(
         samples = estimator.sample(
             image_batch.to(device, non_blocking=True), shape=(num_samples,)
         ).cpu()
-        theta_samples.append(samples.reshape(-1, image_batch.shape[0]))
+        theta_samples.append(samples)
 
     return torch.cat(theta_samples, dim=1)
 
