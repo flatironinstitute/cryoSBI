@@ -189,7 +189,6 @@ Computing the latent features for simulated or experimental particles can be don
 
     import cryo_sbi.utils.estimator_utils as est_utils
     latent_vecs = est_utils.compute_latent_repr(
-        compute_latent_repr(
         estimator=posterior,
         images=images,
         batch_size=100,
@@ -201,7 +200,7 @@ After we computed the latent representation for the images, one possible way to 
 .. code:: python
 
     import umap
-    reducer = umap.UMAP(metric="euclidian", n_components=2, n_neighbors=50)
+    reducer = umap.UMAP(metric="euclidean", n_components=2, n_neighbors=50)
     embedding = reducer.fit_transform(latent_vecs.numpy())
 
 We can quickly visualize the 2d latent space with matplotlib.
