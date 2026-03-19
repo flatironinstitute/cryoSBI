@@ -125,7 +125,7 @@ Example fields:
         "LEARNING_RATE": 0.0005,
         "ONE_CYCLE_SCHEDULER": true,
         "CLIP_GRADIENT": 5.0,
-        "WEIGHT_DECAY": 100,
+        "WEIGHT_DECAY": 0.01,
         "BATCH_SIZE": 128
     }
 
