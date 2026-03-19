@@ -13,7 +13,8 @@ def pdb_parser_(fname: str, atom_selection: str = "name CA") -> torch.tensor:
 
     Args:
         fname (str): Path to the pdb file.
-        atom_selection (str): MDAnalysis atom selection string.
+        atom_selection (str): MDAnalysis atom selection string. Defaults to
+            selecting C-alpha atoms (``"name CA"``).
 
     Returns:
         torch.tensor: Coarse grained atomic model of the protein.
@@ -60,7 +61,7 @@ def traj_parser_(top_file: str, traj_file: str) -> torch.tensor:
     Parse a trajectory and return coarse grained atomic models.
 
     The atomic model is an Mx3xN tensor, where M is the number of frames in the
-    trajectory and N is the number of residues in the protein.
+    trajectory and N is the number of C-alpha atoms in the protein.
 
     Args:
         top_file (str): Path to the topology file.
