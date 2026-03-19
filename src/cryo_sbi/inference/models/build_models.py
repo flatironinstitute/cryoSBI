@@ -56,4 +56,14 @@ The following embeddings are implemented : {[key for key in EMBEDDING_NETS.keys(
 
 
 def build_nre_classifier_model(config: dict, **embedding_kwargs) -> nn.Module:
+    """
+    Build an NRE classifier model from a configuration dictionary.
+
+    Args:
+        config (dict): Configuration dictionary for the classifier.
+        embedding_kwargs (dict): Keyword arguments for embedding-network creation.
+
+    Returns:
+        nn.Module: NRE classifier model.
+    """
     raise NotImplementedError("NRE classifier model has not been implemented yet!")
