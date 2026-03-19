@@ -6,19 +6,17 @@ import torch
 
 def pdb_parser_(fname: str, atom_selection: str = "name CA") -> torch.tensor:
     """
-    Parses a pdb file and returns a coarsed grained atomic model of the protein.
-    The atomic model is a 5xN array, where N is the number of residues in the protein.
-    The first three rows are the x, y, z coordinates of the alpha carbons.
+    Parse a pdb file and return a coarse grained atomic model of the protein.
 
-    Parameters
-    ----------
-    fname : str
-        The path to the pdb file.
+    The atomic model is a 3xN array, where N is the number of selected atoms.
+    The three rows are the x, y, z coordinates.
 
-    Returns
-    -------
-    atomic_model : torch.tensor
-        The coarse grained atomic model of the protein.
+    Args:
+        fname (str): Path to the pdb file.
+        atom_selection (str): MDAnalysis atom selection string.
+
+    Returns:
+        torch.tensor: Coarse grained atomic model of the protein.
     """
 
     univ = mda.Universe(fname)
@@ -31,18 +29,15 @@ def pdb_parser_(fname: str, atom_selection: str = "name CA") -> torch.tensor:
 
 def pdb_parser(file_formatter, n_pdbs, output_file, start_index=1, **kwargs):
     """
-    Parses multiple pdb files and returns an coarsed grained model of the protein. The atomic model is a 5xN array, where N is the number of atoms or residues in the protein. The first three rows are the x, y, z coordinates of the atoms or residues. The fourth row is the atomic number of the atoms or the density of the residues. The fifth row is the variance of the atoms or residues, which is the resolution of the cryo-EM map divided by pi squared.
+    Parse multiple pdb files and save them as a tensor.
 
-    Parameters
-    ----------
-    file_formatter : str
-        The path to the pdb file. The path must contain the placeholder {} for the pdb index. For example, if the path is "data/pdb/{}.pdb", then the placeholder is {}.
-    n_pdbs : int
-        The number of pdb files to parse.
-    output_file : str
-        The path to the output file. The output file must be a .pt file.
-    mode : str
-        The mode of the atomic model. Either "resid" or "all atom". Resid mode returns a coarse grained atomic model of the protein. All atom mode returns an all atom atomic model of the protein.
+    Args:
+        file_formatter (str): Path format for pdb files containing "{}" as index
+            placeholder (for example, ``"data/pdb/{}.pdb"``).
+        n_pdbs (int): Number of pdb files to parse.
+        output_file (str): Path to the output ``.pt`` file.
+        start_index (int): Starting index used to format the file names.
+        **kwargs: Additional arguments passed to :func:`pdb_parser_`.
     """
 
     models = pdb_parser_(file_formatter.format(start_index), **kwargs)
@@ -62,19 +57,17 @@ def pdb_parser(file_formatter, n_pdbs, output_file, start_index=1, **kwargs):
 
 def traj_parser_(top_file: str, traj_file: str) -> torch.tensor:
     """
-    Parses a traj file and returns a coarsed grained atomic model of the protein.
-    The atomic model is a Mx3xN array, where M is the number of frames in the trajectory,
-    and N is the number of residues in the protein. The first three rows in axis 1 are the x, y, z coordinates of the alpha carbons.
+    Parse a trajectory and return coarse grained atomic models.
 
-    Parameters
-    ----------
-    top_file : str
-        The path to the traj file.
+    The atomic model is an Mx3xN tensor, where M is the number of frames in the
+    trajectory and N is the number of residues in the protein.
 
-    Returns
-    -------
-    atomic_model : torch.tensor
-        The coarse grained atomic model of the protein.
+    Args:
+        top_file (str): Path to the topology file.
+        traj_file (str): Path to the trajectory file.
+
+    Returns:
+        torch.tensor: Coarse grained atomic model of the protein for all frames.
     """
 
     ref = mda.Universe(top_file)
@@ -99,22 +92,12 @@ def traj_parser_(top_file: str, traj_file: str) -> torch.tensor:
 
 def traj_parser(top_file: str, traj_file: str, output_file: str) -> None:
     """
-    Parses a traj file and returns an atomic model of the protein. The atomic model is a Mx5xN array, where M is the number of frames in the trajectory, and N is the number of atoms in the protein. The first three rows in axis 1 are the x, y, z coordinates of the atoms. The fourth row is the atomic number of the atoms. The fifth row is the variance of the atoms before the resolution is applied.
+    Parse a trajectory and save atomic models as a tensor.
 
-    Parameters
-    ----------
-    top_file : str
-        The path to the topology file.
-    traj_file : str
-        The path to the trajectory file.
-    output_file : str
-        The path to the output file. Must be a .pt file.
-    mode : str
-        The mode of the atomic model. Either "resid" or "all-atom". Resid mode returns a coarse grained atomic model of the protein. All atom mode returns an all atom atomic model of the protein.
-
-    Returns
-    -------
-    None
+    Args:
+        top_file (str): Path to the topology file.
+        traj_file (str): Path to the trajectory file.
+        output_file (str): Path to the output ``.pt`` file.
     """
 
     atomic_models = traj_parser_(top_file, traj_file)
@@ -129,31 +112,19 @@ def traj_parser(top_file: str, traj_file: str, output_file: str) -> None:
 
 
 def models_to_tensor(
-        model_files, 
-        output_file, 
-        n_pdbs: Union[int, None] = None,
-        top_file: Union[str, None] = None,
-    ):
+    model_files,
+    output_file,
+    n_pdbs: Union[int, None] = None,
+    top_file: Union[str, None] = None,
+):
     """
     Converts different model files to a torch tensor.
-    
-    Parameters
-    ----------
-    model_files : list
-        A list of model files to convert to a torch tensor.
-        
-    output_file : str
-        The path to the output file. Must be a .pt file.
-        
-    n_models : int
-        The number of models to convert to a torch tensor. Just needed for models in pdb files.
 
-    top_file : str
-        The path to the topology file. Just needed for models in trr files.
-    
-    Returns
-    -------
-        None
+    Args:
+        model_files (str): Model file path or file pattern.
+        output_file (str): Path to the output ``.pt`` file.
+        n_pdbs (Union[int, None]): Number of pdb files. Required for pdb input.
+        top_file (Union[str, None]): Topology file path. Required for trr input.
     """
     assert output_file.endswith("pt"), "The output file must be a .pt file."
     if model_files.endswith("trr"):
@@ -164,5 +135,3 @@ def models_to_tensor(
         assert n_pdbs is not None, "Please provide the number of pdb files."
         assert top_file is None, "The topology file is not needed for pdb files."
         pdb_parser(model_files, n_pdbs, output_file)
-        
-

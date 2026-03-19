@@ -5,6 +5,9 @@ from cryo_sbi.inference.train_npe_model import (
 
 
 def cl_npe_train_no_saving():
+    """
+    Parse command-line arguments and train an NPE model without checkpoint saving.
+    """
     cl_parser = argparse.ArgumentParser()
 
     cl_parser.add_argument(

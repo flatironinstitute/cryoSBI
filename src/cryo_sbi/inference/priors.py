@@ -141,6 +141,15 @@ class QuaternionPrior:
         self.device = device
 
     def sample(self, shape) -> torch.Tensor:
+        """
+        Sample random unit quaternions.
+
+        Args:
+            shape: Batch shape where ``shape[0]`` is the number of samples.
+
+        Returns:
+            torch.Tensor: Tensor of sampled quaternions with shape ``(shape[0], 4)``.
+        """
         quats = torch.stack(
             [gen_quat().to(self.device) for _ in range(shape[0])], dim=0
         )
@@ -153,6 +162,15 @@ class QuaternionTestPrior:
         self.quat = torch.tensor(quat, device=device)
 
     def sample(self, shape) -> torch.Tensor:
+        """
+        Repeat the configured quaternion for a batch.
+
+        Args:
+            shape: Batch shape where ``shape[0]`` is the number of samples.
+
+        Returns:
+            torch.Tensor: Tensor of repeated quaternions with shape ``(shape[0], 4)``.
+        """
         quats = torch.stack([self.quat for _ in range(shape[0])], dim=0)
         return quats
 
@@ -182,6 +200,15 @@ class ImagePrior:
         ]
 
     def sample(self, shape) -> torch.Tensor:
+        """
+        Sample from each configured prior.
+
+        Args:
+            shape: Batch shape passed to every prior sampler.
+
+        Returns:
+            list[torch.Tensor]: Samples from each prior component.
+        """
         samples = [prior.sample(shape) for prior in self.priors]
         return samples
 

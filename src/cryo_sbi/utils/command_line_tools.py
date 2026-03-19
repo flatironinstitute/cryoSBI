@@ -3,6 +3,9 @@ from cryo_sbi.utils.generate_models import models_to_tensor
 
 
 def cl_models_to_tensor():
+    """
+    Parse command-line arguments and convert structure files to a tensor file.
+    """
     cl_parser = argparse.ArgumentParser(
         description="Convert models to tensor for cryoSBI",
         epilog="pdb-files: The name for the pdbs must contain a {} to be replaced by the index of the pdb file. The index starts at 0. \
