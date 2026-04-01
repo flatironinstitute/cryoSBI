@@ -1,0 +1,36 @@
+defaults:
+  - image: multi_particle
+  - training: mlp
+  - _self_
+
+# Simulation mode: set to true to use MultiParticleCryoEmSimulator
+mode:
+  multi_particle: true
+
+# Output paths
+output:
+  estimator_file: outputs/estimator.pt
+  loss_file: outputs/loss.pt
+  checkpoint_dir: outputs/checkpoints
+  tensorboard_dir: outputs/runs
+
+# Training hyperparameters and options
+train:
+  epochs: 150
+  n_workers: 4
+  device: cuda
+  saving_frequency: 20
+  simulation_batch_size: 1024
+  batches_per_epoch: 100     # number of simulation batches consumed per epoch
+  prefetch_factor: 4         # queue depth ≈ prefetch_factor * n_workers; increase if GPU idles
+  train_from_checkpoint: false
+  checkpoint_file: null
+  use_amp: false
+  compile_model: false
+
+# Hydra run settings: keep original working directory so relative MODEL_FILE paths work
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

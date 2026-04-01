@@ -1,33 +1,35 @@
 import torch.nn as nn
 from functools import partial
-from cryo_sbi.inference.models.estimator_models import (
+from omegaconf import DictConfig, OmegaConf
+
+from cryo_sbi.models.estimator_models import (
     CLASSIFIER,
     ClassifierWithEmbedding,
 )
-from cryo_sbi.inference.models.embedding_nets import EMBEDDING_NETS
+from cryo_sbi.models.embedding_nets import EMBEDDING_NETS
 
 
-def build_classifier(config: dict) -> nn.Module:
+def build_classifier(config) -> nn.Module:
     """
-    Builds a classifier model with an embedding network based on the provided configuration.
+    Builds a classifier model with an embedding network.
 
     Args:
-        config (dict): Configuration dictionary containing settings for the embedding
-                       network and classifier.
-        
+        config: OmegaConf DictConfig or plain dict with 'embedding' and 'classifier' sections.
+
     Returns:
-        nn.Module: An instance of ClassifierWithEmbedding combining the embedding
-                     network and classifier.
+        nn.Module: ClassifierWithEmbedding instance.
     """
-    
-    emb_cfg = config["EMBEDDING"]
-    emb_model = emb_cfg["MODEL"]
-    emb_kwargs = {k.lower(): v for k, v in emb_cfg.items() if k != "MODEL"}
+    if isinstance(config, dict):
+        config = OmegaConf.create(config)
+
+    emb_cfg = config.embedding
+    emb_model = emb_cfg.model
+    emb_kwargs = {k: v for k, v in OmegaConf.to_container(emb_cfg).items() if k != "model"}
     embedding = partial(EMBEDDING_NETS[emb_model], **emb_kwargs)
 
-    clf_cfg = config["CLASSIFIER"]
-    clf_model = clf_cfg["MODEL"]
-    clf_kwargs = {k.lower(): v for k, v in clf_cfg.items() if k != "MODEL"}
+    clf_cfg = config.classifier
+    clf_model = clf_cfg.model
+    clf_kwargs = {k: v for k, v in OmegaConf.to_container(clf_cfg).items() if k != "model"}
     clf_kwargs["input_dim"] = emb_kwargs["out_dim"]
     classifier = partial(CLASSIFIER[clf_model], **clf_kwargs)
 

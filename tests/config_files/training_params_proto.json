@@ -1,15 +1,15 @@
 {
-    "EMBEDDING": {
-        "MODEL": "RESNET18",
-        "OUT_DIM": 128
+    "embedding": {
+        "model": "RESNET18",
+        "out_dim": 128
     },
-    "CLASSIFIER": {
-        "MODEL": "PROTOTYPE",
-        "NUM_CLASSES": 44
+    "classifier": {
+        "model": "PROTOTYPE",
+        "num_classes": 44
     },
-    "LEARNING_RATE": 0.0005,
-    "ONE_CYCLE_SCHEDULER": true,
-    "CLIP_GRADIENT": 5.0,
-    "WEIGHT_DECAY": 0.01,
-    "BATCH_SIZE": 32
+    "learning_rate": 0.0005,
+    "one_cycle_scheduler": true,
+    "clip_gradient": 5.0,
+    "weight_decay": 0.01,
+    "batch_size": 64
 }

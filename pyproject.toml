@@ -17,16 +17,18 @@ version = "0.2"
 dependencies = [
     "zuko",
     "torch",
-    "numpy", 
+    "numpy",
     "matplotlib",
     "scipy",
     "torchvision",
     "mrcfile",
     "tqdm",
+    "hydra-core>=1.3",
+    "tensorboard>=2.14",
 ]
 
 
 [project.scripts]
-train_classifier = "cryo_sbi.utils.command_line_tools:cl_train"
 make_torch_models = "cryo_sbi.utils.command_line_tools:cl_make_torch_models"
 classifier_inference = "cryo_sbi.utils.command_line_tools:cl_inference"
+train_classifier = "cryo_sbi.training.__main__:main"

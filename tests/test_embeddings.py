@@ -2,7 +2,7 @@ import pytest
 import torch
 from itertools import product
 
-from cryo_sbi.inference.models.embedding_nets import EMBEDDING_NETS
+from cryo_sbi.models.embedding_nets import EMBEDDING_NETS
 
 embedding_networks = list(EMBEDDING_NETS.keys())
 num_images_to_test = [1, 5]

@@ -1,0 +1,10 @@
+# Single-particle image simulation parameters
+n_pixels: 64
+pixel_size: 2.06        # Angstrom per pixel
+sigma: [0.5, 5.0]       # Gaussian width [min, max] in Angstrom
+model_file: /home/dingeldein/Desktop/p4p6_pdb_models_dec_25/models_set0.pt         # Path to model file (.pt or .npy) — required
+shift: 20.0             # Max in-plane shift magnitude in Angstrom
+defocus: [1.5, 3.5]     # CTF defocus range [min, max] in micrometers
+snr: [0.05, 0.05]       # Signal-to-noise ratio range [min, max] (log10 scale)
+amp: 0.1                # Amplitude contrast
+b_factor: [1.0, 100.0]  # B-factor range [min, max]

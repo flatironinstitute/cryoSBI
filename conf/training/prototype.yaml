@@ -1,0 +1,14 @@
+# Training configuration with Prototype classifier (metric learning)
+embedding:
+  model: RESNET18
+  out_dim: 128
+
+classifier:
+  model: PROTOTYPE
+  num_classes: 44         # Must match number of models in model_file
+
+learning_rate: 0.0005
+one_cycle_scheduler: true
+clip_gradient: 5.0
+weight_decay: 0.01
+batch_size: 64

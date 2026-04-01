@@ -1,11 +1,11 @@
 {
-    "N_PIXELS": 64,
-    "PIXEL_SIZE": 2.06,
-    "SIGMA": [0.5, 5.0],
-    "MODEL_FILE": "tests/models/hsp90_models.pt",
-    "SHIFT": 20.0,
-    "DEFOCUS": [1.5, 3.5],
-    "SNR": [0.05, 0.05],
-    "AMP": 0.1,
-    "B_FACTOR": [1.0, 100.0]
+    "n_pixels": 64,
+    "pixel_size": 2.06,
+    "sigma": [0.5, 5.0],
+    "model_file": "tests/models/hsp90_models.pt",
+    "shift": 20.0,
+    "defocus": [1.5, 3.5],
+    "snr": [0.05, 0.05],
+    "amp": 0.1,
+    "b_factor": [1.0, 100.0]
 }

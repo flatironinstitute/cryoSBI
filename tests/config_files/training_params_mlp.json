@@ -1,18 +1,18 @@
 {
-    "EMBEDDING": {
-        "MODEL": "RESNET18",
-        "OUT_DIM": 128
+    "embedding": {
+        "model": "RESNET18",
+        "out_dim": 128
     },
-    "CLASSIFIER": {
-        "MODEL": "MLP",
-        "NUM_CLASSES": 44,
-        "NUM_LAYERS": 8,
-        "NODES_PER_LAYER": 128,
-        "DROPOUT": 0.05
+    "classifier": {
+        "model": "MLP",
+        "num_classes": 44,
+        "num_layers": 8,
+        "nodes_per_layer": 128,
+        "dropout": 0.05
     },
-    "LEARNING_RATE": 0.0005,
-    "ONE_CYCLE_SCHEDULER": true,
-    "CLIP_GRADIENT": 5.0,
-    "WEIGHT_DECAY": 100,
-    "BATCH_SIZE": 128
+    "learning_rate": 0.0005,
+    "one_cycle_scheduler": true,
+    "clip_gradient": 5.0,
+    "weight_decay": 0.001,
+    "batch_size": 128
 }

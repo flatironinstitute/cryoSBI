@@ -1,29 +1,28 @@
 import torch
-import json
-from cryo_sbi.inference.models import build_models
+from omegaconf import OmegaConf
+
+from cryo_sbi.models import build_models
 
 
 def load_classifier(
-    config_file_path: str, estimator_path: str, device: str = "cpu"
+    config_path: str, estimator_path: str, device: str = "cpu"
 ) -> torch.nn.Module:
     """
-    Loads a trained estimator.
+    Loads a trained classifier.
 
     Args:
-        config_file_path (str): Path to the config file used to train the estimator.
-        estimator_path (str): Path to the estimator.
-        device (str, optional): The device to use. Defaults to "cpu".
+        config_path: Path to the training config file (YAML or JSON).
+        estimator_path: Path to the saved model state dict.
+        device: Device string.
 
     Returns:
-        torch.nn.Module: The loaded estimator.
+        torch.nn.Module: The loaded classifier in eval mode.
     """
-
-    train_config = json.load(open(config_file_path))
-    estimator = build_models.build_classifier(train_config)
+    config = OmegaConf.load(config_path)
+    estimator = build_models.build_classifier(config)
     estimator.load_state_dict(
-        torch.load(estimator_path, map_location=torch.device(device))
+        torch.load(estimator_path, map_location=torch.device(device), weights_only=True)
     )
     estimator.to(device)
     estimator.eval()
-
     return estimator
