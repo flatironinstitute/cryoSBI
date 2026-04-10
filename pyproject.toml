@@ -29,6 +29,6 @@ dependencies = [
 
 
 [project.scripts]
-make_torch_models = "cryo_sbi.utils.command_line_tools:cl_make_torch_models"
-classifier_inference = "cryo_sbi.utils.command_line_tools:cl_inference"
-train_classifier = "cryo_sbi.training.__main__:main"
+make_torch_models    = "cryo_sbi.utils.__main__:main"
+classifier_inference = "cryo_sbi.inference.__main__:main"
+train_classifier     = "cryo_sbi.training.__main__:main"

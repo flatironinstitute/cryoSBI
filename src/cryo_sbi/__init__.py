@@ -1,1 +1,1 @@
-from cryo_sbi.simulator import CryoEmSimulator, MultiParticleCryoEmSimulator
+from cryo_sbi.simulator import CryoEmSimulator

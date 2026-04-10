@@ -2,7 +2,9 @@ import os
 import time
 import logging
 import torch
+from omegaconf import DictConfig
 from torchvision import transforms
+
 import cryo_sbi.utils.image_utils as img_utils
 import cryo_sbi.utils.classifier_utils as cls_utils
 
@@ -17,67 +19,43 @@ def setup_logging(debug: bool = False):
     )
 
 
-def get_file_list(folder_with_mrcs):
+def get_file_list(folder: str) -> list[str]:
+    """Return a sorted list of .mrc file paths from folder."""
+    paths = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".mrc")]
+    try:
+        paths = sorted(paths, key=lambda x: int(os.path.basename(x).split("_")[1]))
+    except (ValueError, IndexError):
+        logging.warning("Could not sort MRC files numerically; falling back to alphabetical order.")
+        paths = sorted(paths)
+    return paths
+
+
+def classifier_inference(cfg: DictConfig) -> None:
     """
-    Get a sorted list of .mrc file paths from the specified folder.
+    Run classifier inference on a folder of MRC files.
 
     Args:
-        folder_with_mrcs (str): Path to the folder containing .mrc files.
-
-    Returns:
-        List[str]: Sorted list of .mrc file paths.
+        cfg: Hydra DictConfig with cfg.train (model architecture) and cfg.inference.
     """
-
-    particle_paths = [os.path.join(folder_with_mrcs, f) for f in os.listdir(folder_with_mrcs) if f.endswith(".mrc")]
-    try:
-        particle_paths = sorted(particle_paths, key=lambda x: int(os.path.basename(x).split("_")[1]))
-    except:
-        print("Could not sort particle paths by number, sorting alphabetically instead.")
-    return particle_paths
-
-
-def classifier_inference(
-        folder_with_mrcs, 
-        estimator_weights, 
-        estimator_config, 
-        file_name, 
-        num_workers, 
-        output_dir, 
-        image_size, 
-        prefetch_factor, 
-        max_batch_size,
-        whitening: bool = True,
-    ):
     setup_logging()
+    ic = cfg.inference
 
-    assert os.path.exists(folder_with_mrcs), f"Folder {folder_with_mrcs} does not exist."
-    assert os.path.exists(estimator_weights), f"Estimator weights {estimator_weights} do not exist."
-    assert os.path.exists(estimator_config), f"Estimator config {estimator_config} does not exist."
-    assert os.path.exists(output_dir), f"Output directory {output_dir} does not exist."
-    assert torch.cuda.is_available(), "CUDA is not available."
-    
     transform = transforms.Compose([
-        img_utils.WhitenImage(image_size) if whitening else img_utils.Identity(),
+        img_utils.WhitenImage(ic.image_size) if ic.whitening else img_utils.Identity(),
         img_utils.NormalizeIndividual(),
     ])
 
-    particle_paths = get_file_list(folder_with_mrcs)
+    particle_paths = get_file_list(ic.folder_with_mrcs)
     logging.info(f"Found {len(particle_paths)} .mrc files.")
-    logging.info(f"Analyzing mrc files :\n" + "\n".join([p.split('/')[-1] for p in particle_paths]) + "\n")
+    logging.info("Analyzing:\n" + "\n".join(os.path.basename(p) for p in particle_paths))
 
-
-    classifier = cls_utils.load_classifier(
-        estimator_config,
-        estimator_weights,
-        device="cuda",
-    )
-    classifier.eval()
+    classifier = cls_utils.load_classifier(cfg.train, ic.estimator_weights, device=ic.device)
 
     loader = img_utils.MRCloader(
         particle_paths,
-        num_workers=num_workers,
+        num_workers=ic.num_workers,
         pin_memory=True,
-        prefetch_factor=prefetch_factor,
+        prefetch_factor=ic.prefetch_factor,
         persistent_workers=True,
         in_order=False,
     )
@@ -87,28 +65,26 @@ def classifier_inference(
 
     with torch.inference_mode():
         for idx, images in loader:
-                if images.shape[0] > max_batch_size:
-                    logits_batched, embeddings_batched = [], []
-                    for image_batch in torch.split(images.cuda(non_blocking=True), split_size_or_sections=max_batch_size, dim=0):
-                        transformed_images = transform(image_batch)
-                        logits, embeddings = classifier.logits_embedding(-transformed_images)
-                        logits_batched.append(logits)
-                        embeddings_batched.append(embeddings)
-                    logits = torch.cat(logits_batched, dim=0)
-                    embeddings = torch.cat(embeddings_batched, dim=0)
-                    results.append((idx, logits.cpu(), embeddings.cpu()))
-                else:
-                    transformed_images = transform(images.cuda(non_blocking=True))
-                    logits, embeddings = classifier.logits_embedding(-transformed_images)
-                    results.append((idx, logits.cpu(), embeddings.cpu()))
+            images = images.to(ic.device, non_blocking=True)
+            if images.shape[0] > ic.max_batch_size:
+                logits_list, emb_list = [], []
+                for batch in torch.split(images, ic.max_batch_size, dim=0):
+                    logits, embeddings = classifier.logits_embedding(-transform(batch))
+                    logits_list.append(logits)
+                    emb_list.append(embeddings)
+                results.append((idx, torch.cat(logits_list).cpu(), torch.cat(emb_list).cpu()))
+            else:
+                logits, embeddings = classifier.logits_embedding(-transform(images))
+                results.append((idx, logits.cpu(), embeddings.cpu()))
 
-    end_time = time.time()
-    duration = end_time - start_time
+    results.sort(key=lambda x: x[0])
+    likelihoods = torch.cat([r[1] for r in results])
+    embeddings  = torch.cat([r[2] for r in results])
 
-    results = sorted(results, key=lambda x: x[0])
-    likelihoods = torch.cat([r[1] for r in results], dim=0)
-    embeddings = torch.cat([r[2] for r in results], dim=0)
-
-    torch.save(likelihoods, os.path.join(output_dir, f"likelihoods_{file_name}"))
-    torch.save(embeddings, os.path.join(output_dir, f"embeddings_{file_name}"))
-    logging.info(f"Inference completed in {duration:.2f} seconds for {likelihoods.shape[0]} images.")
+    os.makedirs(ic.output_dir, exist_ok=True)
+    torch.save(likelihoods, os.path.join(ic.output_dir, f"likelihoods_{ic.file_name}"))
+    torch.save(embeddings,  os.path.join(ic.output_dir, f"embeddings_{ic.file_name}"))
+    logging.info(
+        f"Inference completed in {time.time() - start_time:.2f}s "
+        f"for {likelihoods.shape[0]} images."
+    )

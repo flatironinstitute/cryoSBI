@@ -1,247 +1,173 @@
+from __future__ import annotations
+
 import torch
 import zuko
-from omegaconf import ListConfig
-from torch.distributions.distribution import Distribution
 from torch.utils.data import DataLoader, IterableDataset
 
-from cryo_sbi.simulator.image_generation import gen_rot_matrix
+from cryo_sbi.simulator.image_generation import gen_quat, gen_rot_matrix
 
 
-def gen_quat() -> torch.Tensor:
-    """
-    Generate a random unit quaternion.
+def _box_uniform(lo: float, hi: float, device: str) -> zuko.distributions.BoxUniform:
+    """Scalar BoxUniform with shape (1, 1) bounds for correct sample shape (B, 1, 1)."""
+    t = lambda v: torch.tensor([[v]], dtype=torch.float32, device=device)
+    return zuko.distributions.BoxUniform(lower=t(lo), upper=t(hi), ndims=1)
 
-    Returns:
-        torch.Tensor: Random unit quaternion of shape (4,)
-    """
-    count = 0
-    while count < 1:
-        quat = 2 * torch.rand(size=(4,)) - 1
-        norm = torch.sqrt(torch.sum(quat**2))
-        if 0.2 <= norm <= 1.0:
-            quat /= norm
-            count += 1
-    return quat
 
+# ---------------------------------------------------------------------------
+# Priors
+# ---------------------------------------------------------------------------
 
 class IndexPrior:
-    def __init__(
-        self, num_models: int, num_representatives: int = None, device="cpu"
-    ) -> None:
-        self.num_models = num_models
-        self.num_representatives = num_representatives
-        self.device = device
+    """Uniform categorical prior over model indices, optionally with representatives."""
 
-        self.index_prior = torch.distributions.Categorical(
-            probs=torch.tensor(
-                [1 / self.num_models for _ in range(self.num_models)],
-                device=device,
+    def __init__(self, num_models: int, num_representatives: int | None = None, device: str = "cpu"):
+        self._model_dist = torch.distributions.Categorical(
+            probs=torch.full((num_models,), 1.0 / num_models, device=device)
+        )
+        self._rep_dist = (
+            torch.distributions.Categorical(
+                probs=torch.full((num_representatives,), 1.0 / num_representatives, device=device)
             )
+            if num_representatives is not None
+            else None
         )
 
-        if num_representatives is not None:
-            self.representatives_prior = torch.distributions.Categorical(
-                probs=torch.tensor(
-                    [
-                        1 / self.num_representatives
-                        for _ in range(self.num_representatives)
-                    ],
-                    device=device,
-                )
-            )
-
-    def sample(self, shape) -> torch.Tensor:
-        """
-        Sample indices from the prior distribution.
-
-        Returns:
-            torch.Tensor: 2D tensor (index, representative) if num_representatives is set,
-                          else 1D tensor of model indices.
-        """
-        if self.num_representatives is not None:
-            return torch.stack(
-                [
-                    self.index_prior.sample(shape),
-                    self.representatives_prior.sample(shape),
-                ],
-                dim=1,
-            )
-        else:
-            return self.index_prior.sample(shape)
-
-
-def get_image_priors(
-    num_models: int, num_representatives: int, image_config, device="cuda"
-) -> "ImagePrior":
-    """
-    Build an ImagePrior from a config. Accepts both OmegaConf DictConfig and plain dicts.
-    Config keys are lowercase (e.g. image_config.sigma, image_config.shift, ...).
-    """
-    # Support both attribute-style (OmegaConf) and dict-style access
-    def _get(cfg, key):
-        if hasattr(cfg, key):
-            return getattr(cfg, key)
-        return cfg[key]
-
-    sigma = _get(image_config, "sigma")
-    if isinstance(sigma, (list, tuple, ListConfig)) and len(sigma) == 2:
-        lower = torch.tensor([[sigma[0]]], dtype=torch.float32, device=device)
-        upper = torch.tensor([[sigma[1]]], dtype=torch.float32, device=device)
-        assert lower <= upper, "sigma lower bound must be <= upper bound"
-        sigma_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
-
-    shift = _get(image_config, "shift")
-    shift_prior = zuko.distributions.BoxUniform(
-        lower=torch.tensor([-shift, -shift], dtype=torch.float32, device=device),
-        upper=torch.tensor([shift, shift], dtype=torch.float32, device=device),
-        ndims=1,
-    )
-
-    defocus = _get(image_config, "defocus")
-    if isinstance(defocus, (list, tuple, ListConfig)) and len(defocus) == 2:
-        lower = torch.tensor([[defocus[0]]], dtype=torch.float32, device=device)
-        upper = torch.tensor([[defocus[1]]], dtype=torch.float32, device=device)
-        assert lower > 0.0, "defocus lower bound must be positive"
-        assert lower <= upper, "defocus lower bound must be <= upper bound"
-        defocus_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
-
-    b_factor = _get(image_config, "b_factor")
-    if isinstance(b_factor, (list, tuple, ListConfig)) and len(b_factor) == 2:
-        lower = torch.tensor([[b_factor[0]]], dtype=torch.float32, device=device)
-        upper = torch.tensor([[b_factor[1]]], dtype=torch.float32, device=device)
-        assert lower > 0.0, "b_factor lower bound must be positive"
-        assert lower <= upper, "b_factor lower bound must be <= upper bound"
-        b_factor_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
-
-    snr = _get(image_config, "snr")
-    if isinstance(snr, (list, tuple, ListConfig)) and len(snr) == 2:
-        lower = torch.tensor([[snr[0]]], dtype=torch.float32, device=device).log10()
-        upper = torch.tensor([[snr[1]]], dtype=torch.float32, device=device).log10()
-        assert lower <= upper, "snr lower bound must be <= upper bound"
-        snr_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
-
-    amp = _get(image_config, "amp")
-    amp_prior = zuko.distributions.BoxUniform(
-        lower=torch.tensor([[amp]], dtype=torch.float32, device=device),
-        upper=torch.tensor([[amp]], dtype=torch.float32, device=device),
-        ndims=1,
-    )
-
-    index_prior = IndexPrior(num_models, num_representatives, device)
-    quaternion_prior = QuaternionPrior(device)
-
-    rotations = None
-    if hasattr(image_config, "rotations"):
-        rotations = image_config.rotations
-    elif isinstance(image_config, dict) and "rotations" in image_config:
-        rotations = image_config["rotations"]
-
-    if rotations and isinstance(rotations, (list, tuple)) and len(rotations) == 4:
-        quaternion_prior = QuaternionTestPrior(rotations, device)
-
-    return ImagePrior(
-        index_prior,
-        quaternion_prior,
-        sigma_prior,
-        shift_prior,
-        defocus_prior,
-        b_factor_prior,
-        amp_prior,
-        snr_prior,
-    )
+    def sample(self, shape: tuple) -> torch.Tensor:
+        idx = self._model_dist.sample(shape)
+        if self._rep_dist is not None:
+            return torch.stack([idx, self._rep_dist.sample(shape)], dim=1)
+        return idx
 
 
 class QuaternionPrior:
-    def __init__(self, device) -> None:
-        self.device = device
+    """
+    Uniform random rotation prior. If fixed_quat is given, always returns that quaternion
+    (useful for testing/debugging).
+    """
 
-    def sample(self, shape) -> torch.Tensor:
-        return torch.stack(
-            [gen_quat().to(self.device) for _ in range(shape[0])], dim=0
-        )
+    def __init__(self, device: str, fixed_quat: list | None = None):
+        self._device = device
+        self._fixed = torch.tensor(fixed_quat, dtype=torch.float32, device=device) if fixed_quat else None
 
-
-class QuaternionTestPrior:
-    def __init__(self, quat, device) -> None:
-        self.device = device
-        self.quat = torch.tensor(quat, device=device)
-
-    def sample(self, shape) -> torch.Tensor:
-        return torch.stack([self.quat for _ in range(shape[0])], dim=0)
+    def sample(self, shape: tuple) -> torch.Tensor:
+        if self._fixed is not None:
+            return self._fixed.unsqueeze(0).expand(shape[0], -1)
+        return torch.stack([gen_quat().to(self._device) for _ in range(shape[0])])
 
 
 class ImagePrior:
+    """Joint prior over all single-particle image parameters."""
+
     def __init__(
         self,
-        index_prior,
-        quaternion_prior,
+        index_prior: IndexPrior,
+        quaternion_prior: QuaternionPrior,
         sigma_prior,
         shift_prior,
         defocus_prior,
         b_factor_prior,
         amp_prior,
         snr_prior,
-    ) -> None:
-        self.priors = [
-            index_prior,
-            quaternion_prior,
-            sigma_prior,
-            shift_prior,
-            defocus_prior,
-            b_factor_prior,
-            amp_prior,
-            snr_prior,
+    ):
+        self._priors = [
+            index_prior, quaternion_prior,
+            sigma_prior, shift_prior,
+            defocus_prior, b_factor_prior,
+            amp_prior, snr_prior,
         ]
 
-    def sample(self, shape) -> list:
-        return [prior.sample(shape) for prior in self.priors]
+    def sample(self, shape: tuple) -> list[torch.Tensor]:
+        return [p.sample(shape) for p in self._priors]
 
+    @classmethod
+    def from_config(
+        cls,
+        num_models: int,
+        num_representatives: int | None,
+        image_config,
+        device: str = "cuda",
+    ) -> "ImagePrior":
+        """Build an ImagePrior from an OmegaConf DictConfig or plain dict."""
+        sigma    = list(image_config.sigma)
+        shift    = float(image_config.shift)
+        defocus  = list(image_config.defocus)
+        b_factor = list(image_config.b_factor)
+        snr      = list(image_config.snr)
+        amp      = float(image_config.amp)
+
+        shift_prior = zuko.distributions.BoxUniform(
+            lower=torch.tensor([-shift, -shift], dtype=torch.float32, device=device),
+            upper=torch.tensor([ shift,  shift], dtype=torch.float32, device=device),
+            ndims=1,
+        )
+
+        rotations = getattr(image_config, "rotations", None)
+
+        return cls(
+            index_prior=IndexPrior(num_models, num_representatives, device),
+            quaternion_prior=QuaternionPrior(
+                device,
+                fixed_quat=rotations if rotations and len(rotations) == 4 else None,
+            ),
+            sigma_prior    = _box_uniform(sigma[0], sigma[1], device),
+            shift_prior    = shift_prior,
+            defocus_prior  = _box_uniform(defocus[0], defocus[1], device),
+            b_factor_prior = _box_uniform(b_factor[0], b_factor[1], device),
+            amp_prior      = _box_uniform(amp, amp, device),
+            snr_prior      = _box_uniform(
+                torch.tensor(snr[0]).log10().item(),
+                torch.tensor(snr[1]).log10().item(),
+                device,
+            ),
+        )
+
+
+def get_image_priors(
+    num_models: int, num_representatives: int | None, image_config, device: str = "cuda"
+) -> ImagePrior:
+    """Thin wrapper around ImagePrior.from_config for backward compatibility."""
+    return ImagePrior.from_config(num_models, num_representatives, image_config, device)
+
+
+# ---------------------------------------------------------------------------
+# Ellipsoid fitting
+# ---------------------------------------------------------------------------
 
 def fit_ellipsoids(models: torch.Tensor) -> torch.Tensor:
     """
-    Fit bounding ellipsoids to each model via PCA of atom coordinates.
-
-    For each model the 3×3 covariance matrix of its atom positions is computed;
-    the square-roots of its eigenvalues give the three semi-axes of the
-    best-fit ellipsoid in Angstrom.
+    Fit a bounding ellipsoid to each model via PCA of its atom coordinates.
 
     Args:
-        models: (N, 3, n_atoms) or (N, R, 3, n_atoms). If 4D, the first
-                representative ([:,0]) is used. NaN/Inf atoms are ignored.
+        models: (N, 3, n_atoms) or (N, R, 3, n_atoms). If 4-D, the first
+                representative is used. NaN / Inf atoms are excluded.
 
     Returns:
-        torch.Tensor: (N, 3) semi-axes in Angstrom, on CPU.
+        torch.Tensor: (N, 3) ellipsoid semi-axes in Angstrom, on CPU.
     """
     if models.ndim == 4:
-        models = models[:, 0]  # use first representative
+        models = models[:, 0]
 
-    N = models.shape[0]
     radii = []
-    for i in range(N):
-        coords = models[i]                                  # (3, n_atoms)
-        finite = torch.isfinite(coords).all(dim=0)
-        coords = coords[:, finite]                          # (3, n_valid)
-        center = coords.mean(dim=1, keepdim=True)
-        coords_c = coords - center                          # (3, n_valid)
-        cov = (coords_c @ coords_c.T) / coords_c.shape[1]  # (3, 3)
-        eigs = torch.linalg.eigvalsh(cov)                   # ascending
-        radii.append(torch.sqrt(eigs.clamp(min=0)))
-    return torch.stack(radii, dim=0)  # (N, 3)
+    for coords in models:                                  # (3, n_atoms)
+        valid = coords[:, torch.isfinite(coords).all(dim=0)]
+        centered = valid - valid.mean(dim=1, keepdim=True)
+        cov = centered @ centered.T / centered.shape[1]   # (3, 3)
+        radii.append(torch.linalg.eigvalsh(cov).clamp(min=0).sqrt())
+    return torch.stack(radii)                              # (N, 3)
 
+
+# ---------------------------------------------------------------------------
+# Multi-particle prior
+# ---------------------------------------------------------------------------
 
 class MultiParticleImagePrior:
     """
-    Prior for multi-particle cryo-EM images.
+    Extends ImagePrior with background particle sampling and placement.
 
-    Wraps an `ImagePrior` (single-particle) and extends its `sample()` to also
-    sample background particle parameters and resolve placement conflicts on the
-    CPU worker, using precomputed bounding ellipsoids for fast overlap detection.
-
-    The placement check is:
-        ||c_new - c_acc|| > r_new + r_acc + exclusion_radius
-    where r is the projected bounding radius of each particle's ellipsoid under
-    its sampled rotation (computed analytically as sqrt of the largest eigenvalue
-    of the 2×2 projected covariance).
+    All work runs on CPU prior-loader workers. Overlap detection uses the
+    Alfano-Greer criterion with precomputed ellipsoid semi-axes: a candidate
+    is accepted when its projected bounding radius clears all previously
+    placed particles by at least exclusion_radius.
     """
 
     def __init__(
@@ -255,93 +181,67 @@ class MultiParticleImagePrior:
         pixel_size: float,
         exclusion_radius: float,
         max_placement_attempts: int = 200,
-    ) -> None:
+    ):
         self.base_prior = base_prior
-        self.ellipsoid_radii = ellipsoid_radii.cpu()   # (N, 3)
+        self.ellipsoid_radii = ellipsoid_radii.cpu()
         self.n_bg_min = n_bg_min
         self.n_bg_max = n_bg_max
-        self.n_px_pad = n_pixels * padding_factor
-        self.pixel_size = pixel_size
         self.exclusion_radius = exclusion_radius
         self.max_placement_attempts = max_placement_attempts
-        self._half_pad_ang = self.n_px_pad * pixel_size / 2.0
+        self._half_pad_ang = n_pixels * padding_factor * pixel_size / 2.0
 
     @staticmethod
     def _projected_radius(semi_axes: torch.Tensor, quat: torch.Tensor) -> float:
         """
-        Bounding circle radius of an ellipsoid projected onto the xy-plane.
+        Bounding circle radius of the ellipsoid projected onto the xy-plane.
 
-        The 3D covariance Σ = R @ diag(a²,b²,c²) @ R.T; the projected 2×2
-        covariance is its top-left block; the bounding radius is the sqrt of
-        the largest eigenvalue of that block.
-
-        Args:
-            semi_axes: (3,) semi-axes in Angstrom.
-            quat: (4,) unit quaternion.
-
-        Returns:
-            float bounding radius in Angstrom.
+        Constructs the 3-D covariance Σ = R diag(a²,b²,c²) Rᵀ, takes its
+        2×2 xy-block, and returns sqrt(λ_max).
         """
-        # Build rotation matrix (reuse gen_rot_matrix)
-        R = gen_rot_matrix(quat.unsqueeze(0))[0]       # (3, 3)
-        cov3 = R @ torch.diag(semi_axes ** 2) @ R.T   # (3, 3)
-        cov2 = cov3[:2, :2]                            # (2, 2)
-        eigs = torch.linalg.eigvalsh(cov2)             # (2,)
-        return float(torch.sqrt(eigs.max().clamp(min=0)))
+        R = gen_rot_matrix(quat.unsqueeze(0))[0]
+        cov2 = (R @ torch.diag(semi_axes ** 2) @ R.T)[:2, :2]
+        return float(torch.linalg.eigvalsh(cov2).max().clamp(min=0).sqrt())
 
-    def sample(self, shape) -> list:
+    def sample(self, shape: tuple) -> list[torch.Tensor]:
         """
         Sample a batch of multi-particle image parameters.
 
-        Returns a list of tensors:
-            [fg_indices, fg_quats, fg_sigma, fg_shift,
-             fg_defocus, fg_b_factor, fg_amp, fg_snr,
-             bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask]
+        Returns 13 tensors:
+            fg_indices, fg_quats, fg_sigma, fg_shift,
+            fg_defocus, fg_b_factor, fg_amp, fg_snr,
+            bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask
         """
-        batch_size = shape[0]
-        fg_params = self.base_prior.sample(shape)
-        (fg_indices, fg_quats, fg_sigma, fg_shift,
-         fg_defocus, fg_b_factor, fg_amp, fg_snr) = fg_params
+        B = shape[0]
+        fg_indices, fg_quats, fg_sigma, fg_shift, \
+            fg_defocus, fg_b_factor, fg_amp, fg_snr = self.base_prior.sample(shape)
 
-        # Allocate padded bg tensors
-        has_reps = fg_indices.ndim == 2
-        if has_reps:
-            bg_indices = torch.zeros(batch_size, self.n_bg_max, 2, dtype=torch.long)
-        else:
-            bg_indices = torch.zeros(batch_size, self.n_bg_max, dtype=torch.long)
-        bg_quats   = torch.zeros(batch_size, self.n_bg_max, 4)
-        bg_sigma   = torch.ones(batch_size, self.n_bg_max, 1, 1)
-        bg_centers = torch.zeros(batch_size, self.n_bg_max, 2)
-        bg_mask    = torch.zeros(batch_size, self.n_bg_max, dtype=torch.bool)
+        has_reps  = fg_indices.ndim == 2
+        idx_shape = (B, self.n_bg_max, 2) if has_reps else (B, self.n_bg_max)
+        bg_indices = torch.zeros(idx_shape, dtype=torch.long)
+        bg_quats   = torch.zeros(B, self.n_bg_max, 4)
+        bg_sigma   = torch.ones(B, self.n_bg_max, 1, 1)   # ones: masked slots must not cause div-by-0
+        bg_centers = torch.zeros(B, self.n_bg_max, 2)
+        bg_mask    = torch.zeros(B, self.n_bg_max, dtype=torch.bool)
 
-        for i in range(batch_size):
+        for i in range(B):
             fg_idx = int(fg_indices[i, 0] if has_reps else fg_indices[i])
-            fg_r   = self._projected_radius(self.ellipsoid_radii[fg_idx], fg_quats[i])
-
             accepted_centers = [torch.zeros(2)]
-            accepted_radii   = [fg_r]
-
-            n_bg = int(torch.randint(self.n_bg_min, self.n_bg_max + 1, (1,)).item())
+            accepted_radii   = [self._projected_radius(self.ellipsoid_radii[fg_idx], fg_quats[i])]
             placed = 0
 
+            n_bg = int(torch.randint(self.n_bg_min, self.n_bg_max + 1, (1,)).item())
             for _ in range(n_bg):
                 for _ in range(self.max_placement_attempts):
-                    bg_p = self.base_prior.sample((1,))
-                    b_idx_t, b_quat, b_sig, *_ = bg_p
+                    b_idx_t, b_quat, b_sig, *_ = self.base_prior.sample((1,))
                     b_idx = int(b_idx_t[0, 0] if b_idx_t.ndim == 2 else b_idx_t[0])
                     b_r   = self._projected_radius(self.ellipsoid_radii[b_idx], b_quat[0])
-
                     center = (torch.rand(2) * 2 - 1) * self._half_pad_ang
 
-                    no_overlap = all(
-                        torch.norm(center - c).item() > b_r + r_acc + self.exclusion_radius
-                        for c, r_acc in zip(accepted_centers, accepted_radii)
-                    )
-                    if no_overlap:
-                        if has_reps:
-                            bg_indices[i, placed] = b_idx_t[0]
-                        else:
-                            bg_indices[i, placed] = b_idx
+                    if all(
+                        torch.norm(center - c).item() > b_r + r + self.exclusion_radius
+                        for c, r in zip(accepted_centers, accepted_radii)
+                    ):
+                        bg_indices[i, placed] = b_idx_t[0] if has_reps else b_idx
                         bg_quats[i, placed]   = b_quat[0]
                         bg_sigma[i, placed]   = b_sig[0]
                         bg_centers[i, placed] = center
@@ -356,8 +256,12 @@ class MultiParticleImagePrior:
                 bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask]
 
 
+# ---------------------------------------------------------------------------
+# DataLoader wrappers
+# ---------------------------------------------------------------------------
+
 class PriorDataset(IterableDataset):
-    def __init__(self, prior: ImagePrior, batch_shape: torch.Size = ()):
+    def __init__(self, prior: ImagePrior | MultiParticleImagePrior, batch_shape: tuple):
         super().__init__()
         self.prior = prior
         self.batch_shape = batch_shape
@@ -368,7 +272,7 @@ class PriorDataset(IterableDataset):
 
 
 class PriorLoader(DataLoader):
-    def __init__(self, prior: ImagePrior, batch_size: int = 256, **kwargs):
+    def __init__(self, prior: ImagePrior | MultiParticleImagePrior, batch_size: int = 256, **kwargs):
         super().__init__(
             PriorDataset(prior, batch_shape=(batch_size,)),
             batch_size=None,

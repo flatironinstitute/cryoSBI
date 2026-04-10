@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from cryo_sbi.simulator.cryo_em_simulator import cryo_em_simulator, CryoEmSimulator
+from cryo_sbi.simulator.cryo_em_simulator import CryoEmSimulator
 from cryo_sbi.simulator.ctf import apply_ctf
 from cryo_sbi.simulator.image_generation import (
     project_density,

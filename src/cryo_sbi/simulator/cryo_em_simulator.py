@@ -12,6 +12,80 @@ from cryo_sbi.simulator.priors import (
     MultiParticleImagePrior,
 )
 
+def image_formation(
+    fg_models,
+    fg_quats,
+    fg_sigma,
+    fg_shift,
+    fg_defocus,
+    fg_b_factor,
+    fg_amp,
+    fg_snr,
+    bg_models,
+    bg_quats,
+    bg_sigma,
+    bg_centers,
+    bg_mask,
+    num_pixels_padded,
+    pixel_size,
+    pad_start: int,
+    pad_end: int,
+) -> torch.Tensor:
+    """
+    Unified image formation pipeline for single- and multi-particle images.
+    All model selection is done by the caller — this function is pure tensor math.
+
+    When n_bg_max=0, bg_models has shape (0, 3, n_atoms): the background
+    project_density call is a no-op and bg_density is an all-zero tensor.
+
+    Args:
+        fg_models (torch.Tensor): Foreground model coords, shape (B, 3, n_atoms).
+        fg_quats (torch.Tensor): Foreground rotations, shape (B, 4).
+        fg_sigma (torch.Tensor): Foreground Gaussian width, shape (B, 1, 1).
+        fg_shift (torch.Tensor): Foreground in-plane shifts, shape (B, 2).
+        fg_defocus (torch.Tensor): CTF defocus, shape (B, 1).
+        fg_b_factor (torch.Tensor): CTF B-factor, shape (B, 1).
+        fg_amp (torch.Tensor): Amplitude contrast, shape (B, 1).
+        fg_snr (torch.Tensor): log10 SNR, shape (B, 1).
+        bg_models (torch.Tensor): Background model coords, shape (B*n_bg_max, 3, n_atoms).
+            Shape (0, 3, n_atoms) when n_bg_max=0.
+        bg_quats (torch.Tensor): Background rotations, shape (B*n_bg_max, 4).
+        bg_sigma (torch.Tensor): Background Gaussian width, shape (B*n_bg_max, 1, 1).
+        bg_centers (torch.Tensor): Background in-plane shifts, shape (B*n_bg_max, 2).
+        bg_mask (torch.Tensor): Valid-slot mask, shape (B, n_bg_max), dtype bool.
+        num_pixels_padded (torch.Tensor): Scalar — padded canvas side length.
+        pixel_size (torch.Tensor): Scalar — pixel size in Angstrom.
+        pad_start (int): Start index for center-crop.
+        pad_end (int): End index for center-crop.
+
+    Returns:
+        torch.Tensor: Normalized images, shape (B, pad_end-pad_start, pad_end-pad_start).
+    """
+    B = fg_models.shape[0]
+    n_bg_max = bg_mask.shape[1]
+
+    fg_density = project_density(
+        fg_models, fg_quats, fg_sigma, fg_shift, num_pixels_padded, pixel_size
+    )
+
+    bg_density_flat = project_density(
+        bg_models, bg_quats, bg_sigma, bg_centers, num_pixels_padded, pixel_size
+    )
+
+    n_px_pad = bg_density_flat.shape[-1]
+    bg_density = (
+        bg_density_flat.reshape(B, n_bg_max, n_px_pad, n_px_pad)
+        * bg_mask.unsqueeze(-1).unsqueeze(-1)
+    ).sum(dim=1)
+
+    image = apply_ctf(
+        fg_density + bg_density, fg_defocus, fg_b_factor, fg_amp, pixel_size
+    )
+    image = image[:, pad_start:pad_end, pad_start:pad_end]
+    image = add_noise(image, fg_snr)
+    return gaussian_normalize_image(image)
+
+
 
 def cryo_em_simulator(
     models,
@@ -27,65 +101,105 @@ def cryo_em_simulator(
     pixel_size,
 ):
     """
-    Low-level functional simulator. Generates a batch of cryo-EM images from
-    pre-selected model coordinates and pre-sampled imaging parameters.
+    Backward-compatible functional simulator API.
+    Delegates to image_formation() with empty background tensors.
 
     Args:
-        models (torch.Tensor): Coarse-grained models (num_models, 3, num_beads).
-        index (torch.Tensor): 1D or 2D index tensor selecting models (and representatives).
-        quaternion (torch.Tensor): Rotation quaternions, shape (batch, 4).
-        sigma (torch.Tensor): Gaussian width per image, shape (batch, 1).
-        shift (torch.Tensor): In-plane shifts per image, shape (batch, 2).
-        defocus (torch.Tensor): CTF defocus per image, shape (batch, 1).
-        b_factor (torch.Tensor): CTF B-factor per image, shape (batch, 1).
-        amp (torch.Tensor): Amplitude contrast per image, shape (batch, 1).
-        snr (torch.Tensor): log10 SNR per image, shape (batch, 1).
-        num_pixels (torch.Tensor): Scalar — image side length in pixels.
+        models (torch.Tensor): All model coordinates, shape (N, 3, n_atoms) or
+            (N, R, 3, n_atoms).
+        index (torch.Tensor): 1D or 2D index tensor selecting models.
+        quaternion (torch.Tensor): Rotation quaternions, shape (B, 4).
+        sigma (torch.Tensor): Gaussian width, shape (B, 1, 1).
+        shift (torch.Tensor): In-plane shifts, shape (B, 2).
+        defocus (torch.Tensor): CTF defocus, shape (B, 1).
+        b_factor (torch.Tensor): CTF B-factor, shape (B, 1).
+        amp (torch.Tensor): Amplitude contrast, shape (B, 1).
+        snr (torch.Tensor): log10 SNR, shape (B, 1).
+        num_pixels (torch.Tensor): Scalar — image side length.
         pixel_size (torch.Tensor): Scalar — pixel size in Angstrom.
 
     Returns:
-        torch.Tensor: Normalized cryo-EM images, shape (batch, n_pixels, n_pixels).
+        torch.Tensor: Normalized images, shape (B, n_pixels, n_pixels).
     """
     if index.ndim == 2:
-        models_selected = models[index[:, 0], index[:, 1]]
+        selected = models[index[:, 0], index[:, 1]]
     else:
-        models_selected = models[index]
+        selected = models[index]
 
-    image = project_density(models_selected, quaternion, sigma, shift, num_pixels, pixel_size)
-    image = apply_ctf(image, defocus, b_factor, amp, pixel_size)
-    image = add_noise(image, snr)
-    image = gaussian_normalize_image(image)
-    return image
+    B = selected.shape[0]
+    n_atoms = selected.shape[2]
+    n_px = int(num_pixels.item())
+
+    bg_models   = selected.new_empty(0, 3, n_atoms)
+    bg_quats    = selected.new_empty(0, 4)
+    bg_sigma    = selected.new_empty(0, 1, 1)
+    bg_centers  = selected.new_empty(0, 2)
+    bg_mask     = selected.new_zeros(B, 0, dtype=torch.bool)
+
+    return image_formation(
+        selected, quaternion, sigma, shift,
+        defocus, b_factor, amp, snr,
+        bg_models, bg_quats, bg_sigma, bg_centers, bg_mask,
+        num_pixels, pixel_size, 0, n_px,
+    )
 
 
 class CryoEmSimulator:
     """
-    Single-particle cryo-EM image simulator.
+    Cryo-EM image simulator supporting both single- and multi-particle images.
 
-    Two simulation methods:
-    - simulate(*parameters): hot path for training — accepts pre-sampled parameter
-      tensors from PriorLoader workers; runs image formation on self._device.
-    - sample_and_simulate(): eval/interactive path — samples parameters internally
+    Single-particle mode: set n_bg_max=0 and padding_factor=1 in the config
+    (or omit them — these are the defaults). Multi-particle mode: set n_bg_max>0
+    and padding_factor>1.
+
+    Two simulation entry points:
+    - simulate(*parameters): hot training path — accepts pre-sampled parameter
+      tensors from PriorLoader workers; all image formation runs on self._device.
+    - sample_and_simulate(): interactive/eval path — samples parameters internally
       then calls simulate().
     """
 
     def __init__(self, config, device: str = "cpu"):
         """
         Args:
-            config: Path to a JSON/YAML config file (str) or an OmegaConf DictConfig.
+            config: Path to a YAML/JSON config file (str) or an OmegaConf DictConfig.
             device: PyTorch device string.
         """
         self._device = device
         self._load_params(config)
         self._load_models()
-        self._priors = get_image_priors(
-            self.num_models, self.num_representatives, self._config, device="cpu"
-        )
+
+        self._n_bg_max  = int(getattr(self._config, "n_bg_max", 0))
+        padding_factor  = int(getattr(self._config, "padding_factor", 1))
+        self._n_px_pad  = int(self._config.n_pixels) * padding_factor
+        self._pad_start = (self._n_px_pad - int(self._config.n_pixels)) // 2
+        self._pad_end   = self._pad_start + int(self._config.n_pixels)
+
         self._num_pixels = torch.tensor(
             self._config.n_pixels, dtype=torch.float32, device=device
         )
+        self._num_pixels_padded = torch.tensor(
+            self._n_px_pad, dtype=torch.float32, device=device
+        )
         self._pixel_size = torch.tensor(
             self._config.pixel_size, dtype=torch.float32, device=device
+        )
+
+        ellipsoid_radii = fit_ellipsoids(self._models_cpu)
+        self._priors = MultiParticleImagePrior(
+            base_prior=get_image_priors(
+                self.num_models, self.num_representatives, self._config, device="cpu"
+            ),
+            ellipsoid_radii=ellipsoid_radii,
+            n_bg_min=int(getattr(self._config, "n_bg_min", 0)),
+            n_bg_max=self._n_bg_max,
+            n_pixels=int(self._config.n_pixels),
+            padding_factor=padding_factor,
+            pixel_size=float(self._config.pixel_size),
+            exclusion_radius=float(getattr(self._config, "exclusion_radius", 0.0)),
+            max_placement_attempts=int(
+                getattr(self._config, "max_placement_attempts", 200)
+            ),
         )
 
     def _load_params(self, config) -> None:
@@ -99,6 +213,9 @@ class CryoEmSimulator:
             raise TypeError(
                 f"config must be a path (str), dict, or DictConfig, got {type(config)}"
             )
+        # Unwrap top-level 'simulation' key if present (YAML files may nest config under it)
+        if "simulation" in self._config and len(self._config) == 1:
+            self._config = self._config.simulation
 
     def _load_models(self) -> None:
         model_file = self._config.model_file
@@ -118,7 +235,6 @@ class CryoEmSimulator:
             raise NotImplementedError("Model file must be .npy or .pt")
 
         self._models = models
-        # CPU copy kept for operations that must run on CPU (e.g. ellipsoid fitting)
         self._models_cpu = models.cpu()
 
         if self._models.ndim == 3:
@@ -141,35 +257,40 @@ class CryoEmSimulator:
 
     def simulate(self, *parameters) -> torch.Tensor:
         """
-        Hot path: generate images from pre-sampled parameters (from ImagePrior.sample()).
-        All tensors are moved to self._device internally.
+        Hot path: generate images from pre-sampled parameters (from MultiParticleImagePrior.sample()).
+        Moves all tensors to self._device, selects model coordinates, then calls image_formation().
 
-        Parameters (positional):
-            indices:    (batch,) or (batch, 2)
-            quaternions: (batch, 4)
-            sigma:      (batch, 1)
-            shift:      (batch, 2)
-            defocus:    (batch, 1)
-            b_factor:   (batch, 1)
-            amp:        (batch, 1)
-            snr:        (batch, 1)
+        Parameters (positional, 13 tensors from MultiParticleImagePrior.sample()):
+            fg_indices, fg_quats, fg_sigma, fg_shift,
+            fg_defocus, fg_b_factor, fg_amp, fg_snr,
+            bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask
 
         Returns:
-            torch.Tensor: Images on self._device, shape (batch, n_pixels, n_pixels).
+            torch.Tensor: Images on self._device, shape (B, n_pixels, n_pixels).
         """
-        indices, quaternions, sigma, shift, defocus, b_factor, amp, snr = parameters[:8]
-        return cryo_em_simulator(
-            self._models,
-            indices.to(self._device, non_blocking=True),
-            quaternions.to(self._device, non_blocking=True),
-            sigma.to(self._device, non_blocking=True),
-            shift.to(self._device, non_blocking=True),
-            defocus.to(self._device, non_blocking=True),
-            b_factor.to(self._device, non_blocking=True),
-            amp.to(self._device, non_blocking=True),
-            snr.to(self._device, non_blocking=True),
-            self._num_pixels,
-            self._pixel_size,
+        dev = self._device
+        B = parameters[0].shape[0]
+        n_flat = B * self._n_bg_max
+
+        (fg_indices, fg_quats, fg_sigma, fg_shift,
+         fg_defocus, fg_b_factor, fg_amp, fg_snr,
+         bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask) = (
+            t.to(dev, non_blocking=True) for t in parameters
+        )
+
+        fg_models = self._select_models(fg_indices)
+        bg_models = self._select_models(bg_indices.reshape(n_flat, *bg_indices.shape[2:]))
+
+        return image_formation(
+            fg_models, fg_quats, fg_sigma, fg_shift,
+            fg_defocus, fg_b_factor, fg_amp, fg_snr,
+            bg_models,
+            bg_quats.reshape(n_flat, 4),
+            bg_sigma.reshape(n_flat, 1, 1),
+            bg_centers.reshape(n_flat, 2),
+            bg_mask,
+            self._num_pixels_padded, self._pixel_size,
+            self._pad_start, self._pad_end,
         )
 
     def sample_and_simulate(
@@ -184,7 +305,7 @@ class CryoEmSimulator:
 
         Args:
             num_sim: Number of images to generate.
-            indices: Optional fixed index tensor; if None, sampled from prior.
+            indices: Optional fixed fg index tensor; if None, sampled from prior.
             return_parameters: If True, also return the sampled parameters.
             batch_size: Process in sub-batches to manage memory. Defaults to num_sim.
 
@@ -210,100 +331,3 @@ class CryoEmSimulator:
         if return_parameters:
             return images, parameters
         return images
-
-
-class MultiParticleCryoEmSimulator(CryoEmSimulator):
-    """
-    Multi-particle cryo-EM simulator.
-
-    Background particle placement and overlap checking happen entirely on CPU
-    PriorLoader workers via `MultiParticleImagePrior`. Bounding ellipsoids for
-    each model are precomputed once at init and passed to the prior so workers
-    need no model coordinates. The `simulate()` method receives ready-made
-    padded parameter tensors and performs pure batched GPU image formation.
-
-    Extra config keys (beyond single-particle):
-        n_bg_min (int): Minimum number of background particles per image.
-        n_bg_max (int): Maximum number of background particles per image.
-        padding_factor (int): Padded box side = n_pixels * padding_factor.
-        exclusion_radius (float): Minimum centre-to-centre gap in Angstrom.
-        max_placement_attempts (int, optional): Retry limit per bg particle (default 200).
-    """
-
-    def __init__(self, config, device: str = "cpu"):
-        # Loads models, sets self._models / self._models_cpu / self._priors (ImagePrior)
-        super().__init__(config, device)
-
-        # Precompute bounding ellipsoid semi-axes for every model (CPU, once)
-        ellipsoid_radii = fit_ellipsoids(self._models_cpu)  # (N, 3)
-
-        # Replace the base single-particle prior with the multi-particle one
-        self._priors = MultiParticleImagePrior(
-            base_prior=get_image_priors(
-                self.num_models, self.num_representatives,
-                self._config, device="cpu"
-            ),
-            ellipsoid_radii=ellipsoid_radii,
-            n_bg_min=int(self._config.n_bg_min),
-            n_bg_max=int(self._config.n_bg_max),
-            n_pixels=int(self._config.n_pixels),
-            padding_factor=int(self._config.padding_factor),
-            pixel_size=float(self._config.pixel_size),
-            exclusion_radius=float(self._config.exclusion_radius),
-            max_placement_attempts=int(
-                getattr(self._config, "max_placement_attempts", 200)
-            ),
-        )
-
-        self._n_bg_max = int(self._config.n_bg_max)
-        self._n_px_pad = int(self._config.n_pixels) * int(self._config.padding_factor)
-        self._num_pixels_padded = torch.tensor(
-            self._n_px_pad, dtype=torch.float32, device=device
-        )
-        self._pad_start = (self._n_px_pad - int(self._config.n_pixels)) // 2
-        self._pad_end = self._pad_start + int(self._config.n_pixels)
-
-    def simulate(self, *parameters) -> torch.Tensor:
-        """
-        Generate a batch of multi-particle cryo-EM images from pre-sampled parameters.
-        All tensors arrive on CPU from PriorLoader workers and are moved to device here.
-
-        Returns:
-            torch.Tensor: Images on self._device, shape (B, n_pixels, n_pixels).
-        """
-        dev = self._device
-        B = parameters[0].shape[0]
-        n_flat = B * self._n_bg_max
-
-        (fg_indices, fg_quats, fg_sigma, fg_shift,
-         fg_defocus, fg_b_factor, fg_amp, fg_snr,
-         bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask) = (
-            t.to(dev, non_blocking=True) for t in parameters
-        )
-
-        # Project foreground into padded box: (B, P, P)
-        fg_density = project_density(
-            self._select_models(fg_indices), fg_quats, fg_sigma, fg_shift,
-            self._num_pixels_padded, self._pixel_size,
-        )
-
-        # Flatten and project all background particles at once: (B*n_bg_max, P, P)
-        bg_density_flat = project_density(
-            self._select_models(bg_indices.reshape(n_flat, *bg_indices.shape[2:])),
-            bg_quats.reshape(n_flat, 4),
-            bg_sigma.reshape(n_flat, 1, 1),
-            bg_centers.reshape(n_flat, 2),
-            self._num_pixels_padded, self._pixel_size,
-        )
-
-        # Mask invalid slots, sum over bg dimension: (B, P, P)
-        bg_density = (
-            bg_density_flat.reshape(B, self._n_bg_max, self._n_px_pad, self._n_px_pad)
-            * bg_mask.unsqueeze(-1).unsqueeze(-1)
-        ).sum(dim=1)
-
-        # CTF in padded box (periodic BCs), crop, noise, normalize
-        image = apply_ctf(fg_density + bg_density, fg_defocus, fg_b_factor, fg_amp, self._pixel_size)
-        image = image[:, self._pad_start:self._pad_end, self._pad_start:self._pad_end]
-        image = add_noise(image, fg_snr)
-        return gaussian_normalize_image(image)

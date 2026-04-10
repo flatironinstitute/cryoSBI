@@ -1,25 +1,24 @@
 import torch
-from omegaconf import OmegaConf
+from omegaconf import DictConfig
 
 from cryo_sbi.models import build_models
 
 
 def load_classifier(
-    config_path: str, estimator_path: str, device: str = "cpu"
+    train_config: DictConfig, estimator_path: str, device: str = "cpu"
 ) -> torch.nn.Module:
     """
-    Loads a trained classifier.
+    Load a trained classifier from weights and a training config.
 
     Args:
-        config_path: Path to the training config file (YAML or JSON).
-        estimator_path: Path to the saved model state dict.
+        train_config: DictConfig containing model architecture (cfg.train).
+        estimator_path: Path to the saved model state dict (.pt).
         device: Device string.
 
     Returns:
-        torch.nn.Module: The loaded classifier in eval mode.
+        torch.nn.Module: Loaded classifier in eval mode.
     """
-    config = OmegaConf.load(config_path)
-    estimator = build_models.build_classifier(config)
+    estimator = build_models.build_classifier(train_config)
     estimator.load_state_dict(
         torch.load(estimator_path, map_location=torch.device(device), weights_only=True)
     )

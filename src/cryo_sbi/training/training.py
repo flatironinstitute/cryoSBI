@@ -13,7 +13,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 from cryo_sbi.simulator.priors import PriorLoader
 from cryo_sbi.simulator.cryo_em_simulator import CryoEmSimulator
-from cryo_sbi.simulator.multi_particle_simulator import MultiParticleCryoEmSimulator
 from cryo_sbi.models.build_models import build_classifier
 
 torch.backends.cudnn.benchmark = True
@@ -32,11 +31,14 @@ class ClassifierLoss(nn.Module):
         self.estimator = estimator
         self.label_smoothing = label_smoothing
 
-    def forward(self, indices: torch.Tensor, images: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, indices: torch.Tensor, images: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         logits = self.estimator(images)
-        return nn.functional.cross_entropy(
+        loss = nn.functional.cross_entropy(
             logits, indices, reduction="mean", label_smoothing=self.label_smoothing
         )
+        return loss, logits
 
 
 class GDStep:
@@ -97,7 +99,7 @@ def train_classifier(cfg: DictConfig) -> None:
     Main training function.
 
     Args:
-        cfg: Hydra DictConfig with the full config tree (image, training, train, output, mode).
+        cfg: Hydra DictConfig with keys cfg.simulation and cfg.train.
     """
     setup_logging()
 
@@ -111,19 +113,14 @@ def train_classifier(cfg: DictConfig) -> None:
     train_from_checkpoint = cfg.train.train_from_checkpoint
     checkpoint_file = cfg.train.get("checkpoint_file", None)
 
-    train_cfg = cfg.training   # embedding + classifier + lr + ...
-    image_cfg = cfg.image      # n_pixels, pixel_size, sigma, ...
+    train_cfg = cfg.train
+    image_cfg = cfg.simulation
 
     batch_size = train_cfg.batch_size
     assert simulation_batch_size >= batch_size
     assert simulation_batch_size % batch_size == 0
 
-    # Build simulator
-    if cfg.mode.multi_particle:
-        logging.info("Using MultiParticleCryoEmSimulator")
-        simulator = MultiParticleCryoEmSimulator(image_cfg, device=device)
-    else:
-        simulator = CryoEmSimulator(image_cfg, device=device)
+    simulator = CryoEmSimulator(image_cfg, device=device)
 
     logging.info(
         f"Training on {simulator.num_models} models with "
@@ -158,27 +155,27 @@ def train_classifier(cfg: DictConfig) -> None:
     step = GDStep(optimizer, clip=train_cfg.clip_gradient, lr_scheduler=lr_scheduler)
 
     # TensorBoard
-    tb_dir = cfg.output.tensorboard_dir
-    writer = SummaryWriter(log_dir=tb_dir)
-    hparams = OmegaConf.to_container(train_cfg, resolve=True)
-    hparams.update(OmegaConf.to_container(cfg.train, resolve=True))
+    writer = SummaryWriter(log_dir=cfg.train.output.tensorboard_dir)
+    hparams = OmegaConf.to_container(cfg.train, resolve=True)
     writer.add_hparams(
         {k: str(v) if isinstance(v, (dict, list)) else v for k, v in hparams.items()},
         metric_dict={},
     )
 
-    os.makedirs(cfg.output.checkpoint_dir, exist_ok=True)
-    estimator_file = cfg.output.estimator_file
+    os.makedirs(cfg.train.output.checkpoint_dir, exist_ok=True)
+    estimator_file = cfg.train.output.estimator_file
     os.makedirs(os.path.dirname(estimator_file) or ".", exist_ok=True)
 
     logging.info("Starting training loop")
-    global_step = 0
     start_time = time.time()
     estimator.train()
 
     with tqdm(range(epochs), unit="epoch") as tq:
         for epoch in tq:
             epoch_losses = []
+            epoch_accs = []
+            epoch_samples = 0
+            epoch_start = time.time()
 
             for parameters in islice(prior_loader, batches_per_epoch):
                 images = simulator.simulate(*parameters)
@@ -191,28 +188,32 @@ def train_classifier(cfg: DictConfig) -> None:
                     batch_indices.split(batch_size),
                     images.split(batch_size),
                 ):
-                    batch_loss, grad_norm = step(
-                        loss_fn(
-                            _idx.to(device, non_blocking=True),
-                            _img.to(device, non_blocking=True),
-                        )
-                    )
+                    _idx_dev = _idx.to(device, non_blocking=True)
+                    _img_dev = _img.to(device, non_blocking=True)
+
+                    loss, logits = loss_fn(_idx_dev, _img_dev)
+                    batch_loss, _ = step(loss)
+
+                    with torch.no_grad():
+                        acc = (_idx_dev == logits.argmax(dim=1)).float().mean()
+
                     epoch_losses.append(batch_loss)
-                    writer.add_scalar("Loss/batch", batch_loss.item(), global_step)
-                    writer.add_scalar(
-                        "LR/step", optimizer.param_groups[0]["lr"], global_step
-                    )
-                    if grad_norm is not None:
-                        writer.add_scalar("Gradients/norm", grad_norm.item(), global_step)
-                    global_step += 1
+                    epoch_accs.append(acc)
+                    epoch_samples += _idx.shape[0]
 
             mean_loss = torch.stack(epoch_losses).mean().item()
-            writer.add_scalar("Loss/epoch_mean", mean_loss, epoch)
-            tq.set_postfix(loss=mean_loss, lr=optimizer.param_groups[0]["lr"])
+            mean_acc = torch.stack(epoch_accs).mean().item()
+            current_lr = optimizer.param_groups[0]["lr"]
+            throughput = epoch_samples / (time.time() - epoch_start)
+            writer.add_scalar("Loss/epoch", mean_loss, epoch)
+            writer.add_scalar("Accuracy/epoch", mean_acc, epoch)
+            writer.add_scalar("LR/epoch", current_lr, epoch)
+            writer.add_scalar("Throughput/epoch", throughput, epoch)
+            tq.set_postfix(loss=mean_loss, acc=f"{mean_acc:.3f}", lr=current_lr)
 
             if epoch % saving_frequency == 0:
                 ckpt_path = os.path.join(
-                    cfg.output.checkpoint_dir, f"checkpoint_epoch_{epoch}.pt"
+                    cfg.train.output.checkpoint_dir, f"checkpoint_epoch_{epoch}.pt"
                 )
                 torch.save(estimator.state_dict(), ckpt_path)
 
