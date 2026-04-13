@@ -167,6 +167,8 @@ def train_classifier(
             * 100
             * (simulation_batch_size // train_config["BATCH_SIZE"]),
         )
+    else:
+        lr_scheduler = None
 
     step = GDStep(
         optimizer, clip=train_config["CLIP_GRADIENT"], lr_scheduler=lr_scheduler

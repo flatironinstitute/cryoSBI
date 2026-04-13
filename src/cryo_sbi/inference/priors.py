@@ -128,7 +128,7 @@ def get_image_priors(
             [[image_config["B_FACTOR"][1]]], dtype=torch.float32, device=device
         )
 
-        assert lower > 0.0, "The lower bound for B_FACTOR must be positive."
+        #assert lower > 0.0, "The lower bound for B_FACTOR must be positive."
         assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
 
         b_factor_prior = zuko.distributions.BoxUniform(
