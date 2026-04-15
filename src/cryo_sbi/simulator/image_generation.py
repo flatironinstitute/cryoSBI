@@ -20,6 +20,31 @@ def gen_quat() -> torch.Tensor:
     return quat
 
 
+def gen_quats(n: int, device: str = "cpu") -> torch.Tensor:
+    """
+    Generate n uniform random quaternions using vectorized rejection sampling.
+
+    Args:
+        n: Number of quaternions to generate.
+        device: Target device.
+
+    Returns:
+        Tensor of shape (n, 4) with unit quaternions.
+    """
+    collected = []
+    remaining = n
+    while remaining > 0:
+        # Oversample by 2x to account for rejection rate
+        batch = 2 * torch.rand(remaining * 2, 4, device=device) - 1
+        norms = batch.norm(dim=1)
+        valid = (norms >= 0.2) & (norms <= 1.0)
+        accepted = batch[valid]
+        accepted = accepted / accepted.norm(dim=1, keepdim=True)
+        collected.append(accepted)
+        remaining -= accepted.shape[0]
+    return torch.cat(collected, dim=0)[:n]
+
+
 def gen_rot_matrix(quats: torch.Tensor) -> torch.Tensor:
     # TODO add docstring explaining the quaternion convention qr, qx, qy, qz
     """

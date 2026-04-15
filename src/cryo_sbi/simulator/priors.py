@@ -4,7 +4,7 @@ import torch
 import zuko
 from torch.utils.data import DataLoader, IterableDataset
 
-from cryo_sbi.simulator.image_generation import gen_quat, gen_rot_matrix
+from cryo_sbi.simulator.image_generation import gen_quat, gen_quats, gen_rot_matrix
 
 
 def _box_uniform(lo: float, hi: float, device: str) -> zuko.distributions.BoxUniform:
@@ -52,7 +52,7 @@ class QuaternionPrior:
     def sample(self, shape: tuple) -> torch.Tensor:
         if self._fixed is not None:
             return self._fixed.unsqueeze(0).expand(shape[0], -1)
-        return torch.stack([gen_quat().to(self._device) for _ in range(shape[0])])
+        return gen_quats(shape[0], device=self._device)
 
 
 class ImagePrior:
@@ -201,44 +201,35 @@ class MultiParticleImagePrior:
         self.p_garbage = 1.0 / (num_models + 1) if garbage_class else 0.0
 
     @staticmethod
-    def _projected_radius(semi_axes: torch.Tensor, quat: torch.Tensor) -> float:
+    def _projected_radii(semi_axes: torch.Tensor, quats: torch.Tensor) -> torch.Tensor:
         """
-        Bounding circle radius of the ellipsoid projected onto the xy-plane.
+        Batched projected bounding-circle radii on the xy-plane.
 
-        Constructs the 3-D covariance Σ = R diag(a²,b²,c²) Rᵀ, takes its
-        2×2 xy-block, and returns sqrt(λ_max).
+        Args:
+            semi_axes: (N, 3) ellipsoid semi-axes.
+            quats: (N, 4) quaternions.
+
+        Returns:
+            (N,) projected radii.
         """
-        R = gen_rot_matrix(quat.unsqueeze(0))[0]
-        cov2 = (R @ torch.diag(semi_axes ** 2) @ R.T)[:2, :2]
-        return float(torch.linalg.eigvalsh(cov2).max().clamp(min=0).sqrt())
+        R = gen_rot_matrix(quats)                             # (N, 3, 3)
+        diag = torch.diag_embed(semi_axes ** 2)               # (N, 3, 3)
+        cov3 = R @ diag @ R.transpose(-1, -2)                 # (N, 3, 3)
+        cov2 = cov3[:, :2, :2]                                # (N, 2, 2)
+        return torch.linalg.eigvalsh(cov2).max(dim=-1).values.clamp(min=0).sqrt()
 
-    def _place_background(
-        self, i, n_to_place, has_reps, accepted_centers, accepted_radii,
-        bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask, placed_start=0,
-    ) -> int:
-        """Place n_to_place background particles with collision detection. Returns number placed."""
-        placed = placed_start
-        for _ in range(n_to_place):
-            for _ in range(self.max_placement_attempts):
-                b_idx_t, b_quat, b_sig, *_ = self.base_prior.sample((1,))
-                b_idx = int(b_idx_t[0, 0] if b_idx_t.ndim == 2 else b_idx_t[0])
-                b_r   = self._projected_radius(self.ellipsoid_radii[b_idx], b_quat[0])
-                center = (torch.rand(2) * 2 - 1) * self._half_pad_ang
+    def _sample_pool(self, pool_size: int, has_reps: bool):
+        """Pre-sample a pool of background candidates with projected radii."""
+        index_prior = self.base_prior._priors[0]
+        sigma_prior = self.base_prior._priors[2]
 
-                if all(
-                    torch.norm(center - c).item() > b_r + r + self.exclusion_radius
-                    for c, r in zip(accepted_centers, accepted_radii)
-                ):
-                    bg_indices[i, placed] = b_idx_t[0] if has_reps else b_idx
-                    bg_quats[i, placed]   = b_quat[0]
-                    bg_sigma[i, placed]   = b_sig[0]
-                    bg_centers[i, placed] = center
-                    bg_mask[i, placed]    = True
-                    accepted_centers.append(center)
-                    accepted_radii.append(b_r)
-                    placed += 1
-                    break
-        return placed
+        p_idx_raw = index_prior.sample((pool_size,))
+        p_quats = gen_quats(pool_size)
+        p_sigma = sigma_prior.sample((pool_size,))
+        p_idx_flat = p_idx_raw[:, 0].long() if has_reps else p_idx_raw.long()
+        p_radii = self._projected_radii(self.ellipsoid_radii[p_idx_flat], p_quats)
+        p_centers = (torch.rand(pool_size, 2) * 2 - 1) * self._half_pad_ang
+        return p_idx_raw, p_quats, p_sigma, p_idx_flat, p_radii, p_centers
 
     def sample(self, shape: tuple) -> list[torch.Tensor]:
         """
@@ -261,30 +252,71 @@ class MultiParticleImagePrior:
         bg_sigma   = torch.ones(B, self.n_slots, 1, 1)   # ones: masked slots must not cause div-by-0
         bg_centers = torch.zeros(B, self.n_slots, 2)
         bg_mask    = torch.zeros(B, self.n_slots, dtype=torch.bool)
-        garbage_mask = torch.zeros(B, dtype=torch.bool)
+
+        # Vectorized foreground projected radii
+        fg_idx_flat = fg_indices[:, 0].long() if has_reps else fg_indices.long()
+        fg_proj_radii = self._projected_radii(
+            self.ellipsoid_radii[fg_idx_flat], fg_quats
+        )
+
+        # Vectorized garbage / bg-count decisions
+        if self.garbage_class:
+            garbage_mask = torch.rand(B) < self.p_garbage
+            n_bg_counts = torch.randint(self.n_bg_min, self.n_bg_max + 1, (B,))
+            n_garbage_counts = torch.randint(self.min_garbage, self.max_garbage + 1, (B,))
+            n_to_place = torch.where(
+                garbage_mask, (n_garbage_counts - 1).clamp(min=0), n_bg_counts
+            )
+        else:
+            garbage_mask = torch.zeros(B, dtype=torch.bool)
+            n_to_place = torch.randint(self.n_bg_min, self.n_bg_max + 1, (B,))
+
+        # Pre-sample candidate pool
+        pool_size = max(B * self.n_slots * 5, 1024)
+        p_idx_raw, p_quats, p_sigma, p_idx_flat, p_radii, p_centers = \
+            self._sample_pool(pool_size, has_reps)
+        pool_ptr = 0
+
+        # Pre-allocate per-sample collision buffers
+        max_accepted = 1 + self.n_slots
+        acc_centers = torch.zeros(max_accepted, 2)
+        acc_radii = torch.zeros(max_accepted)
 
         for i in range(B):
-            fg_idx = int(fg_indices[i, 0] if has_reps else fg_indices[i])
-            accepted_centers = [torch.zeros(2)]
-            accepted_radii   = [self._projected_radius(self.ellipsoid_radii[fg_idx], fg_quats[i])]
+            n = int(n_to_place[i].item())
+            if n == 0:
+                continue
 
-            is_garbage = self.garbage_class and (torch.rand(1).item() < self.p_garbage)
+            # Reset collision state: foreground at origin
+            acc_centers[0] = 0.0
+            acc_radii[0] = fg_proj_radii[i]
+            n_acc = 1
 
-            if is_garbage:
-                garbage_mask[i] = True
-                n_garbage = int(torch.randint(self.min_garbage, self.max_garbage + 1, (1,)).item())
-                # fg slot already holds 1 random structure; place n_garbage - 1 more in bg slots
-                n_bg_to_place = max(0, n_garbage - 1)
-                self._place_background(
-                    i, n_bg_to_place, has_reps, accepted_centers, accepted_radii,
-                    bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
-                )
-            else:
-                n_bg = int(torch.randint(self.n_bg_min, self.n_bg_max + 1, (1,)).item())
-                self._place_background(
-                    i, n_bg, has_reps, accepted_centers, accepted_radii,
-                    bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
-                )
+            placed = 0
+            for _ in range(n):
+                for _ in range(self.max_placement_attempts):
+                    # Refill pool if exhausted
+                    if pool_ptr >= pool_size:
+                        p_idx_raw, p_quats, p_sigma, p_idx_flat, p_radii, p_centers = \
+                            self._sample_pool(pool_size, has_reps)
+                        pool_ptr = 0
+
+                    p = pool_ptr
+                    pool_ptr += 1
+
+                    # Vectorized distance check against all accepted particles
+                    dists = torch.norm(acc_centers[:n_acc] - p_centers[p], dim=1)
+                    if (dists > p_radii[p] + acc_radii[:n_acc] + self.exclusion_radius).all():
+                        bg_indices[i, placed] = p_idx_raw[p] if has_reps else p_idx_flat[p]
+                        bg_quats[i, placed]   = p_quats[p]
+                        bg_sigma[i, placed]   = p_sigma[p]
+                        bg_centers[i, placed] = p_centers[p]
+                        bg_mask[i, placed]    = True
+                        acc_centers[n_acc] = p_centers[p]
+                        acc_radii[n_acc] = p_radii[p]
+                        n_acc += 1
+                        placed += 1
+                        break
 
         return [fg_indices, fg_quats, fg_sigma, fg_shift,
                 fg_defocus, fg_b_factor, fg_amp, fg_snr,

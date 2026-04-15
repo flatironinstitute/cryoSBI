@@ -10,7 +10,7 @@ def main():
     args = parser.parse_args()
     make_torch_models(
         pdb_files=args.pdb_files.split(","),
-        save_path=args.output_file,
+        output_file=args.output_file,
         atom_selection=args.atom_selection,
     )
 
