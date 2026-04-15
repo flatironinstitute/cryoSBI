@@ -327,8 +327,15 @@ def estimate_noise_psd(
                       and W is the width of the images.
 
     """
+    assert images.ndim == 3, "Images should have shape (num_images , n_pixels, n_pixels)"
+    assert image_size == images.shape[1] == images.shape[2], "image size mismatch"
+
+    if images.shape[0] < 5:
+        raise Warning(f"Only {images.shape[0]} images provided. PSD estimation is not reliable.")
+    
     if mask_radius is None:
         mask_radius = image_size // 2
+
     mask = circular_mask(image_size, mask_radius, inside=False, device=images.device)
     denominator = mask.sum() * images.shape[0]
     images_masked = images * mask

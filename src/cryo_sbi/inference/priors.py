@@ -147,11 +147,30 @@ def get_image_priors(
 
         snr_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
 
-    amp_prior = zuko.distributions.BoxUniform(
-        lower=torch.tensor([[image_config["AMP"]]], dtype=torch.float32, device=device),
-        upper=torch.tensor([[image_config["AMP"]]], dtype=torch.float32, device=device),
-        ndims=1,
-    )
+
+    if isinstance(image_config["AMP"], list) and len(image_config["AMP"]) == 2:
+        assert image_config["AMP"][0] >= 0.0, "The lower bound for AMP must be non-negative."
+        assert image_config["AMP"][1] >= image_config["AMP"][0], "The upper bound for AMP must be greater than or equal to the lower bound."
+        lower = torch.tensor(
+            [[image_config["AMP"][0]]], dtype=torch.float32, device=device
+        )
+        upper = torch.tensor(
+            [[image_config["AMP"][1]]], dtype=torch.float32, device=device
+        )
+
+        assert lower <= upper, "Lower bound must be smaller or equal than upper bound."
+
+        amp_prior = zuko.distributions.BoxUniform(lower=lower, upper=upper, ndims=1)
+    else:
+        amp_prior = zuko.distributions.BoxUniform(
+            lower=torch.tensor(
+                [[image_config["AMP"]]], dtype=torch.float32, device=device
+            ),
+            upper=torch.tensor(
+                [[image_config["AMP"]]], dtype=torch.float32, device=device
+            ),
+            ndims=1,
+        )
 
     index_prior = IndexPrior(num_models, num_representatives, device)
     quaternion_prior = QuaternionPrior(device)
