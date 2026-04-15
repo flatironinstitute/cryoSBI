@@ -1,4 +1,3 @@
-from typing import Tuple
 import torch
 import torch.nn as nn
 
@@ -92,8 +91,8 @@ class ClassifierWithEmbedding(nn.Module):
         return self.classifier(self.embedding(x), tau=tau)
 
     def probs(self, x: torch.Tensor, tau=1.0) -> torch.Tensor:
-        return torch.nn.functional.softmax(self.forward(x, tau=tau) / tau, dim=1)
-    def logits_embedding(self, x: torch.Tensor, tau=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+        return torch.nn.functional.softmax(self.forward(x, tau=tau), dim=1)
+    def logits_embedding(self, x: torch.Tensor, tau=1.0) -> tuple[torch.Tensor, torch.Tensor]:
         embeddings = self.embedding(x)
         logits = self.classifier(embeddings, tau=tau)
         return logits, embeddings

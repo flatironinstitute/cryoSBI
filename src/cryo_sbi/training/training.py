@@ -122,6 +122,12 @@ def train_classifier(cfg: DictConfig) -> None:
 
     simulator = CryoEmSimulator(image_cfg, device=device)
 
+    if simulator.garbage_class:
+        train_cfg.classifier.num_classes = simulator.num_models + 1
+        logging.info(
+            f"Garbage class enabled, num_classes set to {simulator.num_models + 1}"
+        )
+
     logging.info(
         f"Training on {simulator.num_models} models with "
         f"{simulator.num_representatives if simulator.num_representatives is not None else 1} representatives"
@@ -183,6 +189,11 @@ def train_classifier(cfg: DictConfig) -> None:
                 # First element is always fg model indices
                 fg_indices = parameters[0]
                 batch_indices = fg_indices[:, 0] if fg_indices.ndim == 2 else fg_indices
+                batch_indices = batch_indices.clone()
+
+                if simulator.garbage_class:
+                    garbage_mask = parameters[13]
+                    batch_indices[garbage_mask] = simulator.num_models
 
                 for _idx, _img in zip(
                     batch_indices.split(batch_size),

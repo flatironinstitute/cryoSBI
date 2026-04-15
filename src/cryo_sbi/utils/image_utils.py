@@ -1,11 +1,8 @@
-import copy
-import math
 from typing import List, Union
 from functools import lru_cache
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-import torch.distributions as d
 import mrcfile
 from tqdm import tqdm
 
@@ -45,12 +42,12 @@ class Mask:
     Args:
         image_size (int): Number of pixels in the image.
         radius (int): Radius of the circle.
-        inside (bool, optional): If True, the mask will be True inside the circle. Defaults to True.
+        inside (bool, optional): If True, the mask will be True inside the circle. Defaults to False.
     """
 
     def __init__(self, image_size: int, radius: int, inside: bool = False) -> None:
         self.image_size = image_size
-        self.n_pixels = radius
+        self.radius = radius
         self.mask = circular_mask(image_size, radius, inside=inside)
 
     def __call__(self, image: torch.Tensor) -> torch.Tensor:
@@ -471,7 +468,7 @@ class MRCdataset:
     def _build_index_map_by_loading_mrc(self):
         self._path_index = []
         self._file_index = []
-        print("Initalizing indexing...")
+        print("Initializing indexing...")
         for idx, path in tqdm(enumerate(self.paths), total=self._num_paths):
             num_images = self._extract_num_particles(path)
             self._path_index += [idx] * num_images

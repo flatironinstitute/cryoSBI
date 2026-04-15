@@ -87,63 +87,6 @@ def image_formation(
 
 
 
-def cryo_em_simulator(
-    models,
-    index,
-    quaternion,
-    sigma,
-    shift,
-    defocus,
-    b_factor,
-    amp,
-    snr,
-    num_pixels,
-    pixel_size,
-):
-    """
-    Backward-compatible functional simulator API.
-    Delegates to image_formation() with empty background tensors.
-
-    Args:
-        models (torch.Tensor): All model coordinates, shape (N, 3, n_atoms) or
-            (N, R, 3, n_atoms).
-        index (torch.Tensor): 1D or 2D index tensor selecting models.
-        quaternion (torch.Tensor): Rotation quaternions, shape (B, 4).
-        sigma (torch.Tensor): Gaussian width, shape (B, 1, 1).
-        shift (torch.Tensor): In-plane shifts, shape (B, 2).
-        defocus (torch.Tensor): CTF defocus, shape (B, 1).
-        b_factor (torch.Tensor): CTF B-factor, shape (B, 1).
-        amp (torch.Tensor): Amplitude contrast, shape (B, 1).
-        snr (torch.Tensor): log10 SNR, shape (B, 1).
-        num_pixels (torch.Tensor): Scalar — image side length.
-        pixel_size (torch.Tensor): Scalar — pixel size in Angstrom.
-
-    Returns:
-        torch.Tensor: Normalized images, shape (B, n_pixels, n_pixels).
-    """
-    if index.ndim == 2:
-        selected = models[index[:, 0], index[:, 1]]
-    else:
-        selected = models[index]
-
-    B = selected.shape[0]
-    n_atoms = selected.shape[2]
-    n_px = int(num_pixels.item())
-
-    bg_models   = selected.new_empty(0, 3, n_atoms)
-    bg_quats    = selected.new_empty(0, 4)
-    bg_sigma    = selected.new_empty(0, 1, 1)
-    bg_centers  = selected.new_empty(0, 2)
-    bg_mask     = selected.new_zeros(B, 0, dtype=torch.bool)
-
-    return image_formation(
-        selected, quaternion, sigma, shift,
-        defocus, b_factor, amp, snr,
-        bg_models, bg_quats, bg_sigma, bg_centers, bg_mask,
-        num_pixels, pixel_size, 0, n_px,
-    )
-
-
 class CryoEmSimulator:
     """
     Cryo-EM image simulator supporting both single- and multi-particle images.
@@ -185,6 +128,8 @@ class CryoEmSimulator:
             self._config.pixel_size, dtype=torch.float32, device=device
         )
 
+        self.garbage_class = bool(getattr(self._config, "garbage_class", False))
+
         ellipsoid_radii = fit_ellipsoids(self._models_cpu)
         self._priors = MultiParticleImagePrior(
             base_prior=get_image_priors(
@@ -200,7 +145,12 @@ class CryoEmSimulator:
             max_placement_attempts=int(
                 getattr(self._config, "max_placement_attempts", 200)
             ),
+            garbage_class=self.garbage_class,
+            min_garbage=int(getattr(self._config, "min_garbage", 2)),
+            max_garbage=int(getattr(self._config, "max_garbage", 10)),
+            num_models=self.num_models,
         )
+        self._n_bg_max = self._priors.n_slots
 
     def _load_params(self, config) -> None:
         if isinstance(config, DictConfig):
@@ -260,10 +210,11 @@ class CryoEmSimulator:
         Hot path: generate images from pre-sampled parameters (from MultiParticleImagePrior.sample()).
         Moves all tensors to self._device, selects model coordinates, then calls image_formation().
 
-        Parameters (positional, 13 tensors from MultiParticleImagePrior.sample()):
+        Parameters (positional, 14 tensors from MultiParticleImagePrior.sample()):
             fg_indices, fg_quats, fg_sigma, fg_shift,
             fg_defocus, fg_b_factor, fg_amp, fg_snr,
-            bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask
+            bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
+            garbage_mask
 
         Returns:
             torch.Tensor: Images on self._device, shape (B, n_pixels, n_pixels).
@@ -274,7 +225,8 @@ class CryoEmSimulator:
 
         (fg_indices, fg_quats, fg_sigma, fg_shift,
          fg_defocus, fg_b_factor, fg_amp, fg_snr,
-         bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask) = (
+         bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
+         _garbage_mask) = (
             t.to(dev, non_blocking=True) for t in parameters
         )
 

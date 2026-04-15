@@ -77,3 +77,84 @@ def test_simulator_custom_indices(num_images):
     )
     assert (parameters[0] == test_indices).all().item()
     assert images.shape == torch.Size([num_images, 64, 64])
+
+
+# ---------------------------------------------------------------------------
+# Garbage class tests
+# ---------------------------------------------------------------------------
+
+GARBAGE_CONFIG = {
+    "n_pixels": 64,
+    "pixel_size": 2.06,
+    "sigma": [0.5, 5.0],
+    "model_file": "tests/models/hsp90_models.pt",
+    "shift": 20.0,
+    "defocus": [1.5, 3.5],
+    "snr": [0.05, 0.05],
+    "amp": 0.1,
+    "b_factor": [1.0, 100.0],
+    "n_bg_min": 0,
+    "n_bg_max": 3,
+    "padding_factor": 2,
+    "exclusion_radius": 0.0,
+    "garbage_class": True,
+    "min_garbage": 2,
+    "max_garbage": 5,
+}
+
+
+def test_garbage_prior_returns_14_tensors():
+    sim = CryoEmSimulator(GARBAGE_CONFIG)
+    params = sim._priors.sample((16,))
+    assert len(params) == 14, f"Expected 14 tensors, got {len(params)}"
+    garbage_mask = params[13]
+    assert garbage_mask.dtype == torch.bool
+    assert garbage_mask.shape == (16,)
+
+
+def test_garbage_prior_produces_garbage_images():
+    """With enough samples, at least some should be garbage."""
+    sim = CryoEmSimulator(GARBAGE_CONFIG)
+    params = sim._priors.sample((200,))
+    garbage_mask = params[13]
+    assert garbage_mask.any(), "Expected at least one garbage image in 200 samples"
+    assert not garbage_mask.all(), "Expected at least one non-garbage image in 200 samples"
+
+
+def test_garbage_n_slots():
+    """n_slots should accommodate both n_bg_max and max_garbage - 1."""
+    sim = CryoEmSimulator(GARBAGE_CONFIG)
+    expected = max(GARBAGE_CONFIG["n_bg_max"], GARBAGE_CONFIG["max_garbage"] - 1)
+    assert sim._priors.n_slots == expected
+    assert sim._n_bg_max == expected
+
+
+def test_garbage_simulate_correct_shape():
+    sim = CryoEmSimulator(GARBAGE_CONFIG)
+    images, params = sim.sample_and_simulate(8, return_parameters=True)
+    assert images.shape == torch.Size([8, 64, 64])
+    assert len(params) == 14
+
+
+def test_garbage_label_override():
+    """Garbage images should get label = num_models."""
+    sim = CryoEmSimulator(GARBAGE_CONFIG)
+    params = sim._priors.sample((200,))
+    fg_indices = params[0]
+    garbage_mask = params[13]
+
+    batch_indices = fg_indices[:, 0] if fg_indices.ndim == 2 else fg_indices
+    batch_indices = batch_indices.clone()
+    batch_indices[garbage_mask] = sim.num_models
+
+    assert (batch_indices[garbage_mask] == sim.num_models).all()
+    assert (batch_indices[~garbage_mask] < sim.num_models).all()
+
+
+def test_no_garbage_when_disabled():
+    """When garbage_class is False, garbage_mask should be all-False."""
+    config = {**GARBAGE_CONFIG, "garbage_class": False}
+    sim = CryoEmSimulator(config)
+    params = sim._priors.sample((50,))
+    assert len(params) == 14
+    assert not params[13].any()

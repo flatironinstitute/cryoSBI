@@ -181,6 +181,10 @@ class MultiParticleImagePrior:
         pixel_size: float,
         exclusion_radius: float,
         max_placement_attempts: int = 200,
+        garbage_class: bool = False,
+        min_garbage: int = 2,
+        max_garbage: int = 10,
+        num_models: int = 1,
     ):
         self.base_prior = base_prior
         self.ellipsoid_radii = ellipsoid_radii.cpu()
@@ -189,6 +193,12 @@ class MultiParticleImagePrior:
         self.exclusion_radius = exclusion_radius
         self.max_placement_attempts = max_placement_attempts
         self._half_pad_ang = n_pixels * padding_factor * pixel_size / 2.0
+
+        self.garbage_class = garbage_class
+        self.min_garbage = min_garbage
+        self.max_garbage = max_garbage
+        self.n_slots = max(n_bg_max, max_garbage - 1) if garbage_class else n_bg_max
+        self.p_garbage = 1.0 / (num_models + 1) if garbage_class else 0.0
 
     @staticmethod
     def _projected_radius(semi_axes: torch.Tensor, quat: torch.Tensor) -> float:
@@ -202,58 +212,84 @@ class MultiParticleImagePrior:
         cov2 = (R @ torch.diag(semi_axes ** 2) @ R.T)[:2, :2]
         return float(torch.linalg.eigvalsh(cov2).max().clamp(min=0).sqrt())
 
+    def _place_background(
+        self, i, n_to_place, has_reps, accepted_centers, accepted_radii,
+        bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask, placed_start=0,
+    ) -> int:
+        """Place n_to_place background particles with collision detection. Returns number placed."""
+        placed = placed_start
+        for _ in range(n_to_place):
+            for _ in range(self.max_placement_attempts):
+                b_idx_t, b_quat, b_sig, *_ = self.base_prior.sample((1,))
+                b_idx = int(b_idx_t[0, 0] if b_idx_t.ndim == 2 else b_idx_t[0])
+                b_r   = self._projected_radius(self.ellipsoid_radii[b_idx], b_quat[0])
+                center = (torch.rand(2) * 2 - 1) * self._half_pad_ang
+
+                if all(
+                    torch.norm(center - c).item() > b_r + r + self.exclusion_radius
+                    for c, r in zip(accepted_centers, accepted_radii)
+                ):
+                    bg_indices[i, placed] = b_idx_t[0] if has_reps else b_idx
+                    bg_quats[i, placed]   = b_quat[0]
+                    bg_sigma[i, placed]   = b_sig[0]
+                    bg_centers[i, placed] = center
+                    bg_mask[i, placed]    = True
+                    accepted_centers.append(center)
+                    accepted_radii.append(b_r)
+                    placed += 1
+                    break
+        return placed
+
     def sample(self, shape: tuple) -> list[torch.Tensor]:
         """
         Sample a batch of multi-particle image parameters.
 
-        Returns 13 tensors:
+        Returns 14 tensors:
             fg_indices, fg_quats, fg_sigma, fg_shift,
             fg_defocus, fg_b_factor, fg_amp, fg_snr,
-            bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask
+            bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
+            garbage_mask
         """
         B = shape[0]
         fg_indices, fg_quats, fg_sigma, fg_shift, \
             fg_defocus, fg_b_factor, fg_amp, fg_snr = self.base_prior.sample(shape)
 
         has_reps  = fg_indices.ndim == 2
-        idx_shape = (B, self.n_bg_max, 2) if has_reps else (B, self.n_bg_max)
+        idx_shape = (B, self.n_slots, 2) if has_reps else (B, self.n_slots)
         bg_indices = torch.zeros(idx_shape, dtype=torch.long)
-        bg_quats   = torch.zeros(B, self.n_bg_max, 4)
-        bg_sigma   = torch.ones(B, self.n_bg_max, 1, 1)   # ones: masked slots must not cause div-by-0
-        bg_centers = torch.zeros(B, self.n_bg_max, 2)
-        bg_mask    = torch.zeros(B, self.n_bg_max, dtype=torch.bool)
+        bg_quats   = torch.zeros(B, self.n_slots, 4)
+        bg_sigma   = torch.ones(B, self.n_slots, 1, 1)   # ones: masked slots must not cause div-by-0
+        bg_centers = torch.zeros(B, self.n_slots, 2)
+        bg_mask    = torch.zeros(B, self.n_slots, dtype=torch.bool)
+        garbage_mask = torch.zeros(B, dtype=torch.bool)
 
         for i in range(B):
             fg_idx = int(fg_indices[i, 0] if has_reps else fg_indices[i])
             accepted_centers = [torch.zeros(2)]
             accepted_radii   = [self._projected_radius(self.ellipsoid_radii[fg_idx], fg_quats[i])]
-            placed = 0
 
-            n_bg = int(torch.randint(self.n_bg_min, self.n_bg_max + 1, (1,)).item())
-            for _ in range(n_bg):
-                for _ in range(self.max_placement_attempts):
-                    b_idx_t, b_quat, b_sig, *_ = self.base_prior.sample((1,))
-                    b_idx = int(b_idx_t[0, 0] if b_idx_t.ndim == 2 else b_idx_t[0])
-                    b_r   = self._projected_radius(self.ellipsoid_radii[b_idx], b_quat[0])
-                    center = (torch.rand(2) * 2 - 1) * self._half_pad_ang
+            is_garbage = self.garbage_class and (torch.rand(1).item() < self.p_garbage)
 
-                    if all(
-                        torch.norm(center - c).item() > b_r + r + self.exclusion_radius
-                        for c, r in zip(accepted_centers, accepted_radii)
-                    ):
-                        bg_indices[i, placed] = b_idx_t[0] if has_reps else b_idx
-                        bg_quats[i, placed]   = b_quat[0]
-                        bg_sigma[i, placed]   = b_sig[0]
-                        bg_centers[i, placed] = center
-                        bg_mask[i, placed]    = True
-                        accepted_centers.append(center)
-                        accepted_radii.append(b_r)
-                        placed += 1
-                        break
+            if is_garbage:
+                garbage_mask[i] = True
+                n_garbage = int(torch.randint(self.min_garbage, self.max_garbage + 1, (1,)).item())
+                # fg slot already holds 1 random structure; place n_garbage - 1 more in bg slots
+                n_bg_to_place = max(0, n_garbage - 1)
+                self._place_background(
+                    i, n_bg_to_place, has_reps, accepted_centers, accepted_radii,
+                    bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
+                )
+            else:
+                n_bg = int(torch.randint(self.n_bg_min, self.n_bg_max + 1, (1,)).item())
+                self._place_background(
+                    i, n_bg, has_reps, accepted_centers, accepted_radii,
+                    bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
+                )
 
         return [fg_indices, fg_quats, fg_sigma, fg_shift,
                 fg_defocus, fg_b_factor, fg_amp, fg_snr,
-                bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask]
+                bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
+                garbage_mask]
 
 
 # ---------------------------------------------------------------------------

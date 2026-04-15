@@ -47,12 +47,12 @@ def add_noise(image: torch.Tensor, snr, seed=None) -> torch.Tensor:
     Adds noise to image.
 
     Args:
-        image (torch.Tensor): Image of shape (n_pixels, n_pixels).
-        image_params (dict): Dictionary with image parameters.
+        image (torch.Tensor): Image of shape (B, n_pixels, n_pixels).
+        snr (torch.Tensor): log10 SNR values, shape (B, 1, 1).
         seed (int, optional): Seed for random number generator. Defaults to None.
 
     Returns:
-        image_noise (torch.Tensor): Image with noise of shape (n_pixels, n_pixels) or (n_channels, n_pixels, n_pixels).
+        image_noise (torch.Tensor): Image with noise of shape (B, n_pixels, n_pixels).
     """
 
     if seed is not None:

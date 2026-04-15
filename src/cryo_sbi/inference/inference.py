@@ -57,7 +57,6 @@ def classifier_inference(cfg: DictConfig) -> None:
         pin_memory=True,
         prefetch_factor=ic.prefetch_factor,
         persistent_workers=True,
-        in_order=False,
     )
 
     results = []

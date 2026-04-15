@@ -88,7 +88,7 @@ class ConvNet_Encoder(nn.Module):
         return x
 
 
-@add_embedding("CONVNET")
+@add_embedding("REGNETX")
 class RegNetX_Encoder(nn.Module):
     def __init__(self, out_dim: int):
         super(RegNetX_Encoder, self).__init__()
