@@ -64,12 +64,12 @@ In the following section, I highlighted cryoSBI key features.
 
 Generate model file to simulate cryo-EM particles
 -------------------------------------------------
-To generate a model file for simulating cryo-EM particles with the simulator provided in this module, you can use the command line tool `models_to_tensor`.
+To generate a model file for simulating cryo-EM particles with the simulator provided in this module, you can use the command line tool `model_to_tensor`.
 You will need either a set of pdbs which are indexd or a trr trejectory file which contians all models. The tool will generate a model file that can be used to simulate cryo-EM particles.
 
 .. code:: bash
 
-    models_to_tensor \
+    model_to_tensor \
         --model_file path_to_models/pdb_{}.pdb \
         --output_file path_to_output_file/output.pt \
         --n_pdbs 100
