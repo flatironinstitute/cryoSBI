@@ -11,9 +11,23 @@ cryoSBI - Simulation-based Inference for Cryo-EM
       - | |githubactions|
         
 
-.. |githubactions| image:: https://github.com/DSilva27/cryo_em_SBI/actions/workflows/python-package.yml/badge.svg?branch=main
+.. |githubactions| image:: https://github.com/flatironinstitute/cryoSBI/actions/workflows/python-package.yml/badge.svg?branch=main
     :alt: Testing Status
-    :target: https://github.com/DSilva27/cryo_em_SBI/actions
+    :target: https://github.com/flatironinstitute/cryoSBI/actions
+
+Overview
+--------
+``cryoSBI`` provides simulation-based inference (SBI) tools for cryo-EM image analysis.
+The package supports the full workflow from model preparation and synthetic cryo-EM image
+generation to classifier training and amortized inference on particle stacks.
+
+Main functionalities
+~~~~~~~~~~~~~~~~~~~~
+
+#. **Model preparation from atomic structures** via ``make_torch_models``.
+#. **Cryo-EM simulation pipeline** (CTF, defocus/noise sampling, and image generation).
+#. **Classifier training** with configurable embedding backbones and classifier heads.
+#. **Inference on MRC particles** with batched data loading and configurable preprocessing.
 
 Installing
 ----------
@@ -59,9 +73,61 @@ Generate model file to simulate cryo-EM particles
 .. code-block:: bash
 
     make_torch_models \
-        --pdb_files path_to_pdb_1.pdb path_to_pdb_2.pdb ... \
-        --save_path path_to_save_models.pt \
+        --pdb_files path_to_pdb_1.pdb,path_to_pdb_2.pdb,... \
+        --output_file path_to_save_models.pt \
         --atom_selection "name CA"
+
+Hyperparameter / configuration files
+------------------------------------
+Two JSON files control simulation and training. You can use the examples in
+``tests/config_files/`` directly as templates:
+
+#. ``tests/config_files/image_params_testing.json``
+#. ``tests/config_files/training_params_mlp.json``
+#. ``tests/config_files/training_params_proto.json``
+
+Image simulation config
+~~~~~~~~~~~~~~~~~~~~~~~
+Example fields:
+
+.. code-block:: json
+
+    {
+        "N_PIXELS": 64,
+        "PIXEL_SIZE": 2.06,
+        "SIGMA": [0.5, 5.0],
+        "MODEL_FILE": "tests/models/hsp90_models.pt",
+        "SHIFT": 20.0,
+        "DEFOCUS": [1.5, 3.5],
+        "SNR": [0.05, 0.05],
+        "AMP": 0.1,
+        "B_FACTOR": [1.0, 100.0]
+    }
+
+Training config
+~~~~~~~~~~~~~~~
+Example fields:
+
+.. code-block:: json
+
+    {
+        "EMBEDDING": {
+            "MODEL": "RESNET18",
+            "OUT_DIM": 128
+        },
+        "CLASSIFIER": {
+            "MODEL": "MLP",
+            "NUM_CLASSES": 44,
+            "NUM_LAYERS": 8,
+            "NODES_PER_LAYER": 128,
+            "DROPOUT": 0.05
+        },
+        "LEARNING_RATE": 0.0005,
+        "ONE_CYCLE_SCHEDULER": true,
+        "CLIP_GRADIENT": 5.0,
+        "WEIGHT_DECAY": 0.01,
+        "BATCH_SIZE": 128
+    }
 
 Training classifier for amortized inference
 -------------------------------------
@@ -92,3 +158,11 @@ Inference on cryo-EM particles
         --image_size 256 \
         --prefetch_factor 2
 
+Development and testing
+-----------------------
+The repository CI runs tests with ``pytest``. To run locally:
+
+.. code-block:: bash
+
+    pip install pytest
+    pytest tests/
