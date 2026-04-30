@@ -1,0 +1,14 @@
+defaults:
+  # train_schema is a Structured Config registered in cryo_sbi/utils/conf_schema.py;
+  # listing it first attaches the dataclass schema to the composed config so
+  # typos at the CLI (e.g. train.epoch=200) error at startup.
+  - train_schema
+  - simulation
+  - train
+  - _self_
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

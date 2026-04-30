@@ -42,12 +42,11 @@ class ResNet50_Encoder(nn.Module):
         self.resnet.conv1 = nn.Conv2d(
             1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
         )
-        self.linear = nn.Linear(1000, out_dim)
+        self.resnet.fc = nn.Linear(in_features=2048, out_features=out_dim, bias=True)
 
     def forward(self, x):
         x = x.unsqueeze(1)
         x = self.resnet(x)
-        x = self.linear(nn.functional.relu(x))
         return x
 
 
@@ -60,12 +59,11 @@ class ResNet101_Encoder(nn.Module):
         self.resnet.conv1 = nn.Conv2d(
             1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
         )
-        self.linear = nn.Linear(1000, out_dim)
+        self.resnet.fc = nn.Linear(in_features=2048, out_features=out_dim, bias=True)
 
     def forward(self, x):
         x = x.unsqueeze(1)
         x = self.resnet(x)
-        x = self.linear(nn.functional.relu(x))
         return x
 
 
@@ -154,12 +152,11 @@ class WideResnet50_Encoder(nn.Module):
         self.wideresnet.conv1 = nn.Conv2d(
             1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
         )
-        self.linear = nn.Linear(1000, out_dim)
+        self.wideresnet.fc = nn.Linear(in_features=2048, out_features=out_dim, bias=True)
 
     def forward(self, x):
         x = x.unsqueeze(1)
         x = self.wideresnet(x)
-        x = self.linear(nn.functional.relu(x))
         return x
 
 
@@ -172,12 +169,11 @@ class WideResnet101_Encoder(nn.Module):
         self.wideresnet.conv1 = nn.Conv2d(
             1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
         )
-        self.linear = nn.Linear(1000, out_dim)
+        self.wideresnet.fc = nn.Linear(in_features=2048, out_features=out_dim, bias=True)
 
     def forward(self, x):
         x = x.unsqueeze(1)
         x = self.wideresnet(x)
-        x = self.linear(nn.functional.relu(x))
         return x
 
 
@@ -289,6 +285,12 @@ class ConvEncoder(nn.Module):
         )
 
     def forward(self, x):
+        # The tutorial-grade encoder expects 64x64 inputs; reject silently-wrong
+        # shapes rather than relying on view() to reshape across image sizes.
+        if x.shape[-2:] != (64, 64):
+            raise ValueError(
+                f"ConvEncoder_Tutorial requires 64x64 inputs; got shape {tuple(x.shape)}"
+            )
         x = x.view(-1, 1, 64, 64)
         x = self.main(x)
         return x.view(x.size(0), -1)  # flatten

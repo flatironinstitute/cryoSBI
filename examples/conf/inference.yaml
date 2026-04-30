@@ -1,0 +1,19 @@
+defaults:
+  # inference_schema attaches the InferenceAppConfig dataclass schema to the
+  # composed config so typos at the CLI error at startup.
+  - inference_schema
+  - train
+  - _self_
+
+inference:
+  folder_with_mrcs: ???       # required — override on command line
+  estimator_weights: ???      # required — override on command line
+  file_name: results          # output filenames: likelihoods_<file_name>.pt, embeddings_<file_name>.pt
+  num_workers: 2              # 0 = synchronous loading (no DataLoader worker processes)
+  output_dir: .
+  image_size: 128
+  prefetch_factor: 2          # only used when num_workers > 0
+  max_batch_size: 32
+  whitening: true
+  invert_contrast: true       # flip sign of input images (matches simulator-positive vs MRC-negative density)
+  device: cuda                # falls back to cpu when CUDA isn't available

@@ -51,7 +51,7 @@ def gen_rot_matrix(quats: torch.Tensor) -> torch.Tensor:
     Generate a rotation matrix from a quaternion.
 
     Args:
-        quat (torch.Tensor): Quaternion (n_batch, 4)
+        quats (torch.Tensor): Quaternion (n_batch, 4)
 
     Returns:
         rot_matrix (torch.Tensor): Rotation matrix
@@ -88,7 +88,9 @@ def project_density(
 
     Args:
         coords (torch.Tensor): Coordinates of the atoms in the images
-        sigma (float): Standard deviation of the Gaussian function used to model electron density.
+        quats (torch.Tensor): Rotation quaternions of shape (batch_size, 4).
+        sigma (torch.Tensor): Standard deviation of the Gaussian function used to model electron density.
+        shift (torch.Tensor): In-plane shifts of shape (batch_size, 2) in Angstrom.
         num_pixels (int): Number of pixels along one image size.
         pixel_size (float): Pixel size in Angstrom
 
@@ -101,15 +103,19 @@ def project_density(
     num_valid_atoms = mask.sum(dim=1, keepdim=True)
     norm = 1 / (2 * torch.pi * sigma.squeeze() ** 2 * num_valid_atoms.squeeze())
 
-    grid_min = -pixel_size * num_pixels * 0.5
-    grid_max = pixel_size * num_pixels * 0.5
+    n_px = int(num_pixels)
+    half_extent = pixel_size * num_pixels * 0.5
+    # Pixel-center convention: pixel i is at coord (i - (N-1)/2) * pixel_size.
+    # Symmetric around origin; matches torch.fft.fftfreq's spatial convention
+    # and the FG mask in cryo_em_simulator.image_formation. linspace with
+    # explicit length avoids the FP drift arange would exhibit.
+    grid_min = -half_extent + 0.5 * pixel_size
+    grid_max = half_extent - 0.5 * pixel_size
 
     rot_matrix = gen_rot_matrix(quats)
-    grid = torch.arange(grid_min, grid_max, pixel_size, device=coords.device)[
-        0 : num_pixels.long()
-    ].repeat(
-        num_batch, 1
-    )  # [0: num_pixels.long()] is needed due to single precision error in some cases
+    grid = torch.linspace(
+        float(grid_min), float(grid_max), n_px, device=coords.device
+    ).repeat(num_batch, 1)
 
     coords_rot = torch.bmm(rot_matrix, coords)
     coords_rot[:, :2, :] += shift.unsqueeze(-1)

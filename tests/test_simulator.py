@@ -1,16 +1,11 @@
 import pytest
 import torch
 
+from tests.conftest import TESTS_DIR
 from cryo_sbi.simulator.cryo_em_simulator import CryoEmSimulator
 from cryo_sbi.simulator.ctf import apply_ctf
-from cryo_sbi.simulator.image_generation import (
-    project_density,
-    gen_quat,
-    gen_rot_matrix,
-)
-from cryo_sbi.simulator.noise import add_noise, circular_mask, get_snr
-from cryo_sbi.simulator.normalization import gaussian_normalize_image
-from cryo_sbi.simulator.priors import get_image_priors
+from cryo_sbi.simulator.image_generation import gen_rot_matrix
+from cryo_sbi.simulator.noise import get_snr
 
 
 def test_apply_ctf():
@@ -61,16 +56,25 @@ def test_get_snr(noise_std, num_images):
     ), "SNR is not correct"
 
 
+def _testing_simulator_config():
+    """Load tests/config_files/image_params_testing.json and absolutize model_file."""
+    import json
+    cfg_path = TESTS_DIR / "config_files" / "image_params_testing.json"
+    cfg = json.loads(cfg_path.read_text())
+    cfg["model_file"] = str(TESTS_DIR / "models" / "hsp90_models.pt")
+    return cfg
+
+
 @pytest.mark.parametrize(("num_images"), [1, 5])
 def test_simulator_default_settings(num_images):
-    sim = CryoEmSimulator("tests/config_files/image_params_testing.json")
+    sim = CryoEmSimulator(_testing_simulator_config())
     images = sim.sample_and_simulate(num_images)
     assert images.shape == torch.Size([num_images, 64, 64])
 
 
 @pytest.mark.parametrize(("num_images"), [1, 5])
 def test_simulator_custom_indices(num_images):
-    sim = CryoEmSimulator("tests/config_files/image_params_testing.json")
+    sim = CryoEmSimulator(_testing_simulator_config())
     test_indices = torch.arange(num_images, dtype=torch.int64)
     images, parameters = sim.sample_and_simulate(
         num_images, indices=test_indices, return_parameters=True
@@ -87,7 +91,7 @@ GARBAGE_CONFIG = {
     "n_pixels": 64,
     "pixel_size": 2.06,
     "sigma": [0.5, 5.0],
-    "model_file": "tests/models/hsp90_models.pt",
+    "model_file": str(TESTS_DIR / "models" / "hsp90_models.pt"),
     "shift": 20.0,
     "defocus": [1.5, 3.5],
     "snr": [0.05, 0.05],

@@ -12,6 +12,7 @@ from cryo_sbi.simulator.priors import (
     MultiParticleImagePrior,
 )
 
+
 def image_formation(
     fg_models,
     fg_quats,
@@ -30,6 +31,8 @@ def image_formation(
     pixel_size,
     pad_start: int,
     pad_end: int,
+    snr_mask_radius: float,
+    voltage_kv: float = 300.0,
 ) -> torch.Tensor:
     """
     Unified image formation pipeline for single- and multi-particle images.
@@ -57,6 +60,10 @@ def image_formation(
         pixel_size (torch.Tensor): Scalar — pixel size in Angstrom.
         pad_start (int): Start index for center-crop.
         pad_end (int): End index for center-crop.
+        snr_mask_radius (float): Radius (Angstrom) of the FG-centered circular
+            mask used to estimate signal power for SNR scaling. The mask is
+            built per batch around each image's fg_shift.
+        voltage_kv (float, optional): Microscope acceleration voltage in kV. Defaults to 300.0.
 
     Returns:
         torch.Tensor: Normalized images, shape (B, pad_end-pad_start, pad_end-pad_start).
@@ -79,12 +86,34 @@ def image_formation(
     ).sum(dim=1)
 
     image = apply_ctf(
-        fg_density + bg_density, fg_defocus, fg_b_factor, fg_amp, pixel_size
+        fg_density + bg_density, fg_defocus, fg_b_factor, fg_amp, pixel_size,
+        voltage_kv=voltage_kv,
     )
     image = image[:, pad_start:pad_end, pad_start:pad_end]
-    image = add_noise(image, fg_snr)
-    return gaussian_normalize_image(image)
 
+    # FG-region RMS over a per-image circular mask centered on each image's
+    # fg_shift (Angstrom). The mask follows the FG so it tracks the actual
+    # particle position; no shift padding needed in the radius.
+    B, N, _ = image.shape
+    half = (N - 1) * 0.5
+    xs = (torch.arange(N, device=image.device, dtype=image.dtype) - half) * pixel_size
+    # project_density's bmm puts row i ↔ x-coord, col j ↔ y-coord, so the
+    # x-shift varies along axis i (rows) and the y-shift along axis j (cols).
+    dx = xs[None, :, None] - fg_shift[:, 0:1, None]   # (B, N, 1) — row i
+    dy = xs[None, None, :] - fg_shift[:, 1:2, None]   # (B, 1, N) — col j
+    r2 = dx * dx + dy * dy                            # (B, N, N) via broadcast
+    mask = (r2 < snr_mask_radius * snr_mask_radius).to(image.dtype)
+
+    # Fused: sum_{ij} image[b,i,j]² · mask[b,i,j] → (B,), divided by mask area.
+    sq_mean = (
+        torch.einsum("bij,bij,bij->b", image, image, mask)
+        / mask.sum(dim=(-2, -1)).clamp_min(1.0)
+    )
+    eps = torch.finfo(image.dtype).eps
+    signal_power = sq_mean.clamp_min(eps).sqrt()
+
+    image = add_noise(image, fg_snr, signal_power=signal_power)
+    return gaussian_normalize_image(image)
 
 
 class CryoEmSimulator:
@@ -113,10 +142,20 @@ class CryoEmSimulator:
         self._load_models()
 
         self._n_bg_max  = int(getattr(self._config, "n_bg_max", 0))
-        padding_factor  = int(getattr(self._config, "padding_factor", 1))
-        self._n_px_pad  = int(self._config.n_pixels) * padding_factor
-        self._pad_start = (self._n_px_pad - int(self._config.n_pixels)) // 2
-        self._pad_end   = self._pad_start + int(self._config.n_pixels)
+        padding_factor = float(getattr(self._config, "padding_factor", 1.0))
+        if padding_factor < 1.0:
+            raise ValueError(
+                f"padding_factor must be >= 1.0, got {padding_factor!r}."
+            )
+        n_pixels = int(self._config.n_pixels)
+        n_px_pad = round(n_pixels * padding_factor)
+        # Snap to same parity as n_pixels so the crop is symmetric
+        # (pad_start = (n_px_pad - n_pixels) // 2 needs an even delta).
+        if (n_px_pad - n_pixels) % 2 == 1:
+            n_px_pad += 1
+        self._n_px_pad  = n_px_pad
+        self._pad_start = (self._n_px_pad - n_pixels) // 2
+        self._pad_end   = self._pad_start + n_pixels
 
         self._num_pixels = torch.tensor(
             self._config.n_pixels, dtype=torch.float32, device=device
@@ -129,8 +168,23 @@ class CryoEmSimulator:
         )
 
         self.garbage_class = bool(getattr(self._config, "garbage_class", False))
+        self._voltage_kv = float(getattr(self._config, "voltage_kv", 300.0))
 
         ellipsoid_radii = fit_ellipsoids(self._models_cpu)
+
+        # SNR-mask radius: covers the FG particle in any orientation. The
+        # mask itself is centered on each image's fg_shift, built per batch
+        # in image_formation() — so we only need the scalar radius here.
+        # ellipsoid_radii.max() is a strict upper bound on the largest 2D
+        # projection of any model (fit_ellipsoids returns bounding semi-axes
+        # by construction); no shift padding is needed because the mask
+        # follows the FG.
+        snr_radius_override = getattr(self._config, "snr_mask_radius_angstrom", None)
+        if snr_radius_override is not None:
+            self._snr_mask_radius = float(snr_radius_override)
+        else:
+            self._snr_mask_radius = float(ellipsoid_radii.max().item())
+
         self._priors = MultiParticleImagePrior(
             base_prior=get_image_priors(
                 self.num_models, self.num_representatives, self._config, device="cpu"
@@ -138,8 +192,7 @@ class CryoEmSimulator:
             ellipsoid_radii=ellipsoid_radii,
             n_bg_min=int(getattr(self._config, "n_bg_min", 0)),
             n_bg_max=self._n_bg_max,
-            n_pixels=int(self._config.n_pixels),
-            padding_factor=padding_factor,
+            n_pixels_padded=self._n_px_pad,
             pixel_size=float(self._config.pixel_size),
             exclusion_radius=float(getattr(self._config, "exclusion_radius", 0.0)),
             max_placement_attempts=int(
@@ -169,20 +222,22 @@ class CryoEmSimulator:
 
     def _load_models(self) -> None:
         model_file = self._config.model_file
-        if model_file.endswith("npy"):
+        if model_file.endswith(".npy"):
             models = (
                 torch.from_numpy(np.load(model_file))
                 .to(self._device)
                 .to(torch.float32)
             )
-        elif model_file.endswith("pt"):
+        elif model_file.endswith(".pt"):
             models = (
                 torch.load(model_file, weights_only=True)
                 .to(self._device)
                 .to(torch.float32)
             )
         else:
-            raise NotImplementedError("Model file must be .npy or .pt")
+            raise NotImplementedError(
+                f"Model file must be .npy or .pt; got {model_file!r}"
+            )
 
         self._models = models
         self._models_cpu = models.cpu()
@@ -243,6 +298,8 @@ class CryoEmSimulator:
             bg_mask,
             self._num_pixels_padded, self._pixel_size,
             self._pad_start, self._pad_end,
+            snr_mask_radius=self._snr_mask_radius,
+            voltage_kv=self._voltage_kv,
         )
 
     def sample_and_simulate(

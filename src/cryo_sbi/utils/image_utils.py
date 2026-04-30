@@ -1,3 +1,4 @@
+import logging
 from typing import List, Union
 from functools import lru_cache
 import numpy as np
@@ -5,6 +6,8 @@ import torch
 import torchvision.transforms as transforms
 import mrcfile
 from tqdm import tqdm
+
+_log = logging.getLogger(__name__)
 
 
 def circular_mask(
@@ -17,6 +20,7 @@ def circular_mask(
         n_pixels (int): Side length of the image in pixels.
         radius (int): Radius of the circle.
         inside (bool, optional): If True, the mask will be True inside the circle. Defaults to True.
+        device (str, optional): Device on which to allocate the mask. Defaults to "cpu".
 
     Returns:
         mask (torch.Tensor): Mask of shape (n_pixels, n_pixels).
@@ -28,7 +32,7 @@ def circular_mask(
     r_2d = grid[None, :] ** 2 + grid[:, None] ** 2
 
     if inside is True:
-        mask = r_2d < radius**2
+        mask = r_2d <= radius**2
     else:
         mask = r_2d > radius**2
 
@@ -60,13 +64,13 @@ class Mask:
             image (torch.Tensor): Image with masked region equal to zero.
         """
 
+        image = image.clone()
         if len(image.shape) == 2:
             image[self.mask] = 0
         elif len(image.shape) == 3:
             image[:, self.mask] = 0
         else:
             raise NotImplementedError
-
         return image
 
 
@@ -102,7 +106,7 @@ def fourier_down_sample(
     else:
         raise NotImplementedError
 
-    fft_image = torch.fft.fftshift(fft_image)
+    fft_image = torch.fft.ifftshift(fft_image)
     reconstructed = torch.fft.ifft2(fft_image).real
     return reconstructed
 
@@ -169,7 +173,7 @@ class LowPassFilter:
         else:
             raise NotImplementedError
 
-        fft_image = torch.fft.fftshift(fft_image)
+        fft_image = torch.fft.ifftshift(fft_image)
         reconstructed = torch.fft.ifft2(fft_image).real
         return reconstructed
 
@@ -209,7 +213,7 @@ class GaussianLowPassFilter:
         else:
             raise NotImplementedError
 
-        fft_image = torch.fft.fftshift(fft_image)
+        fft_image = torch.fft.ifftshift(fft_image)
         reconstructed = torch.fft.ifft2(fft_image).real
         return reconstructed
 
@@ -266,12 +270,16 @@ class NormalizeIndividual:
         return transforms.functional.normalize(images, mean=mean, std=std)
 
 
-def mrc_to_tensor(image_path: str, copy: bool = False) -> torch.Tensor:
+def mrc_to_tensor(image_path: str, copy: bool = True) -> torch.Tensor:
     """
     Convert an MRC file to a tensor.
 
     Args:
         image_path (str): Path to the MRC file.
+        copy (bool, optional): Retained for API compatibility; the underlying
+            memory-mapped data is always copied because the mmap is closed
+            when this function returns and a non-copied tensor would point at
+            unmapped memory.
 
     Returns:
         image (torch.Tensor): Image of shape (n_pixels, n_pixels).
@@ -280,9 +288,7 @@ def mrc_to_tensor(image_path: str, copy: bool = False) -> torch.Tensor:
     assert isinstance(image_path, str), "image path needs to be a string"
 
     with mrcfile.mmap(image_path, permissive=True) as mrc:
-        data = mrc.data
-        if copy:
-            data = np.copy(data)
+        data = np.copy(mrc.data)
 
     return torch.from_numpy(data)
 
@@ -318,6 +324,8 @@ def estimate_noise_psd(
     Args:
         images (torch.Tensor): A tensor containing the input images. The shape of the tensor should be (N, H, W),
                                where N is the number of images, H is the height, and W is the width.
+        image_size (int): Side length of the images in pixels.
+        mask_radius (int, optional): Radius of the circular mask used to isolate the noise region. Defaults to image_size // 2 when None.
 
     Returns:
         torch.Tensor: A tensor containing the estimated PSD of the noise. The shape of the tensor is (H, W), where H is the height
@@ -332,7 +340,8 @@ def estimate_noise_psd(
     mean_est = images_masked.sum() / denominator
     image_masked_fft = torch.fft.fft2(images_masked)
     noise_psd_est = torch.sum(torch.abs(image_masked_fft) ** 2, dim=[0]) / denominator
-    noise_psd_est[image_size // 2, image_size // 2] -= mean_est
+    # DC component of an unshifted FFT lives at [0, 0], not [N//2, N//2].
+    noise_psd_est[0, 0] -= mean_est
 
     return noise_psd_est
 
@@ -363,20 +372,30 @@ class WhitenImage:
         Whiten an image by dividing by the square root of the noise PSD.
 
         Args:
-            image (torch.Tensor): Image of shape (n_pixels, n_pixels).
+            images (torch.Tensor): Image of shape (n_pixels, n_pixels) or
+                (num_images, n_pixels, n_pixels).
 
         Returns:
-            image (torch.Tensor): Whitened image.
+            torch.Tensor: Whitened image, same shape as input.
         """
-
-        assert (
-            images.ndim == 3
-        ), "Image should have shape (num_images , n_pixels, n_pixels)"
-        noise_psd = self._estimate_noise_psd(images) ** -0.5
+        squeeze_back = False
+        if images.ndim == 2:
+            images = images.unsqueeze(0)
+            squeeze_back = True
+        elif images.ndim != 3:
+            raise ValueError(
+                f"Expected 2D (n_pixels, n_pixels) or 3D (B, n_pixels, n_pixels) "
+                f"image; got shape {tuple(images.shape)}"
+            )
+        psd = self._estimate_noise_psd(images)
+        # Clamp before sqrt to avoid div-by-zero where the masked-region PSD has
+        # exact zeros (constant inputs, fully masked regions, etc.).
+        eps = torch.finfo(psd.dtype).eps
+        noise_psd = psd.clamp_min(eps) ** -0.5
         images_fft = torch.fft.fft2(images)
         images_fft = images_fft * noise_psd
         images = torch.fft.ifft2(images_fft).real
-        return images
+        return images.squeeze(0) if squeeze_back else images
 
 
 class GaussianSpatialMask:
@@ -419,6 +438,7 @@ class MRCdataset:
 
     Args:
         image_paths (list[str]): List of paths to MRC files.
+        cache_size (int, optional): LRU cache size for the MRC-to-tensor loader. Set to 0 to disable caching. Defaults to 16.
 
     Methods:
         build_index_map: Builds a map of indices to file paths and file indices.
@@ -455,7 +475,7 @@ class MRCdataset:
         Builds a map of image indices to file paths and file indices.
         """
         if self._index_map is not None:
-            print("Index map already built.")
+            _log.info("Index map already built.")
             return
 
         if method == "mrc":
@@ -468,7 +488,7 @@ class MRCdataset:
     def _build_index_map_by_loading_mrc(self):
         self._path_index = []
         self._file_index = []
-        print("Initializing indexing...")
+        _log.info("Initializing indexing...")
         for idx, path in tqdm(enumerate(self.paths), total=self._num_paths):
             num_images = self._extract_num_particles(path)
             self._path_index += [idx] * num_images
@@ -523,6 +543,7 @@ class MRCdataset:
             image = self._mrc_to_tensor_cached(self.paths[self._path_index[idx]])
             if image.ndim > 2:
                 return image[self._file_index[idx]]
+            return image
         if isinstance(idx, (list, np.ndarray, torch.Tensor)):
             return [
                 self._mrc_to_tensor_cached(self.paths[self._path_index[i]])[
@@ -530,6 +551,7 @@ class MRCdataset:
                 ]
                 for i in idx
             ]
+        raise TypeError(f"idx must be int, list, np.ndarray, or torch.Tensor; got {type(idx)}")
 
     def get_path(self, idx: Union[int, list]) -> Union[str, List[str]]:
         """
@@ -544,7 +566,10 @@ class MRCdataset:
         if isinstance(idx, int):
             return self.paths[self._path_index[idx]], self._file_index[idx]
         if isinstance(idx, (list, np.ndarray, torch.Tensor)):
-            return [self.paths[self._path_index[i]] for i in idx], self._file_index[idx]
+            paths = [self.paths[self._path_index[i]] for i in idx]
+            file_indices = [self._file_index[i] for i in idx]
+            return paths, file_indices
+        raise TypeError(f"idx must be int, list, np.ndarray, or torch.Tensor; got {type(idx)}")
 
 
 class MRCloader(torch.utils.data.DataLoader):

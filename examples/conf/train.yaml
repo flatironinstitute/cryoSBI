@@ -1,52 +1,36 @@
-simulation:
-  model_file: /home/dingeldein/Desktop/p4p6_pdb_models_dec_25/models_set0.pt
-  n_pixels: 128
-  pixel_size: 1.5
-  sigma:
-  - 2.0
-  - 2.0
-  shift: 15.0
-  defocus:
-  - 1.5
-  - 3.5
-  snr:
-  - 0.5
-  - 0.5
-  amp: 0.1
-  b_factor:
-  - 1.0
-  - 100.0
-  n_bg_min: 0
-  n_bg_max: 10
-  padding_factor: 2
-  exclusion_radius: 0.0
-  max_placement_attempts: 1000
 train:
+  # --- Model architecture ---
   embedding:
-    model: RESNET18
+    model: REGNETY
     out_dim: 128
   classifier:
     model: MLP
-    num_classes: 44
+    num_classes: 44         # Must match number of models in model_file
     num_layers: 8
     nodes_per_layer: 128
     dropout: 0.05
+
+  # --- Hyperparameters ---
   learning_rate: 0.0005
   one_cycle_scheduler: true
   clip_gradient: 5.0
   weight_decay: 0.001
   batch_size: 128
+
+  # --- Training loop ---
   epochs: 150
   device: cuda
   n_workers: 4
   saving_frequency: 20
   simulation_batch_size: 1024
-  batches_per_epoch: 100
-  prefetch_factor: 4
+  batches_per_epoch: 100    # simulation batches consumed per epoch
+  prefetch_factor: 4        # queue depth ≈ prefetch_factor * n_workers
   train_from_checkpoint: false
   checkpoint_file: null
   use_amp: false
   compile_model: false
+
+  # --- Output ---
   output:
     checkpoint_dir: ${hydra:runtime.output_dir}/checkpoints
     tensorboard_dir: ${hydra:runtime.output_dir}/tensorboard_logs

@@ -1,5 +1,5 @@
 simulation:
-  model_file: /home/dingeldein/Desktop/p4p6_pdb_models_dec_25/models_set0.pt
+  model_file: ???           # required — path to .pt or .npy model coordinates
   n_pixels: 128
   pixel_size: 1.5           # Angstrom per pixel
   sigma: [1.0, 1.0]         # Gaussian width [min, max] in Angstrom
@@ -7,12 +7,18 @@ simulation:
   defocus: [1.0, 1.0]       # CTF defocus [min, max] in micrometers
   snr: [0.5, 0.5]           # SNR [min, max] (log10 scale)
   amp: 0.1                  # Amplitude contrast
+  voltage_kv: 300.0         # Microscope accelerating voltage in kV
   b_factor: [1.0, 100.0]
   n_bg_min: 0
   n_bg_max: 2
-  padding_factor: 1.5
+  padding_factor: 1.0          # float ≥1.0; 1.0 disables padding (single-particle mode).
+                               # Padded grid is round(n_pixels * padding_factor),
+                               # parity-snapped so cropping stays symmetric.
   exclusion_radius: 0.0
   max_placement_attempts: 1000
   garbage_class: true         # set to true to add a garbage class (last class index)
   min_garbage: 4               # min random structures per garbage image
   max_garbage: 10              # max random structures per garbage image
+  snr_mask_radius_angstrom: null  # null → max ellipsoid semi-axis across the model pool
+                                  # (covers any particle in any orientation). Set a float
+                                  # (e.g. 40.0) to override.

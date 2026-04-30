@@ -8,21 +8,19 @@ def pdb_parser_(fname: str, atom_selection: str = "all") -> torch.tensor:
     The atomic model is a 5xN array, where N is the number of residues in the protein.
     The first three rows are the x, y, z coordinates of the alpha carbons.
 
-    Parameters
-    ----------
-    fname : str
-        The path to the pdb file.
+    Args:
+        fname (str): The path to the pdb file.
+        atom_selection (str, optional): MDAnalysis selection string for the atoms to keep. Defaults to "all".
 
-    Returns
-    -------
-    atomic_model : torch.tensor
-        The coarse grained atomic model of the protein.
+    Returns:
+        atomic_model (torch.tensor): The coarse grained atomic model of the protein.
     """
 
     univ = mda.Universe(fname)
-    univ.atoms.translate(-univ.atoms.center_of_mass())
+    selected = univ.select_atoms(atom_selection)
+    selected.translate(-selected.center_of_mass())
 
-    model = torch.from_numpy(univ.select_atoms(atom_selection).positions.T)
+    model = torch.from_numpy(selected.positions.T)
 
     return model
 
@@ -31,12 +29,10 @@ def make_torch_models(pdb_files: list[str], output_file: str, atom_selection: st
     """
     Converts a list of pdb files to a single torch tensor and saves it to disk.
 
-    Parameters
-    ----------
-    pdb_files : list[str]
-        List of paths to pdb files.
-    output_file : str
-        Path to save the torch tensor.
+    Args:
+        pdb_files (list[str]): List of paths to pdb files.
+        output_file (str): Path to save the torch tensor.
+        atom_selection (str, optional): MDAnalysis selection string passed to ``pdb_parser_``. Defaults to "all".
     """
 
     models = []

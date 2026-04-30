@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import warnings
+
 import torch
 import zuko
 from torch.utils.data import DataLoader, IterableDataset
 
-from cryo_sbi.simulator.image_generation import gen_quat, gen_quats, gen_rot_matrix
+from cryo_sbi.simulator.image_generation import gen_quats, gen_rot_matrix
 
 
 def _box_uniform(lo: float, hi: float, device: str) -> zuko.distributions.BoxUniform:
@@ -47,7 +49,14 @@ class QuaternionPrior:
 
     def __init__(self, device: str, fixed_quat: list | None = None):
         self._device = device
-        self._fixed = torch.tensor(fixed_quat, dtype=torch.float32, device=device) if fixed_quat else None
+        if fixed_quat is None:
+            self._fixed = None
+        else:
+            q = torch.tensor(fixed_quat, dtype=torch.float32, device=device)
+            norm = q.norm()
+            if norm == 0:
+                raise ValueError("fixed_quat must have non-zero norm.")
+            self._fixed = q / norm
 
     def sample(self, shape: tuple) -> torch.Tensor:
         if self._fixed is not None:
@@ -97,7 +106,7 @@ class ImagePrior:
 
         shift_prior = zuko.distributions.BoxUniform(
             lower=torch.tensor([-shift, -shift], dtype=torch.float32, device=device),
-            upper=torch.tensor([ shift,  shift], dtype=torch.float32, device=device),
+            upper=torch.tensor([shift, shift], dtype=torch.float32, device=device),
             ndims=1,
         )
 
@@ -135,25 +144,70 @@ def get_image_priors(
 
 def fit_ellipsoids(models: torch.Tensor) -> torch.Tensor:
     """
-    Fit a bounding ellipsoid to each model via PCA of its atom coordinates.
+    Fit a PCA-aligned bounding shape to each model.
+
+    The principal axes come from PCA of the centered atom positions, and each
+    semi-axis is set to the maximum |projection| of any atom along that axis.
+    These are the half-extents of the bounding *box* in the PCA frame — every
+    atom is inside the box, but atoms near the box corners can still lie
+    outside the inscribed ellipsoid `(p₁/a)² + (p₂/b)² + (p₃/c)² ≤ 1`.
+
+    A ``UserWarning`` is issued for any model where more than 15% of the atom
+    centers fall outside the implied ellipsoid; in that case the FG SNR mask
+    will under-cover the molecule and ``simulation.snr_mask_radius_angstrom``
+    should be set explicitly.
 
     Args:
         models: (N, 3, n_atoms) or (N, R, 3, n_atoms). If 4-D, the first
                 representative is used. NaN / Inf atoms are excluded.
 
     Returns:
-        torch.Tensor: (N, 3) ellipsoid semi-axes in Angstrom, on CPU.
+        torch.Tensor: (N, 3) PCA-frame semi-axes in Angstrom, on CPU.
     """
     if models.ndim == 4:
         models = models[:, 0]
 
     radii = []
-    for coords in models:                                  # (3, n_atoms)
-        valid = coords[:, torch.isfinite(coords).all(dim=0)]
+    for i, coords in enumerate(models):                         # (3, n_atoms)
+        valid = coords[:, torch.isfinite(coords).all(dim=0)]    # drop NaN/Inf
         centered = valid - valid.mean(dim=1, keepdim=True)
-        cov = centered @ centered.T / centered.shape[1]   # (3, 3)
-        radii.append(torch.linalg.eigvalsh(cov).clamp(min=0).sqrt())
-    return torch.stack(radii)                              # (N, 3)
+        # Principal axes via PCA of the atom-coordinate covariance.
+        # eigh returns columns-as-eigenvectors; eigvecs.T projects onto them.
+        _, eigvecs = torch.linalg.eigh(centered @ centered.T / centered.shape[1])
+        projected = eigvecs.T @ centered                        # (3, n_atoms)
+        # Per-axis semi-axis = max |projection| along that axis (box half-extent).
+        half_extents = projected.abs().max(dim=1).values        # (3,)
+
+        # Sanity: how many atoms fall outside the implied ellipsoid?
+        # An atom at projected coords p is inside iff Σ_k (p_k / s_k)² ≤ 1.
+        # Clamp the divisor: a degenerate model (single atom, collinear, etc.)
+        # has half_extents == 0 along some axis and would otherwise produce
+        # 0/0 = NaN, silently suppressing the >15% warning.
+        eps = torch.finfo(half_extents.dtype).eps
+        ellipsoid_metric = (
+            (projected / half_extents.clamp_min(eps).unsqueeze(-1)) ** 2
+        ).sum(dim=0)
+        n_total = projected.shape[1]
+        n_outside = int((ellipsoid_metric > 1.0).sum().item())
+        if (half_extents == 0).any():
+            warnings.warn(
+                f"fit_ellipsoids: model {i} is degenerate (single atom or "
+                "collinear/coplanar) — at least one principal-axis extent is "
+                "0, so collision detection will not exclude overlap along "
+                "that axis.",
+                stacklevel=2,
+            )
+        elif n_total > 0 and n_outside / n_total > 0.15:
+            warnings.warn(
+                f"fit_ellipsoids: model {i} has {100 * n_outside / n_total:.1f}% "
+                f"of atoms outside its bounding ellipsoid (>15% threshold). "
+                "The FG SNR mask derived from these radii may under-cover the "
+                "molecule; consider setting simulation.snr_mask_radius_angstrom "
+                "explicitly.",
+                stacklevel=2,
+            )
+        radii.append(half_extents)
+    return torch.stack(radii)                                   # (N, 3)
 
 
 # ---------------------------------------------------------------------------
@@ -176,8 +230,7 @@ class MultiParticleImagePrior:
         ellipsoid_radii: torch.Tensor,
         n_bg_min: int,
         n_bg_max: int,
-        n_pixels: int,
-        padding_factor: int,
+        n_pixels_padded: int,
         pixel_size: float,
         exclusion_radius: float,
         max_placement_attempts: int = 200,
@@ -186,18 +239,34 @@ class MultiParticleImagePrior:
         max_garbage: int = 10,
         num_models: int = 1,
     ):
+        # MultiParticleImagePrior is CPU-only by design: it runs inside CPU
+        # DataLoader workers, and ellipsoid_radii is forced to CPU below. If
+        # base_prior was built on CUDA, indexing ellipsoid_radii with a CUDA
+        # `fg_idx_flat` later would raise a cryptic device-mismatch error.
+        # Fail fast at construction with a clear message instead.
+        base_device = base_prior._priors[0]._model_dist.probs.device
+        if base_device.type != "cpu":
+            raise ValueError(
+                f"MultiParticleImagePrior requires a CPU base_prior, got "
+                f"device={base_device}. Construct ImagePrior with device='cpu'."
+            )
         self.base_prior = base_prior
         self.ellipsoid_radii = ellipsoid_radii.cpu()
         self.n_bg_min = n_bg_min
         self.n_bg_max = n_bg_max
         self.exclusion_radius = exclusion_radius
         self.max_placement_attempts = max_placement_attempts
-        self._half_pad_ang = n_pixels * padding_factor * pixel_size / 2.0
+        self._half_pad_ang = n_pixels_padded * pixel_size / 2.0
 
         self.garbage_class = garbage_class
         self.min_garbage = min_garbage
         self.max_garbage = max_garbage
+        # n_slots reserves enough background-particle storage for either real
+        # background images (n_bg_max slots) or garbage images (which use
+        # max_garbage-1 slots, since the foreground occupies one of them).
         self.n_slots = max(n_bg_max, max_garbage - 1) if garbage_class else n_bg_max
+        # Make the garbage class as likely as any of the num_models real classes:
+        # together they form a uniform (num_models + 1)-way distribution.
         self.p_garbage = 1.0 / (num_models + 1) if garbage_class else 0.0
 
     @staticmethod
@@ -220,6 +289,8 @@ class MultiParticleImagePrior:
 
     def _sample_pool(self, pool_size: int, has_reps: bool):
         """Pre-sample a pool of background candidates with projected radii."""
+        # NB: `_priors` is positional; index 0 = IndexPrior, index 2 = sigma.
+        # Order is set in `ImagePrior.__init__`.
         index_prior = self.base_prior._priors[0]
         sigma_prior = self.base_prior._priors[2]
 
@@ -240,6 +311,18 @@ class MultiParticleImagePrior:
             fg_defocus, fg_b_factor, fg_amp, fg_snr,
             bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
             garbage_mask
+
+        Class-label contract (when garbage_class is True):
+            ``fg_indices`` plays two roles. As a *model selector* it is always
+            a real index in ``[0, num_models)`` — the simulator uses it to pull
+            atom coords. As a *class label* it is correct only on non-garbage
+            rows; on garbage rows the true label is ``num_models``. Consumers
+            that need labels must merge with ``garbage_mask``::
+
+                labels = fg_indices[..., 0].clone() if has_reps else fg_indices.clone()
+                labels[garbage_mask] = num_models
+
+            See ``cryo_sbi.training.training`` for the canonical merge.
         """
         B = shape[0]
         fg_indices, fg_quats, fg_sigma, fg_shift, \

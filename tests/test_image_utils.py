@@ -1,5 +1,7 @@
 import pytest
 import torch
+
+from tests.conftest import TESTS_DIR
 from cryo_sbi.utils import image_utils as iu
 
 
@@ -87,7 +89,7 @@ def test_normalize_individual():
 
 
 def test_mrc_to_tensor():
-    image_path = "tests/data/test.mrc"
+    image_path = str(TESTS_DIR / "data" / "test.mrc")
     image = iu.mrc_to_tensor(image_path)
 
     assert isinstance(image, torch.Tensor)
@@ -95,7 +97,7 @@ def test_mrc_to_tensor():
 
 
 def test_mrc_to_tensor_copy():
-    image_path = "tests/data/test.mrc"
+    image_path = str(TESTS_DIR / "data" / "test.mrc")
     image = iu.mrc_to_tensor(image_path, copy=True)
 
     assert isinstance(image, torch.Tensor)

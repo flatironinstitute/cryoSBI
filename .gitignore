@@ -1,19 +1,29 @@
 # Project specific files
 messing_around/
 tests/test_simulator.ipynb
+tmp.ipynb
+nohup.out
 *.estimator
 *.h5
 .vscode/
+.claude/
 .DS_Store
 #SBI related folders
 sbi-logs/
 *.png
 *.pdf
-*.png
 
 # Training data, models and other datafiles
 results/
 production/
+outputs/
+multirun/
+runs/
+tensorboard_logs/
+*.pt
+*.npy
+!tests/models/*.pt
+!tests/data/*.npy
 *.estimator
 *epoch=*
 *.loss

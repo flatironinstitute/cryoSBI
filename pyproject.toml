@@ -1,34 +1,62 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 
 [project]
 name = "cryosbi"
+version = "0.2.0"
+description = "Simulation-based inference for cryo-electron microscopy."
+readme = "README.rst"
+requires-python = ">=3.10"
+license = { text = "MIT" }
 authors = [
-   { name = "David Silva-Sanchez", email = "david.silva@yale.edu"},
-   { name = "Lars Dingeldein"},
-   { name = "Pilar Cossio"},
-   { name = "Roberto Covino"}
+   { name = "David Silva-Sanchez", email = "david.silva@yale.edu" },
+   { name = "Lars Dingeldein" },
+   { name = "Pilar Cossio" },
+   { name = "Roberto Covino" },
 ]
-
-
-version = "0.2"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
 dependencies = [
-    "zuko",
-    "torch",
-    "numpy",
-    "matplotlib",
-    "scipy",
-    "torchvision",
-    "mrcfile",
-    "tqdm",
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "zuko>=1.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.6",
+    "mrcfile>=1.4",
+    "tqdm>=4.65",
     "hydra-core>=1.3",
     "tensorboard>=2.14",
+    "omegaconf>=2.3",
 ]
+
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+dev = ["pytest>=7", "flake8>=6"]
+pdb = ["MDAnalysis>=2.4"]
+
+
+[project.urls]
+Homepage = "https://github.com/flatironinstitute/cryoSBI"
+Repository = "https://github.com/flatironinstitute/cryoSBI"
 
 
 [project.scripts]
 make_torch_models    = "cryo_sbi.utils.__main__:main"
 classifier_inference = "cryo_sbi.inference.__main__:main"
 train_classifier     = "cryo_sbi.training.__main__:main"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
