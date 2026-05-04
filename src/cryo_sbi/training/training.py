@@ -200,19 +200,12 @@ def train_classifier(cfg: DictConfig) -> None:
 
     simulator = CryoEmSimulator(image_cfg, device=device)
 
-    if simulator.garbage_class:
-        # Build a local copy with the derived num_classes — mutating the Hydra
-        # config in place can raise under struct mode and hides the original
-        # value in saved hparams.
-        train_cfg = OmegaConf.create(OmegaConf.to_container(train_cfg, resolve=True))
-        train_cfg.classifier.num_classes = simulator.num_models + 1
-        logging.info(
-            f"Garbage class enabled, num_classes set to {simulator.num_models + 1}"
-        )
-
+    num_classes = simulator.num_models + (1 if simulator.garbage_class else 0)
+    n_reps = simulator.num_representatives if simulator.num_representatives is not None else 1
+    suffix = " + garbage class" if simulator.garbage_class else ""
     logging.info(
-        f"Training on {simulator.num_models} models with "
-        f"{simulator.num_representatives if simulator.num_representatives is not None else 1} representatives"
+        f"Training on {simulator.num_models} classes with {n_reps} representatives"
+        f"{suffix} (num_classes={num_classes})"
     )
 
     prior_loader = PriorLoader(
@@ -238,7 +231,7 @@ def train_classifier(cfg: DictConfig) -> None:
         )
         use_amp = False
 
-    estimator = build_classifier(train_cfg).to(device=device)
+    estimator = build_classifier(train_cfg, num_classes).to(device=device)
     loss_fn = ClassifierLoss(estimator)
 
     optimizer = optim.AdamW(

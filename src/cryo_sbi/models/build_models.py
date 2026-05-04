@@ -22,12 +22,15 @@ def _lookup(registry: dict, name: str) -> type:
     )
 
 
-def build_classifier(config) -> nn.Module:
+def build_classifier(config, num_classes: int) -> nn.Module:
     """
     Builds a classifier model with an embedding network.
 
     Args:
         config: OmegaConf DictConfig or plain dict with 'embedding' and 'classifier' sections.
+        num_classes: Output class count. Inferred by callers from the simulator
+            model tensor (training) or the saved state_dict (inference); not a
+            config field.
 
     Returns:
         nn.Module: ClassifierWithEmbedding instance.
@@ -52,6 +55,7 @@ def build_classifier(config) -> nn.Module:
         if k != "model" and v is not None
     }
     clf_kwargs["input_dim"] = emb_kwargs["out_dim"]
+    clf_kwargs["num_classes"] = num_classes
     classifier = partial(_lookup(CLASSIFIER, clf_cfg.model), **clf_kwargs)
 
     return ClassifierWithEmbedding(

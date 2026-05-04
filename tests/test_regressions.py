@@ -210,7 +210,6 @@ def test_train_classifier_one_epoch_cpu_smoke(tmp_path):
             "embedding": {"model": "RESNET18", "out_dim": 16},
             "classifier": {
                 "model": "MLP",
-                "num_classes": 20,  # hsp90_models.pt has 20 models
                 "num_layers": 2,
                 "nodes_per_layer": 16,
                 "dropout": 0.0,
@@ -239,7 +238,7 @@ def test_train_classifier_one_epoch_cpu_smoke(tmp_path):
         },
     })
     # garbage_class is enabled in the testing config; turn it off here so the
-    # auto-num_classes adjustment doesn't conflict with our explicit value.
+    # auto-num_classes inference (num_models + 0) matches hsp90's 20 models.
     cfg.simulation["garbage_class"] = False
 
     train_classifier(cfg)
@@ -260,14 +259,13 @@ def test_classifier_inference_cpu_smoke(tmp_path):
         "embedding": {"model": "RESNET18", "out_dim": 16},
         "classifier": {
             "model": "MLP",
-            "num_classes": 4,
             "num_layers": 2,
             "nodes_per_layer": 16,
             "dropout": 0.0,
         },
     }
     weights_path = tmp_path / "weights.pt"
-    estimator = build_classifier(train_cfg)
+    estimator = build_classifier(train_cfg, num_classes=4)
     torch.save(estimator.state_dict(), weights_path)
 
     # Stage the test MRC under a name matching get_file_list's regex.

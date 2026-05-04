@@ -5,7 +5,6 @@
     },
     "classifier": {
         "model": "MLP",
-        "num_classes": 44,
         "num_layers": 8,
         "nodes_per_layer": 128,
         "dropout": 0.05

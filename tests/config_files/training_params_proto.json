@@ -4,8 +4,7 @@
         "out_dim": 128
     },
     "classifier": {
-        "model": "PROTOTYPE",
-        "num_classes": 44
+        "model": "PROTOTYPE"
     },
     "learning_rate": 0.0005,
     "one_cycle_scheduler": true,

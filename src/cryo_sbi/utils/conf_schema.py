@@ -47,9 +47,11 @@ class ClassifierConfig:
     MLP and PROTOTYPE classifiers consume different fields. Unused fields are
     set to None and filtered out by ``build_classifier`` before being passed to
     the constructor — so a PROTOTYPE config doesn't need to set MLP-only fields.
+
+    ``num_classes`` is intentionally absent: it is inferred at runtime from the
+    simulator's model tensor (training) or from the saved state_dict (inference).
     """
     model: str = "MLP"
-    num_classes: int = MISSING
     # MLP-specific
     num_layers: Optional[int] = None
     nodes_per_layer: Optional[int] = None
@@ -129,13 +131,12 @@ def register_configs() -> None:
     """
 
     cs = ConfigStore.instance()
-    # Register schemas under the names that @hydra.main looks up. This makes
-    # validation automatic — even if the user's project YAML doesn't include
-    # the schema in its defaults list, Hydra still attaches it because the
-    # name matches. Wrong types and unknown keys then error at startup.
-    cs.store(name="config", node=TrainAppConfig)
-    cs.store(name="inference", node=InferenceAppConfig)
-    # Aliases for explicit defaults-list references in user YAML.
+    # Schemas are only registered under explicit alias names. Registering them
+    # under the same names that @hydra.main looks up ("config", "inference")
+    # triggered Hydra's deprecated automatic-schema-matching, which silently
+    # bypassed the YAML defaults list and forced dataclass defaults to apply.
+    # Users who want validation can opt in with `- train_schema` /
+    # `- inference_schema` in their YAML defaults list.
     cs.store(name="train_schema", node=TrainAppConfig)
     cs.store(name="inference_schema", node=InferenceAppConfig)
     # Per-section schemas, referenced from YAML defaults lists if the user
