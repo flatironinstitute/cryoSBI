@@ -8,12 +8,12 @@ defaults:
 inference:
   folder_with_mrcs: ???       # required — override on command line
   estimator_weights: ???      # required — override on command line
-  file_name: results          # output filenames: likelihoods_<file_name>.pt, embeddings_<file_name>.pt
+  suffix: null             # output filenames: likelihoods_<suffix>.pt, embeddings_<suffix>.pt
   num_workers: 2              # 0 = synchronous loading (no DataLoader worker processes)
   output_dir: .
-  image_size: 128
   prefetch_factor: 2          # only used when num_workers > 0
   max_batch_size: 32
   whitening: true
   invert_contrast: true       # flip sign of input images (matches simulator-positive vs MRC-negative density)
+  down_sampled_size: null     # if set, down-sample input images to this size (before whitening and normalization)
   device: cuda                # falls back to cpu when CUDA isn't available

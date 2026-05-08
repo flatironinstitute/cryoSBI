@@ -367,9 +367,12 @@ used at training time.
 
 Outputs (in ``inference.output_dir``):
 
-- ``likelihoods_<file_name>.pt`` — per-image classifier logits.
-- ``embeddings_<file_name>.pt`` — per-image embedding tensors.
-- ``image_index_<file_name>.pt`` — global image indices, in the same order.
+- ``likelihoods.pt`` — per-image classifier logits.
+- ``embeddings.pt`` — per-image embedding tensors.
+
+Set ``inference.suffix`` to tag the output filenames — e.g. ``suffix: run_a``
+yields ``likelihoods_run_a.pt`` and ``embeddings_run_a.pt``. Leaving it
+``null`` (the default) writes the unsuffixed names above.
 
 Pre-classification image transforms — ``whitening`` and ``invert_contrast``
 — are config knobs (see the *Configuration* table); both are on by default

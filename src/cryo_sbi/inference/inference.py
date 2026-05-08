@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import mrcfile
 import torch
 from omegaconf import DictConfig
 from torchvision import transforms
@@ -17,8 +18,8 @@ def setup_logging(debug: bool = False):
 
 
 def get_file_list(folder: str) -> list[str]:
-    """Return a sorted list of .mrc file paths from folder."""
-    paths = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".mrc")]
+    """Return a sorted list of .mrc / .mrcs file paths from folder."""
+    paths = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith((".mrc", ".mrcs"))]
     try:
         paths = sorted(paths, key=lambda x: int(os.path.basename(x).split("_")[1]))
     except (ValueError, IndexError):
@@ -48,14 +49,42 @@ def classifier_inference(cfg: DictConfig) -> None:
     invert_contrast = bool(ic.get("invert_contrast", True))
     sign = -1.0 if invert_contrast else 1.0
 
-    transform = transforms.Compose([
-        img_utils.WhitenImage(ic.image_size) if ic.whitening else img_utils.Identity(),
-        img_utils.NormalizeIndividual(),
-    ])
-
     particle_paths = get_file_list(ic.folder_with_mrcs)
-    logging.info(f"Found {len(particle_paths)} .mrc files.")
+    logging.info(f"Found {len(particle_paths)} .mrc / .mrcs files in {ic.folder_with_mrcs}.")
     logging.info("Analyzing:\n" + "\n".join(os.path.basename(p) for p in particle_paths))
+    if not particle_paths:
+        raise FileNotFoundError(f"No .mrc / .mrcs files found in {ic.folder_with_mrcs}")
+
+    # Peek at the first MRC header so the input image size comes from the data
+    # itself, not from a config field that could silently desync.
+    with mrcfile.open(particle_paths[0], permissive=True, header_only=True) as _mrc:
+        input_size = int(_mrc.header.nx)
+    logging.info(
+        f"Input image size (from MRC header of {os.path.basename(particle_paths[0])}): {input_size}."
+    )
+
+    # Track the spatial size as it flows through the pipeline: downsampling
+    # changes the tensor size, and any size-parameterized transform that runs
+    # afterwards (e.g. WhitenImage's noise-PSD mask) must match.
+    pipeline = []
+    effective_size = input_size
+    if ic.down_sampled_size is not None and 0 < ic.down_sampled_size < input_size:
+        pipeline.append(img_utils.FourierDownSample(image_size=input_size, down_sampled_size=ic.down_sampled_size))
+        effective_size = ic.down_sampled_size
+        logging.info(f"Downsampling enabled: {input_size} -> {ic.down_sampled_size}.")
+    else:
+        logging.info(
+            f"Downsampling disabled (input_size={input_size}, down_sampled_size={ic.down_sampled_size}); "
+            f"images will pass through at size {effective_size}."
+        )
+    if ic.whitening:
+        pipeline.append(img_utils.WhitenImage(effective_size))
+    pipeline.append(img_utils.NormalizeIndividual())
+    transform = transforms.Compose(pipeline)
+    logging.info(
+        f"Transform pipeline: {[type(t).__name__ for t in pipeline]} "
+        f"(effective_size={effective_size})."
+    )
 
     classifier = cls_utils.load_classifier(cfg.train, ic.estimator_weights, device=device)
 
@@ -91,11 +120,9 @@ def classifier_inference(cfg: DictConfig) -> None:
     embeddings  = torch.cat([r[2] for r in results])
 
     os.makedirs(ic.output_dir, exist_ok=True)
-    file_name = str(ic.file_name)
-    if not file_name.endswith(".pt"):
-        file_name = f"{file_name}.pt"
-    torch.save(likelihoods, os.path.join(ic.output_dir, f"likelihoods_{file_name}"))
-    torch.save(embeddings,  os.path.join(ic.output_dir, f"embeddings_{file_name}"))
+    tag = f"_{ic.suffix}" if ic.suffix else ""
+    torch.save(likelihoods, os.path.join(ic.output_dir, f"likelihoods{tag}.pt"))
+    torch.save(embeddings,  os.path.join(ic.output_dir, f"embeddings{tag}.pt"))
     logging.info(
         f"Inference completed in {time.time() - start_time:.2f}s "
         f"for {likelihoods.shape[0]} images."

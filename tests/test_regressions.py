@@ -279,10 +279,10 @@ def test_classifier_inference_cpu_smoke(tmp_path):
         "inference": {
             "folder_with_mrcs": str(mrc_dir),
             "estimator_weights": str(weights_path),
-            "file_name": "smoke",
+            "suffix": "smoke",
             "num_workers": 0,
             "output_dir": str(tmp_path / "out"),
-            "image_size": 5,
+            "down_sampled_size": None,
             "prefetch_factor": None,
             "max_batch_size": 32,
             "whitening": False,  # 5x5 MRC isn't a meaningful target for noise PSD

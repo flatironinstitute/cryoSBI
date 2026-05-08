@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Union
 from omegaconf import MISSING
 from hydra.core.config_store import ConfigStore
 
@@ -94,10 +94,10 @@ class TrainConfig:
 class InferenceConfig:
     folder_with_mrcs: str = MISSING
     estimator_weights: str = MISSING
-    file_name: str = "results"
+    suffix: Optional[str] = None
     num_workers: int = 2
     output_dir: str = "."
-    image_size: int = 128
+    down_sampled_size: Optional[int] = None
     prefetch_factor: Optional[int] = 2
     max_batch_size: int = 32
     whitening: bool = True
