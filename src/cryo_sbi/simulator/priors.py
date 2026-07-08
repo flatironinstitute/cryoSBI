@@ -264,7 +264,10 @@ class MultiParticleImagePrior:
         # n_slots reserves enough background-particle storage for either real
         # background images (n_bg_max slots) or garbage images (which use
         # max_garbage-1 slots, since the foreground occupies one of them).
-        self.n_slots = max(n_bg_max, max_garbage - 1) if garbage_class else n_bg_max
+        #self.n_slots = max(n_bg_max, max_garbage - 1) if garbage_class else n_bg_max
+        
+        # changed so that garbage has no foreground particle
+        self.n_slots = max(n_bg_max, max_garbage) if garbage_class else n_bg_max
         # Make the garbage class as likely as any of the num_models real classes:
         # together they form a uniform (num_models + 1)-way distribution.
         self.p_garbage = 1.0 / (num_models + 1) if garbage_class else 0.0
@@ -348,7 +351,7 @@ class MultiParticleImagePrior:
             n_bg_counts = torch.randint(self.n_bg_min, self.n_bg_max + 1, (B,))
             n_garbage_counts = torch.randint(self.min_garbage, self.max_garbage + 1, (B,))
             n_to_place = torch.where(
-                garbage_mask, (n_garbage_counts - 1).clamp(min=0), n_bg_counts
+                garbage_mask, n_garbage_counts, n_bg_counts
             )
         else:
             garbage_mask = torch.zeros(B, dtype=torch.bool)
@@ -370,37 +373,92 @@ class MultiParticleImagePrior:
             if n == 0:
                 continue
 
-            # Reset collision state: foreground at origin
-            acc_centers[0] = 0.0
-            acc_radii[0] = fg_proj_radii[i]
-            n_acc = 1
+            n = min(n, self.n_slots)
 
-            placed = 0
-            for _ in range(n):
-                for _ in range(self.max_placement_attempts):
-                    # Refill pool if exhausted
+            # ------------------------------------------------------------
+            # Garbage images:
+            # Allow random overlap / pile-up. This makes garbage actually
+            # look like bad crowded picks instead of trying to pack
+            # non-overlapping particles into a small image.
+            # ------------------------------------------------------------
+            if bool(garbage_mask[i]):
+                for placed in range(n):
                     if pool_ptr >= pool_size:
-                        p_idx_raw, p_quats, p_sigma, p_idx_flat, p_radii, p_centers = \
-                            self._sample_pool(pool_size, has_reps)
+                        (
+                            p_idx_raw,
+                            p_quats,
+                            p_sigma,
+                            p_idx_flat,
+                            p_radii,
+                            p_centers,
+                        ) = self._sample_pool(pool_size, has_reps)
                         pool_ptr = 0
 
                     p = pool_ptr
                     pool_ptr += 1
 
-                    # Vectorized distance check against all accepted particles
+                    bg_indices[i, placed] = p_idx_raw[p] if has_reps else p_idx_flat[p]
+                    bg_quats[i, placed] = p_quats[p]
+                    bg_sigma[i, placed] = p_sigma[p]
+                    bg_centers[i, placed] = p_centers[p]
+                    bg_mask[i, placed] = True
+
+                continue
+
+            # ------------------------------------------------------------
+            # Normal images:
+            # Keep original non-overlap placement.
+            # ------------------------------------------------------------
+            acc_centers[0] = 0.0
+            acc_radii[0] = fg_proj_radii[i]
+            n_acc = 1
+            placed = 0
+
+            for _ in range(n):
+                placed_this_particle = False
+
+                for _ in range(self.max_placement_attempts):
+                    if pool_ptr >= pool_size:
+                        (
+                            p_idx_raw,
+                            p_quats,
+                            p_sigma,
+                            p_idx_flat,
+                            p_radii,
+                            p_centers,
+                        ) = self._sample_pool(pool_size, has_reps)
+                        pool_ptr = 0
+
+                    p = pool_ptr
+                    pool_ptr += 1
+
                     dists = torch.norm(acc_centers[:n_acc] - p_centers[p], dim=1)
-                    if (dists > p_radii[p] + acc_radii[:n_acc] + self.exclusion_radius).all():
+
+                    if (
+                        dists
+                        > p_radii[p] + acc_radii[:n_acc] + self.exclusion_radius
+                    ).all():
                         bg_indices[i, placed] = p_idx_raw[p] if has_reps else p_idx_flat[p]
-                        bg_quats[i, placed]   = p_quats[p]
-                        bg_sigma[i, placed]   = p_sigma[p]
+                        bg_quats[i, placed] = p_quats[p]
+                        bg_sigma[i, placed] = p_sigma[p]
                         bg_centers[i, placed] = p_centers[p]
-                        bg_mask[i, placed]    = True
+                        bg_mask[i, placed] = True
+
                         acc_centers[n_acc] = p_centers[p]
                         acc_radii[n_acc] = p_radii[p]
                         n_acc += 1
                         placed += 1
+                        placed_this_particle = True
                         break
 
+                if not placed_this_particle:
+                    warnings.warn(
+                        f"Only placed {placed}/{n} background particles for image {i}. "
+                        "Try reducing exclusion_radius or increasing max_placement_attempts.",
+                        stacklevel=2,
+                    )
+                    break
+        
         return [fg_indices, fg_quats, fg_sigma, fg_shift,
                 fg_defocus, fg_b_factor, fg_amp, fg_snr,
                 bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,

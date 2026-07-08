@@ -33,6 +33,7 @@ def image_formation(
     pad_end: int,
     snr_mask_radius: float,
     voltage_kv: float = 300.0,
+    garbage_mask: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """
     Unified image formation pipeline for single- and multi-particle images.
@@ -74,6 +75,13 @@ def image_formation(
     fg_density = project_density(
         fg_models, fg_quats, fg_sigma, fg_shift, num_pixels_padded, pixel_size
     )
+    
+    # For garbage-class images, remove the centered foreground particle.
+    # Otherwise garbage = foreground + clutter, which looks too similar to normal.
+    if garbage_mask is not None:
+        garbage_mask = garbage_mask.to(device=fg_density.device, dtype=torch.bool).view(-1)
+        keep_fg = (~garbage_mask).to(fg_density.dtype).view(-1, 1, 1)
+        fg_density = fg_density * keep_fg
 
     bg_density_flat = project_density(
         bg_models, bg_quats, bg_sigma, bg_centers, num_pixels_padded, pixel_size
@@ -281,7 +289,7 @@ class CryoEmSimulator:
         (fg_indices, fg_quats, fg_sigma, fg_shift,
          fg_defocus, fg_b_factor, fg_amp, fg_snr,
          bg_indices, bg_quats, bg_sigma, bg_centers, bg_mask,
-         _garbage_mask) = (
+         garbage_mask) = (
             t.to(dev, non_blocking=True) for t in parameters
         )
 
@@ -300,6 +308,7 @@ class CryoEmSimulator:
             self._pad_start, self._pad_end,
             snr_mask_radius=self._snr_mask_radius,
             voltage_kv=self._voltage_kv,
+            garbage_mask=garbage_mask,
         )
 
     def sample_and_simulate(
