@@ -2,7 +2,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-from tests.conftest import TESTS_DIR
+from conftest import TESTS_DIR
 from cryo_sbi.models import build_models
 from cryo_sbi.models import estimator_models
 

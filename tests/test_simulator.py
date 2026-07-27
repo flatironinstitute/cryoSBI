@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tests.conftest import TESTS_DIR
+from conftest import TESTS_DIR
 from cryo_sbi.simulator.cryo_em_simulator import CryoEmSimulator
 from cryo_sbi.simulator.ctf import apply_ctf
 from cryo_sbi.simulator.image_generation import gen_rot_matrix

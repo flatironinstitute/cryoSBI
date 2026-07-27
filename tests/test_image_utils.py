@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tests.conftest import TESTS_DIR
+from conftest import TESTS_DIR
 from cryo_sbi.utils import image_utils as iu
 
 

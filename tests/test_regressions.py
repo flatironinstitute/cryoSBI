@@ -8,7 +8,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-from tests.conftest import TESTS_DIR
+from conftest import TESTS_DIR
 from cryo_sbi.simulator.cryo_em_simulator import CryoEmSimulator
 from cryo_sbi.simulator.normalization import gaussian_normalize_image
 from cryo_sbi.training.training import GDStep, _save_checkpoint, _load_checkpoint
